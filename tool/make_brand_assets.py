@@ -18,10 +18,14 @@ import sys
 
 from PIL import Image, ImageDraw
 
-# The mark on a 56×42 grid (assets' Union.svg), as rectangles x0, y0, x1, y1.
+# The mark on a 56×42 grid (Kestrel falcon wings), as rectangles x0, y0, x1, y1.
 RECTS = [
-    (14, 0, 42, 7), (7, 7, 14, 14), (42, 7, 49, 14), (0, 14, 7, 35),
-    (49, 14, 56, 35), (14, 21, 22, 28), (35, 21, 43, 28), (7, 35, 49, 42),
+    (0, 0, 7, 7), (49, 0, 56, 7),
+    (0, 7, 21, 14), (35, 7, 56, 14),
+    (7, 14, 49, 21),
+    (14, 21, 42, 28),
+    (7, 28, 14, 35), (21, 28, 35, 35), (42, 28, 49, 35),
+    (21, 35, 35, 42),
 ]
 COLORS = {'black': (0x1B, 0x1A, 0x17), 'white': (0xFF, 0xFF, 0xFF)}
 GOLD, ICON_BG = (0xFF, 0xDA, 0x7A), (0x0D, 0x0D, 0x0D)

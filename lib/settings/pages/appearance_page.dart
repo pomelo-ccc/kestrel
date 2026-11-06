@@ -28,7 +28,12 @@ import '../../platform/event_log.dart' show appEvent;
 import '../../theme/app_theme.dart';
 import '../../theme/code_font.dart';
 import '../../theme/window_blur.dart';
-import '../../theme/workbench_theme.dart' show ThemeSettingDefaults;
+import '../../theme/workbench_theme.dart'
+    show
+        ThemePaletteOverrides,
+        ThemeSettingDefaults,
+        WorkbenchThemeService,
+        themeColors;
 import '../user_settings.dart';
 import 'settings_dropdown.dart';
 import 'settings_widgets.dart';
@@ -397,6 +402,7 @@ class AppearanceSettingsPage extends StatelessWidget {
         CodeFont.terminalSize,
         EditorWordWrap.on,
         EditorMinimap.on,
+        ThemePaletteOverrides.changes,
       ]),
       builder: (context, _) {
         final widthStep = ChatWidth.stepOf(ChatWidth.current.value);
@@ -593,6 +599,18 @@ class AppearanceSettingsPage extends StatelessWidget {
                     ),
                   ),
               ],
+            ),
+            _ThemePaletteSection(
+              dark: false,
+              themes: themes,
+              entries: groups.first,
+              onSelectPreset: _select,
+            ),
+            _ThemePaletteSection(
+              dark: true,
+              themes: themes,
+              entries: groups.length > 1 ? groups[1] : const [],
+              onSelectPreset: _select,
             ),
             SettingsCard(
               children: [
@@ -902,6 +920,461 @@ if (add(p, q).x >= 0 && p !== q) {
             path: 'preview.ts',
             readOnly: true,
             bare: true,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Claude-style Light Theme / Dark Theme palette customizer card with
+/// Preset, Background (`#FAF9F5` / `#191919`), Foreground (`#141413` / `#FAF9F5`),
+/// and Accent (`#D97757`) controls.
+class _ThemePaletteSection extends StatelessWidget {
+  const _ThemePaletteSection({
+    required this.dark,
+    required this.themes,
+    required this.entries,
+    required this.onSelectPreset,
+  });
+
+  final bool dark;
+  final IdeColorThemeController themes;
+  final List<IdeColorThemeEntry> entries;
+  final ValueChanged<String> onSelectPreset;
+
+  String _presetLabel(String currentId) {
+    final defaultId = dark
+        ? ThemeSettingDefaults.colorThemeDark
+        : ThemeSettingDefaults.colorThemeLight;
+    final defaultDisplay = dark ? 'Default Dark' : 'Default Light';
+    if (currentId == IdeColorThemeController.autoId || currentId == defaultId) {
+      return defaultDisplay;
+    }
+    final match = entries.where((e) => e.id == currentId).firstOrNull;
+    if (match == null) return defaultDisplay;
+    return match.id == defaultId ? defaultDisplay : match.label;
+  }
+
+  void _updateColor(ValueNotifier<Color?> target, Color? value) {
+    target.value = value;
+    WorkbenchThemeService.instance.invalidateColors();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final bgNotifier = dark
+        ? ThemePaletteOverrides.darkBackground
+        : ThemePaletteOverrides.lightBackground;
+    final fgNotifier = dark
+        ? ThemePaletteOverrides.darkForeground
+        : ThemePaletteOverrides.lightForeground;
+    final accentNotifier = dark
+        ? ThemePaletteOverrides.darkAccent
+        : ThemePaletteOverrides.lightAccent;
+
+    final bg =
+        bgNotifier.value ??
+        (dark
+            ? ThemePaletteOverrides.defaultDarkBackground
+            : ThemePaletteOverrides.defaultLightBackground);
+    final fg =
+        fgNotifier.value ??
+        (dark
+            ? ThemePaletteOverrides.defaultDarkForeground
+            : ThemePaletteOverrides.defaultLightForeground);
+    final accent =
+        accentNotifier.value ??
+        (dark
+            ? ThemePaletteOverrides.defaultDarkAccent
+            : ThemePaletteOverrides.defaultLightAccent);
+
+    final defaultId = dark
+        ? ThemeSettingDefaults.colorThemeDark
+        : ThemeSettingDefaults.colorThemeLight;
+    final presetLabel = _presetLabel(themes.colorThemeId);
+
+    return SettingsGroup(
+      title: dark ? 'Dark Theme' : 'Light Theme',
+      children: [
+        SettingsRow(
+          label: 'Preset',
+          trailing: _PalettePresetControl(
+            label: presetLabel,
+            entries: [
+              for (final entry in entries)
+                (
+                  id: entry.id,
+                  label: entry.id == defaultId
+                      ? (dark ? 'Default Dark' : 'Default Light')
+                      : entry.label,
+                ),
+            ],
+            onReset: () {
+              ThemePaletteOverrides.reset(dark: dark);
+              onSelectPreset(defaultId);
+            },
+            onSelected: (id) {
+              ThemePaletteOverrides.reset(dark: dark);
+              onSelectPreset(id);
+            },
+          ),
+        ),
+        SettingsRow(
+          label: 'Background',
+          trailing: _PaletteColorPill(
+            label: 'Background',
+            color: bg,
+            defaultColor: dark
+                ? ThemePaletteOverrides.defaultDarkBackground
+                : ThemePaletteOverrides.defaultLightBackground,
+            onChanged: (color) => _updateColor(bgNotifier, color),
+          ),
+        ),
+        SettingsRow(
+          label: 'Foreground',
+          trailing: _PaletteColorPill(
+            label: 'Foreground',
+            color: fg,
+            defaultColor: dark
+                ? ThemePaletteOverrides.defaultDarkForeground
+                : ThemePaletteOverrides.defaultLightForeground,
+            onChanged: (color) => _updateColor(fgNotifier, color),
+          ),
+        ),
+        SettingsRow(
+          label: 'Accent',
+          trailing: _PaletteColorPill(
+            label: 'Accent',
+            color: accent,
+            defaultColor: dark
+                ? ThemePaletteOverrides.defaultDarkAccent
+                : ThemePaletteOverrides.defaultLightAccent,
+            onChanged: (color) => _updateColor(accentNotifier, color),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _PalettePresetControl extends StatefulWidget {
+  const _PalettePresetControl({
+    required this.label,
+    required this.entries,
+    required this.onReset,
+    required this.onSelected,
+  });
+
+  final String label;
+  final List<({String id, String label})> entries;
+  final VoidCallback onReset;
+  final ValueChanged<String> onSelected;
+
+  @override
+  State<_PalettePresetControl> createState() => _PalettePresetControlState();
+}
+
+class _PalettePresetControlState extends State<_PalettePresetControl> {
+  bool _hoverReset = false;
+  bool _hoverPill = false;
+
+  void _openMenu() {
+    if (widget.entries.isEmpty) return;
+    final box = context.findRenderObject()! as RenderBox;
+    unawaited(
+      showIdeMenu(
+        context,
+        anchor: box.localToGlobal(Offset.zero) & box.size,
+        entries: ideMenuGroups([
+          [
+            for (final entry in widget.entries)
+              IdeMenuAction(
+                entry.label,
+                checked: entry.label == widget.label,
+                onSelected: () => widget.onSelected(entry.id),
+              ),
+          ],
+        ]),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final pillFill = AppColors.text.withValues(alpha: 0.06);
+    final pillHoverFill = AppColors.text.withValues(alpha: 0.10);
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        MouseRegion(
+          cursor: SystemMouseCursors.click,
+          onEnter: (_) => setState(() => _hoverReset = true),
+          onExit: (_) => setState(() => _hoverReset = false),
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: widget.onReset,
+            child: Container(
+              width: 26,
+              height: 26,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: _hoverReset ? pillFill : Colors.transparent,
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: Icon(
+                Icons.undo_rounded,
+                size: 15,
+                color: _hoverReset ? AppColors.text : AppColors.textMuted,
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(width: 6),
+        MouseRegion(
+          cursor: SystemMouseCursors.click,
+          onEnter: (_) => setState(() => _hoverPill = true),
+          onExit: (_) => setState(() => _hoverPill = false),
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: _openMenu,
+            child: Container(
+              height: 28,
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              decoration: BoxDecoration(
+                color: _hoverPill ? pillHoverFill : pillFill,
+                borderRadius: BorderRadius.circular(999),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    widget.label,
+                    style: TextStyle(
+                      color: AppColors.text,
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  Icon(
+                    Icons.keyboard_arrow_down_rounded,
+                    size: 15,
+                    color: AppColors.textMuted,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _PaletteColorPill extends StatefulWidget {
+  const _PaletteColorPill({
+    required this.label,
+    required this.color,
+    required this.defaultColor,
+    required this.onChanged,
+  });
+
+  final String label;
+  final Color color;
+  final Color defaultColor;
+  final ValueChanged<Color?> onChanged;
+
+  @override
+  State<_PaletteColorPill> createState() => _PaletteColorPillState();
+}
+
+class _PaletteColorPillState extends State<_PaletteColorPill> {
+  bool _hover = false;
+
+  Future<void> _editColor() async {
+    final hexNow = ThemePaletteOverrides.toHex(widget.color).substring(1);
+    final controller = TextEditingController(text: hexNow);
+    final result = await showDialog<String>(
+      context: context,
+      barrierColor: const Color(0x66000000),
+      builder: (context) => Dialog(
+        backgroundColor: AppColors.surface,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+          side: BorderSide(color: AppColors.border),
+        ),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 300),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  widget.label,
+                  style: TextStyle(
+                    color: AppColors.textPrimary,
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                TextField(
+                  controller: controller,
+                  autofocus: true,
+                  style: TextStyle(
+                    color: AppColors.text,
+                    fontFamily: AppFonts.mono,
+                    fontFamilyFallback: AppFonts.monoFallbacks,
+                    fontSize: 13,
+                  ),
+                  decoration: InputDecoration(
+                    prefixText: '# ',
+                    prefixStyle: TextStyle(
+                      color: AppColors.textMuted,
+                      fontFamily: AppFonts.mono,
+                      fontSize: 13,
+                    ),
+                    isDense: true,
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 8,
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: BorderSide(color: AppColors.borderStrong),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: BorderSide(color: AppColors.accent),
+                    ),
+                  ),
+                  onSubmitted: (value) => Navigator.pop(context, value),
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    GestureDetector(
+                      onTap: () => Navigator.pop(
+                        context,
+                        ThemePaletteOverrides.toHex(widget.defaultColor),
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
+                        child: Text(
+                          'Reset',
+                          style: TextStyle(
+                            color: AppColors.textMuted,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    GestureDetector(
+                      onTap: () => Navigator.pop(context, controller.text),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 5,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppColors.accent,
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Text(
+                          'Apply',
+                          style: TextStyle(
+                            color: themeColors['button.foreground'],
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+    controller.dispose();
+    if (result == null) return;
+    final parsed = ThemePaletteOverrides.parseHex(result);
+    if (parsed != null) {
+      widget.onChanged(
+        parsed.toARGB32() == widget.defaultColor.toARGB32() ? null : parsed,
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final hex = ThemePaletteOverrides.toHex(widget.color).substring(1);
+    final pillFill = AppColors.text.withValues(alpha: 0.05);
+    final pillHoverFill = AppColors.text.withValues(alpha: 0.09);
+    final pillBorder = AppColors.text.withValues(alpha: 0.10);
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      onEnter: (_) => setState(() => _hover = true),
+      onExit: (_) => setState(() => _hover = false),
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: _editColor,
+        child: Container(
+          height: 28,
+          padding: const EdgeInsets.only(left: 7, right: 12),
+          decoration: BoxDecoration(
+            color: _hover ? pillHoverFill : pillFill,
+            borderRadius: BorderRadius.circular(999),
+            border: Border.all(color: pillBorder),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 16,
+                height: 16,
+                decoration: BoxDecoration(
+                  color: widget.color,
+                  borderRadius: BorderRadius.circular(4),
+                  border: Border.all(
+                    color: AppColors.text.withValues(alpha: 0.14),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text.rich(
+                TextSpan(
+                  children: [
+                    TextSpan(
+                      text: '# ',
+                      style: TextStyle(
+                        color: AppColors.textMuted,
+                        fontSize: 12.5,
+                      ),
+                    ),
+                    TextSpan(
+                      text: hex,
+                      style: TextStyle(
+                        color: AppColors.text,
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w500,
+                        fontFeatures: const [FontFeature.tabularFigures()],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
         ),
       ),

@@ -293,6 +293,10 @@ class Sidebar extends StatefulWidget {
   /// Reaches this sidebar from the window.
   final SidebarLink? link;
 
+  /// The height of a conversation or navigation row in the sidebar
+  /// (`dsh-claude-style` 28px).
+  static const rowHeight = 28.0;
+
   @override
   State<Sidebar> createState() => _SidebarState();
 }
@@ -300,7 +304,7 @@ class Sidebar extends StatefulWidget {
 class _SidebarState extends State<Sidebar>
     with IdeKeyboardList<Sidebar>
     implements ChatDragList {
-  static const _rowHeight = IdeListColors.rowHeight;
+  static const _rowHeight = Sidebar.rowHeight;
 
   /// The agents a project shows until asked for more (pinned ones apart).
   static const _recent = 5;
@@ -1017,10 +1021,10 @@ class _SidebarState extends State<Sidebar>
           if (!WindowControls.drawsHeader) _buildTopBar(),
           Padding(
             padding: const EdgeInsets.fromLTRB(
-              8,
-              AppMetrics.contentInset,
-              8,
               6,
+              AppMetrics.contentInset,
+              6,
+              2,
             ),
             // A new chat picks its folder over its input (see
             // NewChatFolderBar): a folder first only without any.
@@ -1140,7 +1144,7 @@ class _SidebarState extends State<Sidebar>
                     context.l10n.sidebarAgents,
                     style: TextStyle(
                       color: AppColors.textFaint,
-                      fontSize: 11.5,
+                      fontSize: 12,
                       fontWeight: FontWeight.w500,
                     ),
                   )
@@ -2522,15 +2526,12 @@ class _NewAgentButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // The agent sessions window's New Session button, as a little card on
-    // the window's base (the islands' color and outline), hovered as rows
-    // on a card are (the text's color faintly over it): a theme's widget
-    // or toolbar colors are of no part of the window, and can all but
-    // vanish or stand out of place. Its hover with the keys of New Agent,
-    // which does the same (a folder first, without one).
-    final foreground = AppColors.text;
-    final card = AppColors.code;
-    final hover = Color.alphaBlend(AppColors.bubbleHover, card);
+    // Styled after dsh-claude-style's "New session" row: a flat 28px nav row
+    // with an 18x18 subtle circular "+" badge and 13px medium label.
+    final foreground = AppColors.textPrimary;
+    final badgeBackground = themeColors.dark
+        ? const Color(0x24FFFFFF)
+        : const Color(0x1A000000);
     return IdeHover(
       message: ChatKeys.titleWithKey(
         context.l10n.sidebarNewAgent,
@@ -2541,24 +2542,43 @@ class _NewAgentButton extends StatelessWidget {
       child: HoverBuilder(
         cursor: SystemMouseCursors.click,
         builder: (context, hovered) => GestureDetector(
+          behavior: HitTestBehavior.opaque,
           onTap: onTap,
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 120),
-            height: 30,
+            height: Sidebar.rowHeight,
             padding: const EdgeInsets.symmetric(horizontal: 8),
             decoration: BoxDecoration(
-              color: hovered ? hover : card,
-              borderRadius: BorderRadius.circular(Islands.controlRadius),
-              border: Border.all(color: Islands.border),
+              color: hovered ? AppColors.hover : Colors.transparent,
+              borderRadius: BorderRadius.circular(Islands.rowRadius),
             ),
             child: Row(
               children: [
-                Icon(Icons.add_rounded, size: 16, color: foreground),
-                SizedBox(width: 6),
+                 SizedBox.square(
+                  dimension: 18,
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      color: badgeBackground,
+                      shape: BoxShape.circle,
+                    ),
+                    child: Center(
+                      child: Icon(
+                        Icons.add_rounded,
+                        size: 13,
+                        color: foreground,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
                 Expanded(
                   child: Text(
                     context.l10n.sidebarNewAgent,
-                    style: TextStyle(color: foreground, fontSize: 12.5),
+                    style: TextStyle(
+                      color: foreground,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
                 ),
               ],
@@ -2609,7 +2629,7 @@ class _NavRow extends StatelessWidget {
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 6),
           child: IdeListRow(
-            height: IdeListColors.rowHeight,
+            height: Sidebar.rowHeight,
             selected: selected,
             keepSelectionActive: true,
             onTap: onTap,
@@ -2632,6 +2652,8 @@ class _NavRow extends StatelessWidget {
                                     'list.activeSelectionIconForeground',
                                   ) ??
                                   foreground
+                            : hovered
+                            ? foreground
                             : AppColors.textMuted,
                       ),
                       const SizedBox(width: 8),
@@ -2640,7 +2662,7 @@ class _NavRow extends StatelessWidget {
                           label,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: TextStyle(color: foreground, fontSize: 12.5),
+                          style: TextStyle(color: foreground, fontSize: 13),
                         ),
                       ),
                       // As the side panel rail's badges, in its colors.
@@ -2761,14 +2783,15 @@ class _GroupHeader extends StatelessWidget {
               ? null
               : (details) => menu.open(details.globalPosition),
           child: Container(
-            height: 26,
+            height: Sidebar.rowHeight,
             margin: const EdgeInsets.only(top: 6),
-            padding: EdgeInsets.only(left: light ? 6 : 4, right: 2),
+            padding: EdgeInsets.only(left: light ? 8 : 6, right: 2),
             decoration: BoxDecoration(
-              color: (active || dragged || located) && project != null
+              color: (dragged || located || (menu?.isOpen ?? false)) &&
+                      project != null
                   ? AppColors.hover
                   : Colors.transparent,
-              borderRadius: BorderRadius.circular(5),
+              borderRadius: BorderRadius.circular(Islands.rowRadius),
             ),
             child: Row(
               children: [
@@ -2870,7 +2893,7 @@ class _GroupHeader extends StatelessWidget {
       overflow: TextOverflow.ellipsis,
       style: TextStyle(
         color: project != null ? AppColors.text : AppColors.textMuted,
-        fontSize: project != null ? 12.5 : 11.5,
+        fontSize: project != null ? 13 : 12,
         fontWeight: FontWeight.w500,
       ),
     );
@@ -3657,13 +3680,14 @@ class _ThreadRow extends StatelessWidget {
       // Hover actions change the available width. Keep the line metrics
       // stable when truncation changes which fallback fonts remain visible.
       strutStyle: const StrutStyle(
-        fontSize: 12.5,
-        height: 1.4,
+        fontSize: 13,
+        height: 18 / 13,
         forceStrutHeight: true,
       ),
       style: TextStyle(
         color: foreground,
-        fontSize: 12.5,
+        fontSize: 13,
+        height: 18 / 13,
         fontWeight: status == ThreadStatus.unread
             ? FontWeight.w600
             : FontWeight.normal,
@@ -3805,7 +3829,11 @@ class _ThreadRow extends StatelessWidget {
                 textAlign: TextAlign.right,
                 maxLines: 1,
                 // A step under the title's, selected or not.
-                style: TextStyle(color: AppColors.textFaint, fontSize: 11),
+                style: TextStyle(
+                  color: AppColors.textFaint,
+                  fontSize: 11,
+                  fontFeatures: const [FontFeature.tabularFigures()],
+                ),
               ),
             ),
           ),
@@ -4044,7 +4072,10 @@ class StatusIndicator extends StatelessWidget {
       ThreadStatus.running => const PixelLoader.agent(size: 12),
       ThreadStatus.needsInput => _Dot(needsInputColor),
       ThreadStatus.unread => _Dot(AppColors.accent),
-      ThreadStatus.idle => const SizedBox.shrink(),
+      ThreadStatus.idle => CustomPaint(
+        size: const Size.square(6),
+        painter: _IdleDotPainter(AppColors.textFaint.withValues(alpha: 0.65)),
+      ),
     };
   }
 }
@@ -4057,11 +4088,34 @@ class _Dot extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 7,
-      height: 7,
+      width: 6,
+      height: 6,
       decoration: BoxDecoration(color: color, shape: BoxShape.circle),
     );
   }
+}
+
+class _IdleDotPainter extends CustomPainter {
+  const _IdleDotPainter(this.color);
+
+  final Color color;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.0;
+    canvas.drawCircle(
+      Offset(size.width / 2, size.height / 2),
+      (size.shortestSide - 1.0) / 2,
+      paint,
+    );
+  }
+
+  @override
+  bool shouldRepaint(_IdleDotPainter oldDelegate) =>
+      oldDelegate.color != color;
 }
 
 /// Small square icon button with a hover fill.

@@ -65,7 +65,7 @@ chmod 755 "$stage/usr/bin/baocode"
 
 cat > "$stage/usr/share/applications/baocode.desktop" << 'EOF'
 [Desktop Entry]
-Name=BaoCode
+Name=Kestrel
 Comment=Desktop app for Claude Code
 Exec=baocode %U
 Icon=baocode
@@ -84,15 +84,15 @@ Section: devel
 Priority: optional
 Architecture: ${package_arch}
 Depends: libgtk-3-0, libblkid1, liblzma5${webkit}
-Maintainer: BaoCode <noreply@baocode.dev>
+Maintainer: Kestrel <noreply@baocode.dev>
 Homepage: https://baocode.dev
-Description: BaoCode desktop for Linux
+Description: Kestrel desktop for Linux
  A desktop UI for Claude Code, with a fast IDE built in.
 EOF
 
 out="$root/build/installers"
 mkdir -p "$out"
-name="BaoCode-${marketing}-linux-${package_arch}${edition}"
+name="Kestrel-${marketing}-linux-${package_arch}${edition}"
 dpkg-deb --build --root-owner-group "$stage" "$out/$name.deb"
 tar -C "$bundle" -czf "$out/$name.tar.gz" .
 echo "Wrote $out/$name.deb"

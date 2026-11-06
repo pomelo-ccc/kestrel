@@ -274,7 +274,7 @@ Future<void> main(List<String> arguments) async {
 
   _step('Done');
   final installer = File(
-    '${installers.path}\\BaoCode-${version.marketing}-setup'
+    '${installers.path}\\Kestrel-${version.marketing}-setup'
     '${arch == 'x64' ? '' : '-$arch'}${channel ? '-channel' : ''}.exe',
   );
   for (final file in [installer, ...servers]) {

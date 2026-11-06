@@ -139,9 +139,9 @@ void main() {
       final theme = await bundled('Bao Dark');
       expect(theme.type, ColorScheme.dark);
       expect(theme.semanticHighlighting, isTrue);
-      expect(theme.colors['editor.background'], '#282827');
-      expect(theme.colors['sideBar.background'], '#212120');
-      expect(theme.colors['focusBorder'], '#E5BA7DB3');
+      expect(theme.colors['editor.background'], '#191919');
+      expect(theme.colors['sideBar.background'], '#141413');
+      expect(theme.colors['focusBorder'], '#D97757B3');
       // What it leaves unset, from Dark 2026's include chain.
       expect(theme.colors['button.secondaryBackground'], '#00000000');
       expect(theme.colors['agentsCard.border'], '#00000000');
@@ -154,9 +154,9 @@ void main() {
       final theme = await bundled('Bao Light');
       expect(theme.type, ColorScheme.light);
       expect(theme.semanticHighlighting, isTrue);
-      expect(theme.colors['editor.background'], '#FCFBFA');
-      expect(theme.colors['sideBar.background'], '#F3F3F1');
-      expect(theme.colors['button.background'], '#E2B373');
+      expect(theme.colors['editor.background'], '#FAF9F5');
+      expect(theme.colors['sideBar.background'], '#F5F4EE');
+      expect(theme.colors['button.background'], '#D97757');
       // What it leaves unset, from Light 2026's include chain.
       expect(theme.colors['browser.border'], '#00000000');
       // Light 2026's 113 rules, then its own 49 over them.

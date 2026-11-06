@@ -48,15 +48,15 @@
 ; between versions, or an upgrade installs beside the old one instead of over
 ; it.
 AppId={{6fdd732b-95c6-4c37-af6f-ff574358deb5}
-AppName=BaoCode
+AppName=Kestrel
 AppVersion={#VersionNumber}
-AppPublisher=BaoCode
-AppVerName=BaoCode {#VersionNumber}
-DefaultDirName={autopf}\BaoCode
-DefaultGroupName=BaoCode
-UninstallDisplayName=BaoCode
+AppPublisher=Kestrel
+AppVerName=Kestrel {#VersionNumber}
+DefaultDirName={autopf}\Kestrel
+DefaultGroupName=Kestrel
+UninstallDisplayName=Kestrel
 UninstallDisplayIcon={app}\baocode.exe
-OutputBaseFilename=BaoCode-{#VersionNumber}-setup{#ArchSuffix}{#Edition}
+OutputBaseFilename=Kestrel-{#VersionNumber}-setup{#ArchSuffix}{#Edition}
 OutputDir={#OutDir}
 ; What Explorer shows for the installer itself. Windows wants four numbers,
 ; where pubspec's version has three.

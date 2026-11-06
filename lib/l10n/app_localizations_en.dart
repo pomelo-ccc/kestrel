@@ -50,7 +50,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get languageSettingsDescription =>
-      'The language of BaoCode\'s menus, views and messages. Changes apply at once.';
+      'The language of Kestrel\'s menus, views and messages. Changes apply at once.';
 
   @override
   String languageSettingsFollowSystemCurrent(String language) {
@@ -1460,7 +1460,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get menuContextPanel => 'Context Panel';
 
   @override
-  String get menuAboutBaoCode => 'About BaoCode';
+  String get menuAboutBaoCode => 'About Kestrel';
 
   @override
   String get windowShowSidebar => 'Show sidebar';
@@ -1499,14 +1499,14 @@ class AppLocalizationsEn extends AppLocalizations {
   String get sidePanelTerminal => 'Terminal';
 
   @override
-  String get browserOtherApp => 'Another BaoCode is connected to the browser.';
+  String get browserOtherApp => 'Another Kestrel is connected to the browser.';
 
   @override
   String get browserWatchTitle => 'Watching you in the browser';
 
   @override
   String get browserWatchHint =>
-      'Do it in the BaoCode tab of your browser. When you\'re done, click Done here or the BaoCode button in the browser\'s toolbar.';
+      'Do it in the Kestrel tab of your browser. When you\'re done, click Done here or the Kestrel button in the browser\'s toolbar.';
 
   @override
   String browserWatchSteps(int count) {
@@ -3664,7 +3664,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get generalSettingsClaudeCoreDescription =>
-      'Claude Code CLI: Anthropic\'s own program, with this machine\'s sign-in and setup; pick it to use a Claude subscription. Built-in: comes with BaoCode, and uses only the models added in Settings → Models. By default, the CLI where this machine has Claude Code, else the built-in core; the CLI, picked where there is none, is downloaded for you. Changes apply to new sessions.';
+      'Claude Code CLI: Anthropic\'s own program, with this machine\'s sign-in and setup; pick it to use a Claude subscription. Built-in: comes with Kestrel, and uses only the models added in Settings → Models. By default, the CLI where this machine has Claude Code, else the built-in core; the CLI, picked where there is none, is downloaded for you. Changes apply to new sessions.';
 
   @override
   String get generalSettingsClaudeCoreBuiltin => 'Built-in';
@@ -3799,7 +3799,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'Closing the window hides it there and the agents keep running; its menu shows the agents waiting on you, and quits the app.';
 
   @override
-  String get trayShow => 'Show BaoCode';
+  String get trayShow => 'Show Kestrel';
 
   @override
   String get trayWaiting => 'Waiting for You';
@@ -3815,7 +3815,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get trayQuit => 'Quit BaoCode';
+  String get trayQuit => 'Quit Kestrel';
 
   @override
   String get attentionNeedsInput => 'Needs your input';
@@ -5406,9 +5406,9 @@ class AppLocalizationsEn extends AppLocalizations {
       count,
       locale: localeName,
       other:
-          'BaoCode does not know the context keys $keys: this keybinding never applies.',
+          'Kestrel does not know the context keys $keys: this keybinding never applies.',
       one:
-          'BaoCode does not know the context key $keys: this keybinding never applies.',
+          'Kestrel does not know the context key $keys: this keybinding never applies.',
     );
     return '$_temp0';
   }
@@ -5485,7 +5485,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String kbCannotReadKey(String key) {
-    return 'BaoCode cannot read the key “$key”: this keybinding never applies.';
+    return 'Kestrel cannot read the key “$key”: this keybinding never applies.';
   }
 
   @override
@@ -5493,7 +5493,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get kbNotSupportedHover =>
-      'BaoCode does not have this command: the keybinding is kept, but does nothing.';
+      'Kestrel does not have this command: the keybinding is kept, but does nothing.';
 
   @override
   String get kbPressKeys =>
@@ -5557,26 +5557,26 @@ class AppLocalizationsEn extends AppLocalizations {
   String get dataDirChecking => 'Checking the folder…';
 
   @override
-  String get dataDirAlreadyHolds => 'The folder already holds BaoCode data';
+  String get dataDirAlreadyHolds => 'The folder already holds Kestrel data';
 
   @override
   String get dataDirMoveBack =>
-      'Move BaoCode\'s data back to the default folder?';
+      'Move Kestrel\'s data back to the default folder?';
 
   @override
-  String get dataDirMoveHere => 'Move BaoCode\'s data to this folder?';
+  String get dataDirMoveHere => 'Move Kestrel\'s data to this folder?';
 
   @override
   String get dataDirUseAsIsDetail =>
-      'After a restart BaoCode uses the data there as it is; nothing is copied, and the current folder keeps yours.';
+      'After a restart Kestrel uses the data there as it is; nothing is copied, and the current folder keeps yours.';
 
   @override
   String get dataDirCopyDetail =>
-      'BaoCode copies its settings, keybindings, language servers and state there, and uses that folder after a restart.';
+      'Kestrel copies its settings, keybindings, language servers and state there, and uses that folder after a restart.';
 
   @override
   String get dataDirOtherFiles =>
-      'The folder holds other files: they stay, beside BaoCode\'s own.';
+      'The folder holds other files: they stay, beside Kestrel\'s own.';
 
   @override
   String get dataDirUseItsData => 'Use Its Data';
@@ -5604,18 +5604,18 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get dataDirRestartTitle =>
-      'Restart BaoCode to use the new data folder';
+      'Restart Kestrel to use the new data folder';
 
   @override
   String dataDirRestartDetail(String current, String next) {
-    return 'BaoCode keeps using $current until it restarts. The next start uses $next, and offers to remove what is left in the old one.';
+    return 'Kestrel keeps using $current until it restarts. The next start uses $next, and offers to remove what is left in the old one.';
   }
 
   @override
   String get dataDirTheNewFolder => 'the new folder';
 
   @override
-  String get quitConfirmMessage => 'Quit BaoCode?';
+  String get quitConfirmMessage => 'Quit Kestrel?';
 
   @override
   String get quitConfirmDetail =>
@@ -5653,7 +5653,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get dataDirDescription =>
-      'Where BaoCode keeps your settings, keybindings, language servers and its own state. Other programs keep files there too (the web view\'s caches); BaoCode never moves or removes those.';
+      'Where Kestrel keeps your settings, keybindings, language servers and its own state. Other programs keep files there too (the web view\'s caches); Kestrel never moves or removes those.';
 
   @override
   String get dataDirCurrentFolder => 'Current folder';
@@ -5684,13 +5684,13 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get dataDirSettingUnreadable =>
-      'BaoCode\'s data folder setting cannot be read';
+      'Kestrel\'s data folder setting cannot be read';
 
   @override
-  String get dataDirCannotWrite => 'BaoCode cannot write to its data folder';
+  String get dataDirCannotWrite => 'Kestrel cannot write to its data folder';
 
   @override
-  String get dataDirUnavailable => 'BaoCode\'s data folder is not available';
+  String get dataDirUnavailable => 'Kestrel\'s data folder is not available';
 
   @override
   String dataDirWhereEnv(String variable) {
@@ -5699,7 +5699,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String dataDirWhereFixPointer(String file) {
-    return 'Fix or delete $file and try again; BaoCode changes it only if you choose another folder.';
+    return 'Fix or delete $file and try again; Kestrel changes it only if you choose another folder.';
   }
 
   @override
@@ -5723,11 +5723,11 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get dataDirRemoveOldTitle =>
-      'Remove the data BaoCode left in its previous folder?';
+      'Remove the data Kestrel left in its previous folder?';
 
   @override
   String dataDirRemoveOldDetail(String current, String items) {
-    return 'BaoCode now keeps its data in $current. Only its own items are removed from the previous folder ($items); the folder and everything else in it stay.';
+    return 'Kestrel now keeps its data in $current. Only its own items are removed from the previous folder ($items); the folder and everything else in it stay.';
   }
 
   @override
@@ -5742,7 +5742,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String dataDirRemoveOldInUseDetail(String items) {
-    return 'Files in $items are in use, perhaps by another program. Everything else was removed; BaoCode offers to remove the rest the next time it starts.';
+    return 'Files in $items are in use, perhaps by another program. Everything else was removed; Kestrel offers to remove the rest the next time it starts.';
   }
 
   @override
@@ -5968,7 +5968,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String shellCommandOccupied(String path, String name) {
-    return '$path already runs another app\'s \'$name\' command. Replace it with BaoCode\'s?';
+    return '$path already runs another app\'s \'$name\' command. Replace it with Kestrel\'s?';
   }
 
   @override
@@ -5989,7 +5989,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get generalSettingsMainWindowDescription =>
-      'What BaoCode opens to: the agents, or the IDE windows (as Restore Windows says), never both. By default, wherever it was left when it last quit.';
+      'What Kestrel opens to: the agents, or the IDE windows (as Restore Windows says), never both. By default, wherever it was left when it last quit.';
 
   @override
   String generalSettingsMainWindowLabel(String name) {
@@ -6047,7 +6047,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String claudePathInUseDownloaded(String version) {
-    return 'In use: Claude Code $version, downloaded by BaoCode';
+    return 'In use: Claude Code $version, downloaded by Kestrel';
   }
 
   @override
@@ -6202,7 +6202,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String generalSettingsShellCommandDescription(String location) {
-    return 'Open files and folders in BaoCode from a terminal: \'code <path>\'. Installed at $location.';
+    return 'Open files and folders in Kestrel from a terminal: \'code <path>\'. Installed at $location.';
   }
 
   @override
@@ -6505,7 +6505,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get modelsFeaturedNote =>
-      'These sites are officially listed by BaoCode';
+      'These sites are officially listed by Kestrel';
 
   @override
   String get modelsFeaturedNoteHow =>
@@ -6572,7 +6572,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get modelsImportInvalidDetail =>
-      'It needs a base URL (http or https) and a protocol BaoCode knows. Ask the site for a new link, or add the upstream by hand in Settings → Models.';
+      'It needs a base URL (http or https) and a protocol Kestrel knows. Ask the site for a new link, or add the upstream by hand in Settings → Models.';
 
   @override
   String get modelsAddProvider => 'Add Upstream';
@@ -6649,7 +6649,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get modelsAccountsImportConfirmDetail =>
-      'BaoCode will keep the credentials securely without changing the original file or actively refreshing tokens during import. Renewing them later may rotate the refresh token and require the original tool to sign in again. Only import credentials you are authorized to use.';
+      'Kestrel will keep the credentials securely without changing the original file or actively refreshing tokens during import. Renewing them later may rotate the refresh token and require the original tool to sign in again. Only import credentials you are authorized to use.';
 
   @override
   String get modelsAccountsImportFailed =>
@@ -7034,7 +7034,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get modelsRolesDescription =>
-      'Which model Claude Code uses for each part of its work. Unset, the model picked stands in. All but the main model may be another upstream\'s: BaoCode\'s local proxy sends their requests there.';
+      'Which model Claude Code uses for each part of its work. Unset, the model picked stands in. All but the main model may be another upstream\'s: Kestrel\'s local proxy sends their requests there.';
 
   @override
   String get modelsRoleUnset => 'Unset';
@@ -7359,7 +7359,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get updatesSettingsDescription =>
-      'BaoCode looks for new versions on baocode.dev.';
+      'Kestrel looks for new versions on kestrel.dev.';
 
   @override
   String get updateCurrentVersion => 'Current Version';
@@ -7379,31 +7379,31 @@ class AppLocalizationsEn extends AppLocalizations {
   String get updateChecking => 'Checking for updates…';
 
   @override
-  String get updateUpToDate => 'BaoCode is up to date.';
+  String get updateUpToDate => 'Kestrel is up to date.';
 
   @override
   String updateAvailable(String version) {
-    return 'BaoCode $version is available.';
+    return 'Kestrel $version is available.';
   }
 
   @override
   String updateReady(String version) {
-    return 'BaoCode $version has been downloaded. Restart to update.';
+    return 'Kestrel $version has been downloaded. Restart to update.';
   }
 
   @override
   String updateDownloading(String version) {
-    return 'Downloading BaoCode $version…';
+    return 'Downloading Kestrel $version…';
   }
 
   @override
   String updateDownloadingProgress(String version, int percent) {
-    return 'Downloading BaoCode $version… $percent%';
+    return 'Downloading Kestrel $version… $percent%';
   }
 
   @override
   String updateMandatory(String version) {
-    return 'This version of BaoCode is no longer supported. Update to $version to keep using it.';
+    return 'This version of Kestrel is no longer supported. Update to $version to keep using it.';
   }
 
   @override
@@ -7421,7 +7421,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String updateFailed(String error) {
-    return 'Couldn\'t update BaoCode: $error';
+    return 'Couldn\'t update Kestrel: $error';
   }
 
   @override
@@ -7435,11 +7435,11 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get updateUnsupported =>
-      'This build of BaoCode doesn\'t update itself.';
+      'This build of Kestrel doesn\'t update itself.';
 
   @override
   String updateManual(String reason) {
-    return 'BaoCode can\'t update itself here ($reason). Download the new version from baocode.dev.';
+    return 'Kestrel can\'t update itself here ($reason). Download the new version from kestrel.dev.';
   }
 
   @override
@@ -7447,7 +7447,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String updateUnfinished(String version, String current) {
-    return 'BaoCode $version wasn\'t installed: this is still $current. Try again from Settings > Updates, or download it from baocode.dev.';
+    return 'Kestrel $version wasn\'t installed: this is still $current. Try again from Settings > Updates, or download it from kestrel.dev.';
   }
 
   @override
@@ -7466,7 +7466,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get updateModeDescription =>
-      'Whether BaoCode looks for new versions by itself (update.mode).';
+      'Whether Kestrel looks for new versions by itself (update.mode).';
 
   @override
   String updateModeLabel(String name) {
@@ -7487,7 +7487,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get diagnosticsDescription =>
-      'Send BaoCode\'s error logs and the crash and hang reports the system kept of it to its developers to help track down a problem. Nothing is sent until you upload.';
+      'Send Kestrel\'s error logs and the crash and hang reports the system kept of it to its developers to help track down a problem. Nothing is sent until you upload.';
 
   @override
   String get diagnosticsUpload => 'Upload…';
@@ -7538,7 +7538,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get diagnosticsUploadedDetail =>
-      'Give this ID to BaoCode\'s developers so they can find these logs.';
+      'Give this ID to Kestrel\'s developers so they can find these logs.';
 
   @override
   String diagnosticsOmittedDumps(int count) {
@@ -7918,11 +7918,11 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get generalSettingsContextMenuDescription =>
-      'Adds \"Open with BaoCode\" (a new agent) and \"Open with Fast Ide\" (a new IDE window) to the context menu of files, folders and a folder\'s background.';
+      'Adds \"Open with Kestrel\" (a new agent) and \"Open with Fast Ide\" (a new IDE window) to the context menu of files, folders and a folder\'s background.';
 
   @override
   String get generalSettingsContextMenuMacNote =>
-      'Finder\'s own setting is in System Settings\' extensions, where the BaoCode extension can also be turned on and off.';
+      'Finder\'s own setting is in System Settings\' extensions, where the Kestrel extension can also be turned on and off.';
 
   @override
   String get generalSettingsContextMenuOn => 'On';
@@ -8156,7 +8156,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get updateButton => 'Update';
 
   @override
-  String get tipsSetupTitle => 'Set Up BaoCode';
+  String get tipsSetupTitle => 'Set Up Kestrel';
 
   @override
   String tipsSetupCount(int done, int total) {
@@ -8190,7 +8190,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String tipsUpdated(String version, String features) {
-    return 'BaoCode was updated to $version. New: $features.';
+    return 'Kestrel was updated to $version. New: $features.';
   }
 
   @override
@@ -8205,7 +8205,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get tipContextMenuBody =>
-      'Open files and folders in BaoCode from their context menu.';
+      'Open files and folders in Kestrel from their context menu.';
 
   @override
   String tipShellCommandTitle(String name) {
@@ -8214,7 +8214,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String tipShellCommandBody(String name) {
-    return 'Open folders in BaoCode from a terminal: $name <path>.';
+    return 'Open folders in Kestrel from a terminal: $name <path>.';
   }
 
   @override
@@ -8232,14 +8232,14 @@ class AppLocalizationsEn extends AppLocalizations {
   String get cmdShowSetupGuide => 'Show Setup Guide';
 
   @override
-  String get cmdStarOnGitHub => 'Star BaoCode on GitHub';
+  String get cmdStarOnGitHub => 'Star Kestrel on GitHub';
 
   @override
-  String get starPromptMessage => 'Enjoying BaoCode?';
+  String get starPromptMessage => 'Enjoying Kestrel?';
 
   @override
   String get starPromptDetail =>
-      'BaoCode is free and open source. If it helps you, a star on GitHub helps other people find it.';
+      'Kestrel is free and open source. If it helps you, a star on GitHub helps other people find it.';
 
   @override
   String get starPromptStar => 'Star on GitHub';
@@ -8407,14 +8407,14 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get networkSettingsDescription =>
-      'How BaoCode and the Claude Code it starts reach the internet.';
+      'How Kestrel and the Claude Code it starts reach the internet.';
 
   @override
   String get networkProxy => 'Proxy';
 
   @override
   String get networkProxyDescription =>
-      'The proxy for BaoCode and Claude Code (http.proxyMode). System Proxy follows the system\'s settings, such as Clash\'s system proxy. New sessions take a change; restart a running one for it.';
+      'The proxy for Kestrel and Claude Code (http.proxyMode). System Proxy follows the system\'s settings, such as Clash\'s system proxy. New sessions take a change; restart a running one for it.';
 
   @override
   String networkProxyLabel(String name) {
@@ -8474,7 +8474,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get networkProxyStatusAutoConfig =>
-      'Direct: the system sets its proxy with an auto-config (PAC) file, which BaoCode doesn\'t follow. Turn on Clash\'s system proxy, or enter the address manually.';
+      'Direct: the system sets its proxy with an auto-config (PAC) file, which Kestrel doesn\'t follow. Turn on Clash\'s system proxy, or enter the address manually.';
 
   @override
   String get networkProxyRefresh => 'Detect Again';
@@ -8556,7 +8556,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get extsCapabilityPartialDetail =>
-      'Its themes apply; the rest of it does nothing in BaoCode.';
+      'Its themes apply; the rest of it does nothing in Kestrel.';
 
   @override
   String extsEngineIncompatible(String current, String requested) {
@@ -8767,7 +8767,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get extsCapabilityUnsupportedDetail =>
-      'It has no color or file icon theme: BaoCode only uses themes from extensions.';
+      'It has no color or file icon theme: Kestrel only uses themes from extensions.';
 
   @override
   String get extsFindingCode => 'Its code does not run.';
@@ -8880,7 +8880,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get mobileSettingsDescription =>
-      'Follow and drive this computer\'s agents from BaoCode on your phone: directly on the same network, across the internet through a hole punched in the routers between them, or through BaoCode\'s relay when neither works. What goes between them is end-to-end encrypted; a relay cannot read it.';
+      'Follow and drive this computer\'s agents from Kestrel on your phone: directly on the same network, across the internet through a hole punched in the routers between them, or through Kestrel\'s relay when neither works. What goes between them is end-to-end encrypted; a relay cannot read it.';
 
   @override
   String get mobileAllow => 'Allow Phones to Connect';
@@ -8915,7 +8915,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get mobilePairDescription =>
-      'Scan the code with BaoCode on the phone (Me → Paired computers → Pair a computer), or pick this computer under Nearby Computers there.';
+      'Scan the code with Kestrel on the phone (Me → Paired computers → Pair a computer), or pick this computer under Nearby Computers there.';
 
   @override
   String get mobilePairShow => 'Show QR Code';
@@ -8938,7 +8938,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get mobileGetAppDescription =>
-      'Scan with the phone\'s camera: the same downloads as on baocode.dev.';
+      'Scan with the phone\'s camera: the same downloads as on kestrel.dev.';
 
   @override
   String get mobileGetAndroidDetail => 'The APK; it keeps itself up to date';
@@ -9068,14 +9068,14 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get mobileRelayModeAutoDescription =>
-      'BaoCode\'s relays, the nearest that answers.';
+      'Kestrel\'s relays, the nearest that answers.';
 
   @override
   String get mobileRelayModePinned => 'Pick One';
 
   @override
   String get mobileRelayModePinnedDescription =>
-      'Only the one picked: one of BaoCode\'s, or a custom address.';
+      'Only the one picked: one of Kestrel\'s, or a custom address.';
 
   @override
   String get mobileRelayModeDirect => 'Direct Only';
@@ -9602,7 +9602,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get stashImplement => 'Implement in BaoCode';
+  String get stashImplement => 'Implement in Kestrel';
 
   @override
   String get stashImplementHow => 'How should the agent work on it?';
@@ -9719,7 +9719,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get stashSettingsDirectoryRestart =>
-      'Takes effect after BaoCode restarts.';
+      'Takes effect after Kestrel restarts.';
 
   @override
   String get stashAll => 'All';
@@ -9855,7 +9855,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String accountsSignOutDetail(String forge) {
-    return 'The token is deleted from this computer. To revoke BaoCode\'s access altogether, revoke it in your $forge settings too.';
+    return 'The token is deleted from this computer. To revoke Kestrel\'s access altogether, revoke it in your $forge settings too.';
   }
 
   @override
@@ -9907,7 +9907,7 @@ class AppLocalizationsEn extends AppLocalizations {
     String issuer,
     String fingerprint,
   ) {
-    return 'The certificate of $host cannot be verified ($issuer).\n\nSHA-256 fingerprint:\n$fingerprint\n\nTrusting it lets BaoCode reach this server, and only the certificate with this fingerprint is accepted. You are asked again if the certificate changes.';
+    return 'The certificate of $host cannot be verified ($issuer).\n\nSHA-256 fingerprint:\n$fingerprint\n\nTrusting it lets Kestrel reach this server, and only the certificate with this fingerprint is accepted. You are asked again if the certificate changes.';
   }
 
   @override
@@ -9920,7 +9920,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String accountsBrowserDetail(String host) {
-    return 'Enter this code on $host to let BaoCode access your account:';
+    return 'Enter this code on $host to let Kestrel access your account:';
   }
 
   @override
@@ -10139,7 +10139,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get stashWelcomeAgent =>
-      'Click Implement in BaoCode, or mention it in a conversation; the conversation and the stash stay linked.';
+      'Click Implement in Kestrel, or mention it in a conversation; the conversation and the stash stay linked.';
 
   @override
   String get stashWelcomeTrackTitle => 'See how it goes';
@@ -10211,7 +10211,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get browserSettingsNotRunningDescription =>
-      'Open a browser with BaoCode\'s extension: it connects automatically.';
+      'Open a browser with Kestrel\'s extension: it connects automatically.';
 
   @override
   String get browserSettingsSandboxed =>
@@ -10219,7 +10219,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get browserSettingsSandboxedDescription =>
-      'Their sandbox keeps BaoCode\'s helper from running. Install the browser from its own .deb or .rpm package instead, such as Google Chrome from google.com/chrome.';
+      'Their sandbox keeps Kestrel\'s helper from running. Install the browser from its own .deb or .rpm package instead, such as Google Chrome from google.com/chrome.';
 
   @override
   String browserSettingsConnected(String browser) {
@@ -10242,14 +10242,14 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get browserSettingsAppOld =>
-      'The extension is newer than this BaoCode. Update BaoCode.';
+      'The extension is newer than this Kestrel. Update Kestrel.';
 
   @override
   String get browserSettingsNoFileAccess => 'File access is off';
 
   @override
   String get browserSettingsNoFileAccessDescription =>
-      'Agents can\'t open local HTML files or upload files. In chrome://extensions, click Details on BaoCode and turn on Allow access to file URLs.';
+      'Agents can\'t open local HTML files or upload files. In chrome://extensions, click Details on Kestrel and turn on Allow access to file URLs.';
 
   @override
   String get browserSettingsInstall => 'Get the Extension';
@@ -10282,7 +10282,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get browserHistoryDescription =>
-      'What the tabs shared with BaoCode do is kept as it happens, no recording needed: the pages, the requests, console errors and warnings. Agents look back at it when you ask (“it failed when I saved”). Kept on this computer; cookies and tokens are not.';
+      'What the tabs shared with Kestrel do is kept as it happens, no recording needed: the pages, the requests, console errors and warnings. Agents look back at it when you ask (“it failed when I saved”). Kept on this computer; cookies and tokens are not.';
 
   @override
   String get browserHistoryDetailed => 'Detailed history';
@@ -10323,14 +10323,14 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get browserWelcomeLead =>
-      'With BaoCode\'s extension, agents open pages, read them, click and type in your own Chrome, signed in as you are.';
+      'With Kestrel\'s extension, agents open pages, read them, click and type in your own Chrome, signed in as you are.';
 
   @override
   String get browserWelcomeSharedTitle => 'Only the tabs you share';
 
   @override
   String get browserWelcomeShared =>
-      'They work in the yellow BaoCode tab group alone; your other tabs stay yours.';
+      'They work in the yellow Kestrel tab group alone; your other tabs stay yours.';
 
   @override
   String get browserWelcomeWatchTitle => 'Watch it work';
@@ -10364,7 +10364,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get browserWelcomeTry =>
-      'Try telling an agent: “Open baocode.dev and look at the download page.”';
+      'Try telling an agent: “Open kestrel.dev and look at the download page.”';
 
   @override
   String get browserWelcomeUnpacked => 'Developer Mode Zip';
@@ -10386,7 +10386,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get modelWelcomeLead =>
-      'BaoCode runs your agents on a model of your choosing. Add an upstream, a service with an API key, and its models are ready to use.';
+      'Kestrel runs your agents on a model of your choosing. Add an upstream, a service with an API key, and its models are ready to use.';
 
   @override
   String get modelWelcomeAnyTitle => 'Any upstream';
@@ -10592,7 +10592,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get sshServerCoreBuiltinHint =>
-      'BaoCode\'s own core: it runs on the upstreams of Settings → Models.';
+      'Kestrel\'s own core: it runs on the upstreams of Settings → Models.';
 
   @override
   String get sshServerCoreCliHint =>
@@ -10668,39 +10668,39 @@ class AppLocalizationsEn extends AppLocalizations {
       'WSL could not start this distribution: check that WSL is installed and that the distribution is listed by wsl --list.';
 
   @override
-  String get channelSetupTitle => 'Welcome to BaoCode';
+  String get channelSetupTitle => 'Welcome to Kestrel';
 
   @override
   String get channelSetupLead =>
-      'Finish your first-time setup on baocode.dev. It takes about 10 seconds.';
+      'Finish your first-time setup on kestrel.dev. It takes about 10 seconds.';
 
   @override
   String get channelSetupStepTitle => 'Finish setup in your browser';
 
   @override
   String get channelSetupStep =>
-      'BaoCode opens baocode.dev in your browser. Once the page says it\'s done, BaoCode continues on its own.';
+      'Kestrel opens kestrel.dev in your browser. Once the page says it\'s done, Kestrel continues on its own.';
 
   @override
   String get channelSetupWaitingTitle => 'Waiting for your browser…';
 
   @override
   String get channelSetupWaiting =>
-      'Once the page says it\'s done, BaoCode continues on its own. Closed the page by mistake? Open it again.';
+      'Once the page says it\'s done, Kestrel continues on its own. Closed the page by mistake? Open it again.';
 
   @override
   String get channelSetupOpenFailedTitle => 'Your browser didn\'t open';
 
   @override
   String get channelSetupOpenFailed =>
-      'Copy this address and open it in your browser. Once the page says it\'s done, BaoCode continues on its own.';
+      'Copy this address and open it in your browser. Once the page says it\'s done, Kestrel continues on its own.';
 
   @override
   String get channelSetupAddressCopied => 'Copied';
 
   @override
   String get channelSetupOffline =>
-      'Can\'t reach baocode.dev. You need to be online to finish setup.';
+      'Can\'t reach kestrel.dev. You need to be online to finish setup.';
 
   @override
   String get channelSetupRetry => 'Retry';
@@ -10730,7 +10730,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get channelSetupLinkOther =>
-      'That link is for another BaoCode install. Use the page this BaoCode opened.';
+      'That link is for another Kestrel install. Use the page this Kestrel opened.';
 
   @override
   String get channelSetupTrouble => 'Having trouble?';
@@ -10747,7 +10747,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get channelSetupPrivate =>
-      'The page only tells BaoCode where you heard of it, like a video or a website.';
+      'The page only tells Kestrel where you heard of it, like a video or a website.';
 
   @override
   String get channelSetupFindingTitle => 'Getting your channel ready…';
@@ -10756,18 +10756,18 @@ class AppLocalizationsEn extends AppLocalizations {
   String get channelSetupFinding => 'Just a moment.';
 
   @override
-  String get channelSetupSiteOfflineTitle => 'Can\'t reach baocode.dev';
+  String get channelSetupSiteOfflineTitle => 'Can\'t reach kestrel.dev';
 
   @override
   String get channelSetupSiteOffline =>
-      'BaoCode needs to be online to read your channel. Check your connection and retry.';
+      'Kestrel needs to be online to read your channel. Check your connection and retry.';
 
   @override
   String get channelSetupUnavailableTitle => 'This channel isn\'t available';
 
   @override
   String get channelSetupUnavailable =>
-      'The channel this installer came from doesn\'t have accounts set up yet. If you downloaded it through another channel, confirm where you came from in your browser; otherwise contact whoever gave you the installer, or download the standard edition from baocode.dev.';
+      'The channel this installer came from doesn\'t have accounts set up yet. If you downloaded it through another channel, confirm where you came from in your browser; otherwise contact whoever gave you the installer, or download the standard edition from kestrel.dev.';
 
   @override
   String get channelSetupConfirmAgain => 'Confirm in Browser';
@@ -10813,7 +10813,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String channelAccountSignOutDetail(String channel) {
-    return 'You\'ll need to sign in to $channel again to keep using BaoCode.';
+    return 'You\'ll need to sign in to $channel again to keep using Kestrel.';
   }
 
   @override
@@ -11075,7 +11075,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get stashImplementEmpty =>
-      'Write something first, then implement it in BaoCode';
+      'Write something first, then implement it in Kestrel';
 
   @override
   String stashIssueDuplicateBanner(String issue, String stash) {
@@ -13072,7 +13072,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get ustatConversationEmptyDetail =>
-      'Only conversations on a custom upstream are counted: Claude\'s official service does not go through BaoCode\'s proxy.';
+      'Only conversations on a custom upstream are counted: Claude\'s official service does not go through Kestrel\'s proxy.';
 
   @override
   String get ustatRecordOff => 'Usage is not being recorded';
@@ -13092,7 +13092,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get ustatRecordDescription =>
-      'Claude Code\'s own calls are read from what it prints; sessions on a custom upstream go through BaoCode\'s local proxy, which keeps each call. Applies to agents started from now on.';
+      'Claude Code\'s own calls are read from what it prints; sessions on a custom upstream go through Kestrel\'s local proxy, which keeps each call. Applies to agents started from now on.';
 
   @override
   String get ustatRecordOffDescription =>
@@ -13475,7 +13475,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get ustatPricesAgentHint =>
-      'BaoCode can keep these for you: ask it in a chat to look up the current prices of these models and update them. It checks the upstream\'s own pricing page and writes them here.';
+      'Kestrel can keep these for you: ask it in a chat to look up the current prices of these models and update them. It checks the upstream\'s own pricing page and writes them here.';
 
   @override
   String get ustatPriceCurrency => 'Currency';

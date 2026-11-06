@@ -106,6 +106,139 @@ abstract interface class ColorThemeStorage {
   });
 }
 
+/// Optional user overrides for the Light and Dark theme palettes
+/// (`Background`, `Foreground`, `Accent`), defaulting to the Claude-style
+/// palette (`#FAF9F5` / `#141413` / `#D97757` in light, `#191919` / `#FAF9F5` /
+/// `#D97757` in dark).
+abstract final class ThemePaletteOverrides {
+  static const defaultLightBackground = ui.Color(0xFFFAF9F5);
+  static const defaultLightForeground = ui.Color(0xFF141413);
+  static const defaultLightAccent = ui.Color(0xFFD97757);
+
+  static const defaultDarkBackground = ui.Color(0xFF191919);
+  static const defaultDarkForeground = ui.Color(0xFFFAF9F5);
+  static const defaultDarkAccent = ui.Color(0xFFD97757);
+
+  static final lightBackground = ValueNotifier<ui.Color?>(null);
+  static final lightForeground = ValueNotifier<ui.Color?>(null);
+  static final lightAccent = ValueNotifier<ui.Color?>(null);
+
+  static final darkBackground = ValueNotifier<ui.Color?>(null);
+  static final darkForeground = ValueNotifier<ui.Color?>(null);
+  static final darkAccent = ValueNotifier<ui.Color?>(null);
+
+  static final Listenable changes = Listenable.merge([
+    lightBackground,
+    lightForeground,
+    lightAccent,
+    darkBackground,
+    darkForeground,
+    darkAccent,
+  ]);
+
+  static bool hasCustom({required bool dark}) => dark
+      ? (darkBackground.value != null ||
+            darkForeground.value != null ||
+            darkAccent.value != null)
+      : (lightBackground.value != null ||
+            lightForeground.value != null ||
+            lightAccent.value != null);
+
+  static void reset({required bool dark}) {
+    if (dark) {
+      darkBackground.value = null;
+      darkForeground.value = null;
+      darkAccent.value = null;
+    } else {
+      lightBackground.value = null;
+      lightForeground.value = null;
+      lightAccent.value = null;
+    }
+    WorkbenchThemeService.instance.invalidateColors();
+  }
+
+  static String toHex(ui.Color color) {
+    final rgb = color.toARGB32() & 0xFFFFFF;
+    return '#${rgb.toRadixString(16).padLeft(6, '0').toUpperCase()}';
+  }
+
+  static ui.Color? parseHex(String input) {
+    final cleaned = input.trim().replaceFirst(RegExp(r'^#'), '');
+    if (!RegExp(r'^[0-9a-fA-F]{6}$').hasMatch(cleaned)) return null;
+    final value = int.tryParse(cleaned, radix: 16);
+    return value == null ? null : ui.Color(0xFF000000 | value);
+  }
+
+  static ui.Color? resolveOverride(String id, {required bool dark}) {
+    final bg = dark ? darkBackground.value : lightBackground.value;
+    final fg = dark ? darkForeground.value : lightForeground.value;
+    final accent = dark ? darkAccent.value : lightAccent.value;
+    if (bg != null) {
+      switch (id) {
+        case 'editor.background' ||
+            'agentsPanel.background' ||
+            'surface.background' ||
+            'tab.activeBackground' ||
+            'tab.hoverBackground' ||
+            'breadcrumb.background' ||
+            'editorGutter.background':
+          return bg;
+        case 'sideBar.background' ||
+            'activityBar.background' ||
+            'titleBar.activeBackground' ||
+            'titleBar.inactiveBackground' ||
+            'panel.background' ||
+            'statusBar.background' ||
+            'agents.background':
+          final target =
+              fg ?? (dark ? defaultDarkForeground : defaultLightForeground);
+          return ui.Color.lerp(bg, target, 0.035);
+      }
+    }
+    if (fg != null) {
+      switch (id) {
+        case 'foreground' ||
+            'editor.foreground' ||
+            'list.activeSelectionForeground' ||
+            'list.inactiveSelectionForeground' ||
+            'list.hoverForeground' ||
+            'sideBarTitle.foreground' ||
+            'titleBar.activeForeground' ||
+            'input.foreground' ||
+            'dropdown.foreground':
+          return fg;
+        case 'sideBar.foreground' || 'descriptionForeground':
+          final canvas =
+              bg ?? (dark ? defaultDarkBackground : defaultLightBackground);
+          return ui.Color.lerp(fg, canvas, 0.36);
+      }
+    }
+    if (accent != null) {
+      switch (id) {
+        case 'button.background' ||
+            'textLink.foreground' ||
+            'focusBorder' ||
+            'badge.background' ||
+            'activityBarBadge.background' ||
+            'agentsBadge.background' ||
+            'agentsUnreadBadge.background' ||
+            'list.highlightForeground' ||
+            'editorCursor.foreground' ||
+            'sash.hoverBorder' ||
+            'chat.inputWorkingBorderColor1':
+          return accent;
+        case 'button.hoverBackground' || 'textLink.activeForeground':
+          return ui.Color.lerp(
+            accent,
+            dark ? const ui.Color(0xFFFFFFFF) : const ui.Color(0xFF000000),
+            0.12,
+          );
+      }
+    }
+    return null;
+  }
+}
+
 /// A color theme's colors as widgets read them: what the theme sets, else
 /// the color registry's default for its type (`IColorTheme.getColor`).
 class WorkbenchColors {
@@ -121,6 +254,10 @@ class WorkbenchColors {
   /// The color [id] names; null when neither the theme nor the registry
   /// gives it one.
   ui.Color? get(String id) => _colors.putIfAbsent(id, () {
+    if (!highContrast) {
+      final overridden = ThemePaletteOverrides.resolveOverride(id, dark: dark);
+      if (overridden != null) return overridden;
+    }
     final color = theme.getColor(id);
     return color == null ? null : toFlutterColor(color);
   });
@@ -218,6 +355,13 @@ class WorkbenchThemeService extends ChangeNotifier
                 : _current.settingsId));
 
   WorkbenchColors get colors => _colors ??= WorkbenchColors(_current);
+
+  /// Clears the cached [WorkbenchColors] and notifies listeners when
+  /// [ThemePaletteOverrides] change.
+  void invalidateColors() {
+    _colors = null;
+    notifyListeners();
+  }
 
   // --- The bundled themes -------------------------------------------------
 

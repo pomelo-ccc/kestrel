@@ -880,7 +880,7 @@ void main() {
     expect(tester.widget<IdeListRow>(row).focused, isFalse);
     expect(decoration().color, IdeListColors.activeSelection);
     expectForeground(IdeListColors.activeSelectionForeground);
-    expect(tester.getSize(row).height, IdeListColors.rowHeight);
+    expect(tester.getSize(row).height, Sidebar.rowHeight);
     expect(decoration().borderRadius, BorderRadius.circular(Islands.rowRadius));
 
     listFocus.requestFocus();
@@ -2384,7 +2384,7 @@ void main() {
     final list = tester.state<ScrollableState>(
       inSidebar(find.byType(Scrollable)).last,
     );
-    list.position.jumpTo(IdeListColors.rowHeight * 90);
+    list.position.jumpTo(Sidebar.rowHeight * 90);
     await tester.pump();
     await clickChat(tester, 'Chat t100');
     await clickChat(tester, 'Chat t101', holding: multiSelectKey);

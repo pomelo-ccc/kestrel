@@ -241,17 +241,17 @@ jobs:
           for arch in arm64 x64; do
             dir="$RUNNER_TEMP/launch-$arch"
             mkdir "$dir"
-            ditto -x -k build/installers/BaoCode-*-mac-$arch$SUFFIX.zip "$dir"
+            ditto -x -k build/installers/Kestrel-*-mac-$arch$SUFFIX.zip "$dir"
             BAOCODE_DATA_DIR="$dir-data" \
-              "$dir/BaoCode.app/Contents/MacOS/BaoCode" > "$dir.log" 2>&1 &
+              "$dir/Kestrel.app/Contents/MacOS/Kestrel" > "$dir.log" 2>&1 &
             pid=$!
             sleep 15
             if ! kill -0 $pid 2>/dev/null; then
               cat "$dir.log"
-              echo "::error::BaoCode ($arch) exited within 15 seconds of launch"
+              echo "::error::Kestrel ($arch) exited within 15 seconds of launch"
               exit 1
             fi
-            echo "BaoCode ($arch) is running after 15 seconds"
+            echo "Kestrel ($arch) is running after 15 seconds"
             kill $pid
           done
       - uses: actions/upload-artifact@v6
@@ -259,8 +259,8 @@ jobs:
           name: macos${{ env.SUFFIX }}
           if-no-files-found: error
           path: |
-            build/installers/BaoCode-*.dmg
-            build/installers/BaoCode-*-mac-*.zip
+            build/installers/Kestrel-*.dmg
+            build/installers/Kestrel-*-mac-*.zip
       # The Dart code's symbols, for a jank sample's `??? (in App)` frames
       # (tool/build_macos.dart). Not released: kept with the run.
       - uses: actions/upload-artifact@v6
@@ -348,7 +348,7 @@ jobs:
         with:
           name: windows-${{ matrix.arch }}${{ env.SUFFIX }}
           if-no-files-found: error
-          path: build/installers/BaoCode-*-setup${{ env.ARCH_SUFFIX }}${{ env.SUFFIX }}.exe
+          path: build/installers/Kestrel-*-setup${{ env.ARCH_SUFFIX }}${{ env.SUFFIX }}.exe
       # The Dart code's symbols, for a hang report's app.so+0x… frames
       # (tool/build_windows.dart). Not released: kept with the run.
       - uses: actions/upload-artifact@v6
@@ -429,12 +429,12 @@ jobs:
       - name: Package the .deb and the tarball
         run: |
           sh tool/package_linux_deb.sh ${{ matrix.edition == 'channel' && '--channel' || '' }}
-          dpkg-deb --info build/installers/BaoCode-*.deb
+          dpkg-deb --info build/installers/Kestrel-*.deb
           # The phones' link (bao_iroh's Rust) is in it.
-          dpkg-deb --contents build/installers/BaoCode-*.deb | grep -q 'lib/libbao_iroh.so$'
+          dpkg-deb --contents build/installers/Kestrel-*.deb | grep -q 'lib/libbao_iroh.so$'
       - name: Install the package and launch it
         run: |
-          sudo apt-get install -y ./build/installers/BaoCode-*.deb
+          sudo apt-get install -y ./build/installers/Kestrel-*.deb
           log="$RUNNER_TEMP/launch.log"
           # A browser's folder, for the host's manifest to be written in; the
           # socket in a runtime folder of the user's alone, as on a desktop.
@@ -479,8 +479,8 @@ jobs:
           name: linux-${{ matrix.arch }}${{ env.SUFFIX }}
           if-no-files-found: error
           path: |
-            build/installers/BaoCode-*.deb
-            build/installers/BaoCode-*.tar.gz
+            build/installers/Kestrel-*.deb
+            build/installers/Kestrel-*.tar.gz
       # Not released: kept with the run.
       - uses: actions/upload-artifact@v6
         with:
@@ -542,7 +542,7 @@ jobs:
             echo "## For testers: $MARKETING, \`$GITHUB_REF_NAME\` (${GITHUB_SHA::7})"
             echo
           } >> "$GITHUB_STEP_SUMMARY"
-          for file in dist/macos/BaoCode-*.dmg dist/windows/BaoCode-*-setup*.exe dist/linux/BaoCode-*.deb; do
+          for file in dist/macos/Kestrel-*.dmg dist/windows/Kestrel-*-setup*.exe dist/linux/Kestrel-*.deb; do
             name=$(basename "$file")
             aws s3 cp "$file" "s3://$R2_BUCKET/$dir/$name" --cache-control 'public, max-age=86400'
             url="https://dl.baocode.dev/$dir/$name"
@@ -596,14 +596,14 @@ jobs:
           [ "$CHANNEL_ONLY" = true ] && editions=(-channel)
           for edition in "${editions[@]}"; do
             for arch in arm64 x64; do
-              cp dist/macos$edition/BaoCode-$MARKETING-$arch$edition.dmg \
-                dist/macos$edition/BaoCode-$MARKETING-mac-$arch$edition.zip out/
+              cp dist/macos$edition/Kestrel-$MARKETING-$arch$edition.dmg \
+                dist/macos$edition/Kestrel-$MARKETING-mac-$arch$edition.zip out/
             done
-            cp dist/windows-x64$edition/BaoCode-$MARKETING-setup$edition.exe \
-              dist/windows-arm64$edition/BaoCode-$MARKETING-setup-arm64$edition.exe out/
+            cp dist/windows-x64$edition/Kestrel-$MARKETING-setup$edition.exe \
+              dist/windows-arm64$edition/Kestrel-$MARKETING-setup-arm64$edition.exe out/
             for arch in x64 arm64; do
-              cp dist/linux-$arch$edition/BaoCode-$MARKETING-linux-*.deb \
-                dist/linux-$arch$edition/BaoCode-$MARKETING-linux-*.tar.gz out/
+              cp dist/linux-$arch$edition/Kestrel-$MARKETING-linux-*.deb \
+                dist/linux-$arch$edition/Kestrel-$MARKETING-linux-*.tar.gz out/
             done
           done
           # The remote server, under the name both apps' servers.json give it;
@@ -641,14 +641,14 @@ jobs:
           files=()
           for edition in "${editions[@]}"; do
             files+=(
-              --windows$edition out/BaoCode-$MARKETING-setup$edition.exe
-              --windows-arm64$edition out/BaoCode-$MARKETING-setup-arm64$edition.exe
-              --macos-arm64$edition out/BaoCode-$MARKETING-mac-arm64$edition.zip
-              --macos-x64$edition out/BaoCode-$MARKETING-mac-x64$edition.zip
-              --dmg-arm64$edition out/BaoCode-$MARKETING-arm64$edition.dmg
-              --dmg-x64$edition out/BaoCode-$MARKETING-x64$edition.dmg
-              --linux-x64$edition out/BaoCode-$MARKETING-linux-amd64$edition.deb
-              --linux-arm64$edition out/BaoCode-$MARKETING-linux-arm64$edition.deb
+              --windows$edition out/Kestrel-$MARKETING-setup$edition.exe
+              --windows-arm64$edition out/Kestrel-$MARKETING-setup-arm64$edition.exe
+              --macos-arm64$edition out/Kestrel-$MARKETING-mac-arm64$edition.zip
+              --macos-x64$edition out/Kestrel-$MARKETING-mac-x64$edition.zip
+              --dmg-arm64$edition out/Kestrel-$MARKETING-arm64$edition.dmg
+              --dmg-x64$edition out/Kestrel-$MARKETING-x64$edition.dmg
+              --linux-x64$edition out/Kestrel-$MARKETING-linux-amd64$edition.deb
+              --linux-arm64$edition out/Kestrel-$MARKETING-linux-arm64$edition.deb
             )
           done
           BAOCODE_UPDATE_SIGNING_KEY="$key" dart run tool/release_manifest.dart \
@@ -670,7 +670,7 @@ jobs:
             aws s3 cp remote-latest.json "s3://$R2_BUCKET/releases/remote/latest.json" \
               --cache-control 'public, max-age=60' --content-type application/json
           fi
-          for file in $(cd out && ls BaoCode-*); do
+          for file in $(cd out && ls Kestrel-*); do
             aws s3 cp "out/$file" "s3://$R2_BUCKET/releases/$MARKETING/$file" \
               --cache-control "$immutable"
           done
@@ -702,8 +702,8 @@ jobs:
           [ -f "release-notes/$MARKETING.en.md" ] && notes=(--notes-file "release-notes/$MARKETING.en.md")
           # Published again: the release is made anew, on the tag's commit.
           gh release delete "v$MARKETING" --yes 2>/dev/null || true
-          gh release create "v$MARKETING" --title "BaoCode $MARKETING" "${notes[@]}" \
-            out/BaoCode-$MARKETING-arm64.dmg out/BaoCode-$MARKETING-x64.dmg \
-            out/BaoCode-$MARKETING-setup.exe out/BaoCode-$MARKETING-setup-arm64.exe \
-            out/BaoCode-$MARKETING-linux-amd64.deb out/BaoCode-$MARKETING-linux-arm64.deb \
-            out/BaoCode-$MARKETING-linux-amd64.tar.gz out/BaoCode-$MARKETING-linux-arm64.tar.gz
+          gh release create "v$MARKETING" --title "Kestrel $MARKETING" "${notes[@]}" \
+            out/Kestrel-$MARKETING-arm64.dmg out/Kestrel-$MARKETING-x64.dmg \
+            out/Kestrel-$MARKETING-setup.exe out/Kestrel-$MARKETING-setup-arm64.exe \
+            out/Kestrel-$MARKETING-linux-amd64.deb out/Kestrel-$MARKETING-linux-arm64.deb \
+            out/Kestrel-$MARKETING-linux-amd64.tar.gz out/Kestrel-$MARKETING-linux-arm64.tar.gz

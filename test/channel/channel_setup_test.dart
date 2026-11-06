@@ -542,15 +542,15 @@ void main() {
       final setup = setupOf(poll: const Duration(hours: 1));
       addTearDown(setup.dispose);
       await open(tester, setup);
-      expect(find.text('欢迎使用 BaoCode'), findsOneWidget);
+      expect(find.text('欢迎使用 Kestrel'), findsOneWidget);
       await tester.sendKeyEvent(LogicalKeyboardKey.escape);
       await tester.sendKeyEvent(LogicalKeyboardKey.enter);
       await tester.tapAt(const Offset(5, 5));
       await tester.pump(const Duration(milliseconds: 400));
-      expect(find.text('欢迎使用 BaoCode'), findsOneWidget);
+      expect(find.text('欢迎使用 Kestrel'), findsOneWidget);
       await tester.state<NavigatorState>(find.byType(Navigator)).maybePop();
       await tester.pump(const Duration(milliseconds: 400));
-      expect(find.text('欢迎使用 BaoCode'), findsOneWidget);
+      expect(find.text('欢迎使用 Kestrel'), findsOneWidget);
     });
 
     testWidgets('opens the page, waits for it, then welcomes the channel’s '
