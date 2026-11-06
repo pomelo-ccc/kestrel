@@ -1463,7 +1463,7 @@ class SidePanelRail extends StatelessWidget {
 
   static const _button = 26.0;
   static const _padding = 4.0;
-  static const _gap = 4.0;
+  static const _gap = 8.0;
 
   /// Across, its border too.
   static const width = _button + 2 * _padding + 2;
@@ -1474,11 +1474,23 @@ class SidePanelRail extends StatelessWidget {
     builder: (context, _) => Container(
       key: const ValueKey('side-panel-rail'),
       width: width,
-      padding: const EdgeInsets.all(_padding),
+      padding: const EdgeInsets.symmetric(
+        horizontal: _padding,
+        vertical: _padding + 2,
+      ),
       decoration: BoxDecoration(
         color: AppColors.surface,
         border: Border.all(color: AppColors.partBorder),
         borderRadius: BorderRadius.circular(10),
+        boxShadow: themeColors.dark
+            ? null
+            : const [
+                BoxShadow(
+                  color: Color(0x08000000),
+                  blurRadius: 6,
+                  offset: Offset(0, 2),
+                ),
+              ],
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -1500,14 +1512,14 @@ class SidePanelRail extends StatelessWidget {
                   size: _button,
                   onTap: () => onSelect(section),
                 ),
-                // At its top right corner, over the rail's edge, as an
-                // activity bar's badge; the button's hover stays its own.
+                // At its top right corner, compact and ringed so it does not
+                // obscure the icon underneath or spill past the rail.
                 if (_count(section) case final count when count > 0)
                   Positioned(
-                    top: -5,
-                    right: -7,
+                    top: -4,
+                    right: -3,
                     child: IgnorePointer(
-                      child: IdeTitleBadge(
+                      child: _RailBadge(
                         count,
                         key: ValueKey(('rail', section)),
                       ),
@@ -1517,6 +1529,36 @@ class SidePanelRail extends StatelessWidget {
             ),
           ],
         ],
+      ),
+    ),
+  );
+}
+
+class _RailBadge extends StatelessWidget {
+  const _RailBadge(this.count, {super.key});
+
+  final int count;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    constraints: const BoxConstraints(minWidth: 14),
+    height: 14,
+    padding: const EdgeInsets.symmetric(horizontal: 3),
+    decoration: BoxDecoration(
+      color: themeColors['panelTitleBadge.background'],
+      borderRadius: BorderRadius.circular(7),
+      border: Border.all(color: AppColors.surface, width: 1.5),
+    ),
+    child: Center(
+      widthFactor: 1,
+      child: Text(
+        IdeTitleBadge.text(count),
+        style: TextStyle(
+          fontSize: 8.5,
+          height: 1.0,
+          fontWeight: FontWeight.w600,
+          color: themeColors['panelTitleBadge.foreground'],
+        ),
       ),
     ),
   );

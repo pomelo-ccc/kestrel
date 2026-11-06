@@ -297,16 +297,13 @@ final class Attention: NSObject, UNUserNotificationCenterDelegate, NSSoundDelega
     return image
   }
 
-  /// The logo's cells, in its own 56×42 units (bao.svg).
+  /// The Kestrel 5-bar rhythm pulse logo in 56×42 units.
   static let logoCells: [CGRect] = [
-    CGRect(x: 14, y: 0, width: 28, height: 7),
-    CGRect(x: 7, y: 7, width: 7, height: 7),
-    CGRect(x: 42, y: 7, width: 7, height: 7),
-    CGRect(x: 0, y: 14, width: 7, height: 21),
-    CGRect(x: 49, y: 14, width: 7, height: 21),
-    CGRect(x: 14, y: 21, width: 8, height: 7),
-    CGRect(x: 35, y: 21, width: 8, height: 7),
-    CGRect(x: 7, y: 35, width: 42, height: 7),
+    CGRect(x: 3.5, y: 14, width: 7, height: 14),
+    CGRect(x: 14, y: 7, width: 7, height: 28),
+    CGRect(x: 24.5, y: 0, width: 7, height: 42),
+    CGRect(x: 35, y: 7, width: 7, height: 28),
+    CGRect(x: 45.5, y: 14, width: 7, height: 14),
   ]
 
   /// Draws the tray icon into a square of [pixels] (18pt of them), from its
@@ -317,15 +314,18 @@ final class Attention: NSObject, UNUserNotificationCenterDelegate, NSSoundDelega
     context.translateBy(x: 0, y: pixels)
     context.scaleBy(x: 1, y: -1)
     context.setFillColor(NSColor.black.cgColor)
-    // 16pt wide from 1pt in, 12pt high from 3pt down: centered, on whole
-    // pixels.
     let k = 16 * unit / 56
     for cell in logoCells {
       let x0 = (unit + cell.minX * k).rounded()
       let y0 = (3 * unit + cell.minY * k).rounded()
       let x1 = (unit + cell.maxX * k).rounded()
       let y1 = (3 * unit + cell.maxY * k).rounded()
-      context.fill(CGRect(x: x0, y: y0, width: x1 - x0, height: y1 - y0))
+      let rect = CGRect(x: x0, y: y0, width: x1 - x0, height: y1 - y0)
+      let radius = min(rect.width, rect.height) / 2
+      let path = CGPath(
+        roundedRect: rect, cornerWidth: radius, cornerHeight: radius, transform: nil)
+      context.addPath(path)
+      context.fillPath()
     }
     guard dot else { return }
     let center = CGPoint(x: 15.5 * unit, y: 2.5 * unit)

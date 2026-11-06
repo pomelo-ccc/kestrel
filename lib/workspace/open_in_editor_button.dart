@@ -6,12 +6,13 @@ import 'package:flutter/services.dart';
 import '../chat/chat_keys.dart';
 import '../chat/floating/floating_placement.dart';
 import '../chat/widgets/hover_builder.dart';
-import '../ide/ide_button.dart';
 import '../ide/ide_hover.dart';
 import '../keybindings/chat_keybindings.dart';
 import '../l10n/l10n.dart';
 import '../sidebar/sidebar_menu.dart';
+import '../theme/app_theme.dart';
 import '../theme/codicons.dart';
+import '../theme/workbench_theme.dart' show themeColors;
 import 'back_to_chat_button.dart';
 import 'editor_launcher.dart';
 import 'workspace.dart';
@@ -86,15 +87,30 @@ class OpenInEditorButton extends StatelessWidget {
         ),
       ],
       builder: (context, menu) {
-        final foreground = IdeButtonColors.foreground;
+        final dark = themeColors.dark;
+        final foreground = dark
+            ? const Color(0xFFE5E4DF)
+            : const Color(0xFF2D2C2A);
+        final borderColor = dark
+            ? const Color(0xFF363532)
+            : const Color(0xFFE2E1DC);
         final width = titleBarSwitchWidth(context);
         return Container(
           height: 22,
           constraints: BoxConstraints(minWidth: width),
           decoration: BoxDecoration(
-            color: IdeButtonColors.background,
-            borderRadius: BorderRadius.circular(4),
-            border: Border.all(color: IdeButtonColors.border),
+            color: dark ? const Color(0xFF252523) : const Color(0xFFFFFFFF),
+            borderRadius: BorderRadius.circular(6),
+            border: Border.all(color: borderColor),
+            boxShadow: dark
+                ? null
+                : const [
+                    BoxShadow(
+                      color: Color(0x06000000),
+                      blurRadius: 2,
+                      offset: Offset(0, 1),
+                    ),
+                  ],
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
@@ -118,19 +134,24 @@ class OpenInEditorButton extends StatelessWidget {
                   onTap: () => _open(editor),
                   padding: const EdgeInsets.only(left: 8, right: 6),
                   borderRadius: const BorderRadius.horizontal(
-                    left: Radius.circular(3),
+                    left: Radius.circular(5),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(editor.icon, size: 16, color: foreground),
-                      const SizedBox(width: 4),
+                      Icon(
+                        editor.icon,
+                        size: 13.5,
+                        color: AppColors.textMuted,
+                      ),
+                      const SizedBox(width: 5),
                       Text(
                         editor.localizedPlatformLabel(context.l10n),
                         style: TextStyle(
                           color: foreground,
-                          fontSize: 12,
-                          height: 16 / 12,
+                          fontSize: 11.5,
+                          fontWeight: FontWeight.w500,
+                          height: 1.2,
                         ),
                       ),
                     ],
@@ -140,8 +161,8 @@ class OpenInEditorButton extends StatelessWidget {
               // As IdeButton's split button has it.
               Container(
                 width: 1,
-                height: 14,
-                color: foreground.withValues(alpha: 0.25),
+                height: 12,
+                color: borderColor,
               ),
               _Segment(
                 semanticsLabel: context.l10n.workspaceChooseEditor,
@@ -149,10 +170,14 @@ class OpenInEditorButton extends StatelessWidget {
                 onTap: menu.open,
                 padding: const EdgeInsets.only(left: 3, right: 4),
                 borderRadius: const BorderRadius.horizontal(
-                  right: Radius.circular(3),
+                  right: Radius.circular(5),
                 ),
                 // As IdeButton's split button has it.
-                child: Icon(Codicons.chevronDown, size: 14, color: foreground),
+                child: Icon(
+                  Codicons.chevronDown,
+                  size: 12.5,
+                  color: AppColors.textMuted,
+                ),
               ),
             ],
           ),
@@ -185,6 +210,10 @@ class _Segment extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final dark = themeColors.dark;
+    final hoverBg = dark
+        ? const Color(0xFF302F2C)
+        : const Color(0xFFF2F1EC);
     return IdeHover(
       message: tooltip ?? semanticsLabel,
       excludeFromSemantics: true,
@@ -200,9 +229,7 @@ class _Segment extends StatelessWidget {
               padding: padding,
               alignment: Alignment.center,
               decoration: BoxDecoration(
-                color: active || hovered
-                    ? IdeButtonColors.hoverBackground
-                    : Colors.transparent,
+                color: active || hovered ? hoverBg : Colors.transparent,
                 borderRadius: borderRadius,
               ),
               child: child,

@@ -244,7 +244,7 @@ final class OpenRequests {
   /// the IDE at a line, the link after the same marker (FileLink in
   /// code_args.dart). Nil for any other URL, or one without absolute paths.
   static func request(from url: URL) -> [String]? {
-    guard url.scheme == "baocode",
+    guard (url.scheme == "kestrel" || url.scheme == "baocode"),
       let components = URLComponents(url: url, resolvingAgainstBaseURL: false)
     else { return nil }
     if components.host?.lowercased() == "file" {

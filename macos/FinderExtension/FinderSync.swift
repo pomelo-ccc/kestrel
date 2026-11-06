@@ -118,7 +118,7 @@ class FinderSync: FIFinderSync {
     var allowed = CharacterSet.alphanumerics
     allowed.insert(charactersIn: "-._~/")
     var components = URLComponents()
-    components.scheme = "baocode"
+    components.scheme = "kestrel"
     components.host = mode
     components.percentEncodedQuery = paths.map {
       "path=" + ($0.addingPercentEncoding(withAllowedCharacters: allowed) ?? "")

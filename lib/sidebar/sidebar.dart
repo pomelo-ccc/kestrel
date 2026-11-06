@@ -2618,7 +2618,7 @@ class _SearchBox extends StatelessWidget {
           onTap: onTap,
           child: Container(
             height: 32,
-            padding: const EdgeInsets.symmetric(horizontal: 10),
+            padding: const EdgeInsets.only(left: 10, right: 6),
             decoration: BoxDecoration(
               color: dark
                   ? (hovered ? const Color(0xFF252523) : const Color(0xFF1E1E1C))
@@ -2644,6 +2644,7 @@ class _SearchBox extends StatelessWidget {
             ),
             child: ExcludeSemantics(
               child: Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   Icon(
                     Codicons.search,
@@ -2692,12 +2693,13 @@ class _SearchKeycap extends StatelessWidget {
   Widget build(BuildContext context) {
     final dark = themeColors.dark;
     return Container(
-      constraints: const BoxConstraints(minWidth: 18, minHeight: 18),
-      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+      height: 20,
+      constraints: const BoxConstraints(minWidth: 20, maxHeight: 20),
+      padding: const EdgeInsets.symmetric(horizontal: 4),
       alignment: Alignment.center,
       decoration: BoxDecoration(
-        color: dark ? const Color(0xFF282826) : const Color(0xFFF7F6F2),
-        borderRadius: BorderRadius.circular(4),
+        color: dark ? const Color(0xFF282826) : const Color(0xFFFAF9F5),
+        borderRadius: BorderRadius.circular(5),
         border: Border.all(
           color: dark ? const Color(0xFF3A3937) : const Color(0xFFE2E1DC),
           width: 1,
@@ -2708,7 +2710,7 @@ class _SearchKeycap extends StatelessWidget {
         style: TextStyle(
           color: AppColors.textMuted,
           fontSize: 11,
-          height: 1.1,
+          height: 1.0,
           fontWeight: FontWeight.w500,
         ),
       ),
