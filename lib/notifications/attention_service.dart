@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:flutter/widgets.dart';
 
@@ -9,6 +10,12 @@ import '../workspace/workspace.dart';
 import 'attention_host.dart';
 import 'attention_settings.dart';
 import 'notification_sound.dart';
+
+/// Controls whether Kestrel speaks a 1-sentence TTS summary via macOS `say`
+/// when an agent finishes a turn or needs user input.
+abstract final class AttentionVoiceSetting {
+  static final ValueNotifier<bool> enabled = ValueNotifier<bool>(false);
+}
 
 /// Tells the user when an agent wants them: it stopped on a question or
 /// put a plan to them ([AttentionEvent.needsInput]) or ended its turn
@@ -199,11 +206,15 @@ class AttentionService {
               identical(workspace.current, thread)));
 
   void _notify(AgentThread thread, AttentionEvent event, {bool sound = true}) {
+    if (AttentionVoiceSetting.enabled.value && sound) {
+      unawaited(_speakSummary(thread, event));
+    }
     final settings = this.settings();
     if (thread.archived || !settings.notifies(event)) return;
     if (settings.when == NotifyWhen.unfocused && _inView(thread)) return;
     final l10n = this.l10n();
     final String body;
+    final hasError = _lastTurnHadError(thread);
     switch (event) {
       case AttentionEvent.needsInput:
         final session = thread.session;
@@ -231,7 +242,76 @@ class AttentionService {
         body: body,
       ),
     );
-    if (sound) _sound(settings.sound);
+    if (sound) {
+      final eventSound = switch (event) {
+        AttentionEvent.needsInput =>
+          settings.sound == AttentionSettings.defaults.sound
+              ? 'system:Hero'
+              : settings.sound,
+        AttentionEvent.finished when hasError => 'system:Basso',
+        AttentionEvent.finished => settings.sound,
+      };
+      _sound(eventSound);
+    }
+  }
+
+  static bool _lastTurnHadError(AgentThread thread) {
+    final session = thread.session;
+    for (var i = session.itemCount - 1; i >= 0; i--) {
+      final item = session.itemAt(i);
+      if (item is UserMessageItem) break;
+      if (item is NoticeItem && item.kind == NoticeKind.error) return true;
+    }
+    return false;
+  }
+
+  static Process? _activeSpeech;
+
+  Future<void> _speakSummary(AgentThread thread, AttentionEvent event) async {
+    if (!Platform.isMacOS ||
+        Platform.environment['FLUTTER_TEST'] == 'true') {
+      return;
+    }
+    final l10n = this.l10n();
+    final title = thread.localizedTitle(l10n);
+    final String spoken;
+    if (event == AttentionEvent.needsInput) {
+      final detail = _request(thread.session.pendingInteraction, l10n);
+      spoken = detail == null
+          ? '$title 需要您的确认'
+          : '$title 需要确认：${_cleanForSpeech(detail)}';
+    } else if (_lastTurnHadError(thread)) {
+      spoken = '$title 执行遇到报错，请检查或切换备用渠道';
+    } else {
+      final reply = _lastReply(thread);
+      spoken = reply == null
+          ? '$title 已完成任务'
+          : '$title 已完成：${_cleanForSpeech(reply)}';
+    }
+    try {
+      _activeSpeech?.kill();
+      _activeSpeech = await Process.start('/usr/bin/say', [
+        '-r',
+        '210',
+        spoken,
+      ]);
+    } on Object {
+      // Ignore if `/usr/bin/say` fails.
+    }
+  }
+
+  static String _cleanForSpeech(String text) {
+    var s = text
+        .replaceAll(RegExp(r'```[\s\S]*?```'), '')
+        .replaceAll(RegExp(r'`[^`]+`'), '')
+        .replaceAll(RegExp(r'https?://\S+'), '')
+        .replaceAll(RegExp(r'[#*|>_\[\]~]'), ' ')
+        .replaceAll(RegExp(r'\s+'), ' ')
+        .trim();
+    if (s.length > 48) {
+      s = s.substring(0, 48);
+    }
+    return s;
   }
 
   /// One sound for news that comes together (several agents at once).

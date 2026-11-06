@@ -6,6 +6,7 @@
 import 'package:path/path.dart' as p;
 
 import '../../kernel/claude_code/claude_haiku.dart';
+import '../../models/model_provider.dart';
 import '../../models/model_providers.dart';
 
 /// The most diff the model is given, in characters.
@@ -49,24 +50,38 @@ Future<String> ideClaudeCommitMessage(
   Future<void>? cancel,
   String? location,
 }) async {
-  try {
-    // The auxiliary model; automatic, new sessions' default.
-    final models = ModelProviders.current;
-    final auxiliary = models.auxiliary(models.defaultModel);
-    final reply = await askClaudeHaiku(
-      prompt.system,
-      prompt.user,
-      cancel: cancel,
-      model: auxiliary.model,
-      exact: auxiliary.exact,
-      location: location,
-    );
-    return ideCleanCommitMessage(reply);
-  } on ClaudeHaikuCancelled {
-    throw const IdeCommitMessageCancelled();
-  } on ClaudeHaikuException catch (error) {
-    throw IdeCommitMessageException(error.message);
+  final models = ModelProviders.current;
+  final candidates = <({String? model, bool exact})>[
+    models.auxiliary(models.defaultModel),
+    for (final provider in models.enabled)
+      models.auxiliary(
+        provider.models.isNotEmpty
+            ? modelRef(provider.id, provider.models.first.id)
+            : modelRef(provider.id, 'haiku'),
+      ),
+  ];
+  final seenModels = <String?>{};
+  ClaudeHaikuException? lastError;
+  for (final candidate in candidates) {
+    if (!seenModels.add(candidate.model)) continue;
+    try {
+      final reply = await askClaudeHaiku(
+        prompt.system,
+        prompt.user,
+        cancel: cancel,
+        model: candidate.model,
+        exact: candidate.exact,
+        location: location,
+      );
+      final cleaned = ideCleanCommitMessage(reply);
+      if (cleaned.isNotEmpty) return cleaned;
+    } on ClaudeHaikuCancelled {
+      throw const IdeCommitMessageCancelled();
+    } on ClaudeHaikuException catch (error) {
+      lastError = error;
+    }
   }
+  throw IdeCommitMessageException(lastError?.message ?? 'No answer');
 }
 
 /// One line, so that it passes through a shell unchanged.

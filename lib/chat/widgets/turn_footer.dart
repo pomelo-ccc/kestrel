@@ -8,6 +8,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import '../../ide/ide_hover.dart';
 import '../../l10n/l10n.dart';
 import '../../theme/app_theme.dart';
+import '../../theme/codicons.dart';
 import '../chat_models.dart';
 import 'agent_step.dart';
 import 'hover_builder.dart';
@@ -55,6 +56,8 @@ class TurnFooter extends StatelessWidget {
     this.usage,
     this.live,
     this.since,
+    this.pinned = false,
+    this.onTogglePin,
   });
 
   /// What the copy button copies; no button when null.
@@ -67,6 +70,10 @@ class TurnFooter extends StatelessWidget {
 
   /// When the turn under way began.
   final DateTime? since;
+
+  /// Whether this turn's conclusion is pinned to the top of the chat.
+  final bool pinned;
+  final VoidCallback? onTogglePin;
 
   /// "$0.42", "$0.0031": two figures past the first that is not 0, at
   /// least two decimals.
@@ -87,6 +94,8 @@ class TurnFooter extends StatelessWidget {
       return _padded(
         _line([
           if (answer case final answer?) _CopyButton(text: answer),
+          if (answer != null && onTogglePin != null)
+            _PinButton(pinned: pinned, onTap: onTogglePin!),
           ..._stats(l10n),
         ]),
       );
@@ -332,6 +341,44 @@ class _CopyButtonState extends State<_CopyButton> {
                 hovered || _copied ? AppColors.text : AppColors.textFaint,
                 BlendMode.srcIn,
               ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _PinButton extends StatelessWidget {
+  const _PinButton({required this.pinned, required this.onTap});
+
+  final bool pinned;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final accent = AppColors.accent;
+    return IdeHover(
+      message: pinned ? '取消置顶结论' : '置顶本轮关键结论',
+      child: HoverBuilder(
+        cursor: SystemMouseCursors.click,
+        builder: (context, hovered) => GestureDetector(
+          onTap: onTap,
+          behavior: HitTestBehavior.opaque,
+          child: Container(
+            padding: const EdgeInsets.all(3),
+            decoration: BoxDecoration(
+              color: hovered
+                  ? AppColors.hover
+                  : (pinned ? accent.withValues(alpha: 0.14) : null),
+              borderRadius: BorderRadius.circular(4),
+            ),
+            child: Icon(
+              pinned ? Codicons.pinned : Codicons.pin,
+              size: 13,
+              color: pinned
+                  ? accent
+                  : (hovered ? AppColors.text : AppColors.textFaint),
             ),
           ),
         ),

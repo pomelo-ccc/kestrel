@@ -1547,6 +1547,17 @@ class IdeGitCommitPanelState extends State<IdeGitCommitPanel>
     }
   }
 
+  /// Generates a commit message via AI (if empty) and immediately commits
+  /// the checked changes.
+  Future<void> _generateAndCommit() async {
+    if (_committing || _session.generating != null) return;
+    if (_session.message.text.trim().isEmpty) {
+      await _generateMessage();
+    }
+    if (!mounted || _session.message.text.trim().isEmpty) return;
+    await _commit();
+  }
+
   // --- Building ------------------------------------------------------------
 
   @override
@@ -2704,7 +2715,13 @@ class IdeGitCommitPanelState extends State<IdeGitCommitPanel>
                       unawaited(_commit()),
                 },
                 toggles: [
-                  if (widget.commitMessage != null)
+                  if (widget.commitMessage != null) ...[
+                    IdeActionButton(
+                      icon: Codicons.sparkle,
+                      tooltip: 'AI 生成并提交',
+                      size: 20,
+                      onPressed: () => unawaited(_generateAndCommit()),
+                    ),
                     IdeActionButton(
                       icon: _session.reviewing == null
                           ? Codicons.checklist
@@ -2715,6 +2732,7 @@ class IdeGitCommitPanelState extends State<IdeGitCommitPanel>
                       size: 20,
                       onPressed: () => unawaited(_review()),
                     ),
+                  ],
                   IdeActionButton(
                     icon: Codicons.history,
                     tooltip: l10n.gitCommitMessageHistory,
@@ -2735,6 +2753,16 @@ class IdeGitCommitPanelState extends State<IdeGitCommitPanel>
                   _generateButton(context, labeled: true),
                   priority: 0,
                   compact: _generateButton(context, labeled: false),
+                ),
+                const GiveWay(SizedBox(width: 8)),
+                GiveWay(
+                  _generateAndCommitButton(context, busy: busy, labeled: true),
+                  priority: 1,
+                  compact: _generateAndCommitButton(
+                    context,
+                    busy: busy,
+                    labeled: false,
+                  ),
                 ),
                 const GiveWay(SizedBox(width: 8)),
               ],
@@ -2794,6 +2822,29 @@ class IdeGitCommitPanelState extends State<IdeGitCommitPanel>
       onPressed: () => unawaited(_generateMessage()),
     );
     return labeled ? button : IdeHover(message: label, child: button);
+  }
+
+  Widget _generateAndCommitButton(
+    BuildContext context, {
+    required bool busy,
+    required bool labeled,
+  }) {
+    final generating = _session.generating != null;
+    const label = 'AI 生成并提交';
+    final button = IdeButton(
+      icon: Codicons.sparkle,
+      label: labeled ? label : '',
+      secondary: true,
+      padding: _buttonPad,
+      radius: _radius,
+      onPressed: busy || generating ? null : () => unawaited(_generateAndCommit()),
+    );
+    return labeled
+        ? IdeHover(
+            message: '一键调用 AI 生成 Commit Message 并直接提交已勾选变更',
+            child: button,
+          )
+        : IdeHover(message: label, child: button);
   }
 }
 

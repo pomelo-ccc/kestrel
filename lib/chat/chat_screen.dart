@@ -15,7 +15,10 @@ import '../ide/ide_spinning.dart';
 import '../kernel/kernel_types.dart';
 import '../keybindings/chat_keybindings.dart';
 import '../l10n/l10n.dart';
+import '../models/model_providers.dart';
 import '../models/model_welcome.dart';
+import '../models/provider_health.dart';
+import '../notifications/attention_service.dart';
 import '../remote/remote_location.dart';
 import '../remote/remote_status.dart' show ClaudeInstallBanner, SshHostBanner;
 import '../stash/stash_actions.dart';
@@ -55,6 +58,7 @@ import 'side_panel/file_open.dart';
 import 'stop_confirmation.dart';
 import 'widgets/agent_step.dart';
 import 'widgets/chat_minimap.dart';
+import 'widgets/chat_toc_and_pins.dart';
 import 'widgets/code_citation.dart';
 import 'widgets/hover_builder.dart';
 import 'widgets/hover_scroll_text.dart';
@@ -1320,11 +1324,15 @@ class _ChatScreenState extends State<ChatScreen>
             },
           )
         : null;
+    final speedBadge = _agentShown == null
+        ? _SpeedAndTokenBadge(session: _session)
+        : null;
     if (IslandFootTrailing.hosts(context)) {
       return Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           if (below != null) Flexible(child: below),
+          ?speedBadge,
           ?meter,
         ],
       );
@@ -1334,6 +1342,7 @@ class _ChatScreenState extends State<ChatScreen>
         Expanded(
           child: Align(alignment: Alignment.centerLeft, child: below),
         ),
+        ?speedBadge,
         ?meter,
       ],
     );
@@ -1367,6 +1376,12 @@ class _ChatScreenState extends State<ChatScreen>
   /// The history over the panels and the input, as a column's children.
   List<Widget> _buildConversation() {
     return [
+      if (_agentShown == null)
+        PinnedConclusionsBar(
+          feed: _session,
+          onJumpToTurn: (index) =>
+              ChatHistoryView.scrollToIndex(_historyKey, index),
+        ),
       // Esc goes back from a subagent: a keybinding of the chat's
       // (closeSubagent).
       Expanded(
@@ -1434,6 +1449,15 @@ class _ChatScreenState extends State<ChatScreen>
                         _session.loadingHistory && _session.itemCount == 0
                         ? const _HistoryLoading()
                         : const SizedBox.shrink(),
+                  ),
+                  Positioned(
+                    right: 8,
+                    top: 42,
+                    child: ChatMiniTocRail(
+                      feed: _session,
+                      onJumpToTurn: (index) =>
+                          ChatHistoryView.scrollToIndex(_historyKey, index),
+                    ),
                   ),
                 ],
               ),
@@ -2031,6 +2055,187 @@ class _PanelSlot extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.only(bottom: gap),
       child: panel,
+    );
+  }
+}
+
+/// Live streaming speed (`tok/s`) and today's token dashboard pill shown in
+/// the status bar beside [ContextMeter].
+class _SpeedAndTokenBadge extends StatefulWidget {
+  const _SpeedAndTokenBadge({required this.session});
+
+  final ChatSession session;
+
+  @override
+  State<_SpeedAndTokenBadge> createState() => _SpeedAndTokenBadgeState();
+}
+
+class _SpeedAndTokenBadgeState extends State<_SpeedAndTokenBadge> {
+  late SessionSpeedTracker _tracker;
+
+  @override
+  void initState() {
+    super.initState();
+    _tracker = SessionSpeedTracker(widget.session);
+  }
+
+  @override
+  void didUpdateWidget(_SpeedAndTokenBadge oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!identical(oldWidget.session, widget.session)) {
+      _tracker.dispose();
+      _tracker = SessionSpeedTracker(widget.session);
+    }
+  }
+
+  @override
+  void dispose() {
+    _tracker.dispose();
+    super.dispose();
+  }
+
+  String _formatTokens(int count) {
+    if (count >= 1000000) return '${(count / 1000000).toStringAsFixed(1)}M';
+    if (count >= 1000) return '${(count / 1000).toStringAsFixed(1)}K';
+    return '$count';
+  }
+
+  String _buildTooltip() {
+    final lines = <String>[];
+    final speed = _tracker.tokensPerSec;
+    if (speed > 0) {
+      lines.add('当前/最近生成速度: ${speed.toStringAsFixed(1)} tok/s');
+    }
+    final total =
+        SessionSpeedTracker.todayEstimatedTokens +
+        (widget.session.context?.used ?? 0);
+    lines.add('今日累计上下文与输出: ${_formatTokens(total)} tok');
+    final providers = ModelProviders.current;
+    for (final entry in SessionSpeedTracker.todayProviderTokens.entries) {
+      final name =
+          providers.provider(entry.key)?.name ??
+          (entry.key == 'builtin' ? '内置模型' : entry.key);
+      lines.add('• $name: ${_formatTokens(entry.value)} tok');
+    }
+    for (final provider in providers.enabled) {
+      final ping = ProviderHealthMonitor.instance.pingOf(provider.id);
+      if (ping.shortLabel.isNotEmpty) {
+        lines.add('• ${provider.name} 延迟: ${ping.shortLabel}');
+      }
+    }
+    return lines.join('\n');
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ListenableBuilder(
+      listenable: Listenable.merge([
+        _tracker,
+        widget.session,
+        ProviderHealthMonitor.instance,
+        AttentionVoiceSetting.enabled,
+      ]),
+      builder: (context, _) {
+        final streaming = widget.session.isStreaming;
+        final speed = _tracker.tokensPerSec;
+        final used = widget.session.context?.used ?? 0;
+        final todayTotal = SessionSpeedTracker.todayEstimatedTokens + used;
+        final voiceOn = AttentionVoiceSetting.enabled.value;
+        final String? label;
+        if (streaming && speed > 0) {
+          label = '⚡ ${speed.toStringAsFixed(1)} tok/s';
+        } else if (speed > 0) {
+          label =
+              '⚡ ${speed.toStringAsFixed(0)} tok/s · 今日 ${_formatTokens(todayTotal)}';
+        } else if (todayTotal > 0) {
+          label = '📊 今日 ${_formatTokens(todayTotal)} tok';
+        } else {
+          label = null;
+        }
+        return Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (label case final String labelText)
+              Padding(
+                padding: const EdgeInsets.only(right: 4),
+                child: IdeHover(
+                  message: _buildTooltip(),
+                  child: HoverBuilder(
+                    cursor: SystemMouseCursors.click,
+                    builder: (context, hovered) => GestureDetector(
+                      onTap: () => unawaited(
+                        ProviderHealthMonitor.instance.pingAll(force: true),
+                      ),
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 120),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 6,
+                          vertical: 2,
+                        ),
+                        decoration: BoxDecoration(
+                          color: hovered ? AppColors.hover : Colors.transparent,
+                          borderRadius: BorderRadius.circular(5),
+                        ),
+                        child: Text(
+                          labelText,
+                          style: TextStyle(
+                            color: streaming
+                                ? AppColors.accent
+                                : (hovered
+                                      ? AppColors.text
+                                      : AppColors.textMuted),
+                            fontSize: 11.5,
+                            fontWeight: streaming
+                                ? FontWeight.w600
+                                : FontWeight.w400,
+                            fontFeatures: const [
+                              FontFeature.tabularFigures(),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            Padding(
+              padding: const EdgeInsets.only(right: 6),
+              child: IdeHover(
+                message: voiceOn
+                    ? '已开启任务完成 AI 语音播报（点击关闭）'
+                    : '点击开启任务完成 AI 一句话语音播报',
+                child: HoverBuilder(
+                  cursor: SystemMouseCursors.click,
+                  builder: (context, hovered) => GestureDetector(
+                    onTap: () =>
+                        AttentionVoiceSetting.enabled.value = !voiceOn,
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 120),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 5,
+                        vertical: 2,
+                      ),
+                      decoration: BoxDecoration(
+                        color: voiceOn
+                            ? AppColors.accent.withValues(alpha: 0.14)
+                            : (hovered ? AppColors.hover : Colors.transparent),
+                        borderRadius: BorderRadius.circular(5),
+                      ),
+                      child: Icon(
+                        voiceOn ? Codicons.unmute : Codicons.mute,
+                        size: 13,
+                        color: voiceOn
+                            ? AppColors.accent
+                            : (hovered ? AppColors.text : AppColors.textFaint),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 }

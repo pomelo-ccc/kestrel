@@ -32,6 +32,7 @@ import 'step_folds.dart';
 import 'user_message_style.dart';
 import 'widgets/chat_item_view.dart';
 import 'widgets/chat_minimap.dart';
+import 'widgets/chat_toc_and_pins.dart';
 import 'widgets/edge_fade_mask.dart';
 import 'widgets/own_selection.dart';
 import 'widgets/content_image.dart' show ChatImage, ChatImages;
@@ -103,6 +104,10 @@ class ChatHistoryView extends StatefulWidget {
   /// when given (a search's), its first match brought into view.
   static void find(GlobalKey key, {String? query}) =>
       (key.currentState as _ChatHistoryViewState?)?._find.show(query: query);
+
+  /// Scrolls the history [key] is on to row [index].
+  static void scrollToIndex(GlobalKey key, int index) =>
+      (key.currentState as _ChatHistoryViewState?)?._seek(index, 0);
 }
 
 /// Where a history was left, read up from its end: the row shown first and
@@ -252,10 +257,23 @@ class _ChatHistoryViewState extends State<ChatHistoryView>
         break;
       }
     }
-    return TurnFooter(
-      answer: words.isEmpty ? null : words.join('\n\n'),
-      worked: message.worked,
-      usage: message.usage,
+    final answer = words.isEmpty ? null : words.join('\n\n');
+    return ListenableBuilder(
+      listenable: ChatPinsStore.instance,
+      builder: (context, _) => TurnFooter(
+        answer: answer,
+        worked: message.worked,
+        usage: message.usage,
+        pinned: ChatPinsStore.instance.isPinned(_feed, prompt),
+        onTogglePin: answer == null
+            ? null
+            : () => ChatPinsStore.instance.togglePin(
+                _feed,
+                turnIndex: prompt,
+                promptTitle: message.text,
+                answer: answer,
+              ),
+      ),
     );
   }
 
@@ -2310,6 +2328,10 @@ class _ChatHistoryViewState extends State<ChatHistoryView>
       final view = ChatItemView(
         key: item is LiveStatusItem ? _statusKey : ValueKey(index),
         item: item,
+        session: switch (_feed) {
+          final ChatSession s => s,
+          _ => null,
+        },
         expanded: _isExpanded(index),
         onToggle: () => _toggle(index),
         onEdit: item is UserMessageItem && item.fromAgent == null

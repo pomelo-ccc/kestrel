@@ -73,6 +73,7 @@ import 'models/model_icons.dart';
 import 'models/model_providers.dart';
 import 'models/model_runtime.dart';
 import 'models/model_welcome.dart';
+import 'notifications/notch_dropzone.dart';
 import 'network/network_proxy.dart';
 import 'notifications/attention_host.dart';
 import 'notifications/attention_settings.dart';
@@ -307,6 +308,7 @@ Future<void> main(List<String> arguments) async {
         AttentionSettings.parse(files?.settings.values ?? const {}).tray,
   );
   await windows.start();
+  NotchDropzone.start(workspace: workspace, windows: windows);
   // The stash (docs/stash.md): its shortcut works from any app, its panel
   // made hidden a moment after the windows, to show at once.
   if (files != null) {

@@ -10,6 +10,7 @@ import 'package:flutter/foundation.dart';
 import 'composer_embeds.dart';
 
 import '../../kernel/claude_code/claude_haiku.dart';
+import '../../models/model_provider.dart';
 import '../../models/model_providers.dart';
 
 /// `chat.composer.polish`: whether the composer has its Polish button.
@@ -184,27 +185,64 @@ Future<String> polishComposerText(
   String? model,
   String? location,
 }) async {
-  final auxiliary = ModelProviders.current.auxiliary(model);
+  final models = ModelProviders.current;
+  final auxiliary = models.auxiliary(model);
   final said = switch (reply?.trim()) {
     null || '' => null,
     final text when text.length > composerPolishReplyLimit =>
       '…${_tail(text, composerPolishReplyLimit)}',
     final text => text,
   };
-  final String answer;
-  try {
-    answer = await (composerPolishAsker ?? askClaudeHaiku)(
-      _system,
-      [
-        if (said != null) '<agent_reply>\n$said\n</agent_reply>\n',
-        '<message>\n${asked.text}\n</message>',
-      ].join('\n'),
-      model: auxiliary.model,
-      exact: auxiliary.exact,
-      location: location,
-    );
-  } on Object catch (error) {
-    throw ComposerPolishException('$error');
+  final promptText = [
+    if (said != null) '<agent_reply>\n$said\n</agent_reply>\n',
+    '<message>\n${asked.text}\n</message>',
+  ].join('\n');
+  String? answer;
+  Object? lastError;
+  if (composerPolishAsker != null) {
+    try {
+      answer = await composerPolishAsker!(
+        _system,
+        promptText,
+        model: auxiliary.model,
+        exact: auxiliary.exact,
+        location: location,
+      );
+    } on Object catch (error) {
+      throw ComposerPolishException('$error');
+    }
+  } else {
+    final candidates = <({String? model, bool exact})>[
+      auxiliary,
+      for (final provider in models.enabled)
+        models.auxiliary(
+          provider.models.isNotEmpty
+              ? modelRef(provider.id, provider.models.first.id)
+              : modelRef(provider.id, 'haiku'),
+        ),
+    ];
+    final seenModels = <String?>{};
+    for (final candidate in candidates) {
+      if (!seenModels.add(candidate.model)) continue;
+      try {
+        final raw = await askClaudeHaiku(
+          _system,
+          promptText,
+          model: candidate.model,
+          exact: candidate.exact,
+          location: location,
+        );
+        if (raw.trim().isNotEmpty) {
+          answer = raw;
+          break;
+        }
+      } on Object catch (error) {
+        lastError = error;
+      }
+    }
+    if (answer == null) {
+      throw ComposerPolishException(lastError == null ? null : '$lastError');
+    }
   }
   final cleaned = answer
       .trim()

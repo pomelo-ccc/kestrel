@@ -123,6 +123,14 @@ cp -R "$REPO/build/macos/Build/Products/Release/App.framework" "$APP/Contents/Fr
 cp "$REPO/assets/branding/app_icon.png" \
    "$APP/Contents/Frameworks/App.framework/Versions/A/Resources/flutter_assets/assets/branding/app_icon.png"
 
+if [[ -f "$REPO/macos/Runner/KestrelNotch.m" ]]; then
+  /Library/Developer/CommandLineTools/usr/bin/clang \
+    -isysroot "$(xcrun --sdk macosx --show-sdk-path)" \
+    -dynamiclib -fobjc-arc -framework Cocoa -framework Carbon \
+    -x objective-c "$REPO/macos/Runner/KestrelNotch.m" \
+    -o "$APP/Contents/Frameworks/libKestrelNotch.dylib"
+fi
+
 # 7. Sign Kestrel.app and package as .kestrel.zip
 xattr -cr "$APP"
 codesign --force --deep --sign - "$APP"

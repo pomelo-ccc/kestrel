@@ -11,6 +11,7 @@ import '../../models/model_provider.dart' show parseModelRef;
 import '../../models/model_providers.dart';
 import '../../models/model_runtime.dart' show codexService;
 import '../../models/model_welcome.dart';
+import '../../models/provider_health.dart';
 import '../../settings/settings_dialog.dart'
     show SettingsOpener, SettingsSection;
 import '../../theme/app_theme.dart';
@@ -48,19 +49,30 @@ class SessionModelPicker extends StatelessWidget {
   /// The model with its settings, e.g. "Opus · 1M · High": the context
   /// only when it is not the standard one; its upstream before it only
   /// when another upstream has a model of its name.
-  String _label(KernelOption model, List<KernelOption> options) => [
-    if (model.group case final group?
-        when options.any(
-          (other) => other.label == model.label && other.group?.id != group.id,
-        ))
-      group.label,
-    model.label,
-    for (final setting in session.modelSettings(model.id))
-      if (setting.selected case final selected?
-          when setting.kind != KernelChoiceKind.context ||
-              selected != setting.options.first)
-        selected.label,
-  ].join(' · ');
+  String _label(KernelOption model, List<KernelOption> options) {
+    final ping = ProviderHealthMonitor.instance.pingForModel(model.id);
+    final statusDot = switch (ping.status) {
+      ProviderPingStatus.healthy => '🟢 ${ping.shortLabel}',
+      ProviderPingStatus.slow => '🟡 ${ping.shortLabel}',
+      ProviderPingStatus.offline => '🔴 离线',
+      _ => null,
+    };
+    return [
+      if (model.group case final group?
+          when options.any(
+            (other) =>
+                other.label == model.label && other.group?.id != group.id,
+          ))
+        group.label,
+      model.label,
+      for (final setting in session.modelSettings(model.id))
+        if (setting.selected case final selected?
+            when setting.kind != KernelChoiceKind.context ||
+                selected != setting.options.first)
+          selected.label,
+      ?statusDot,
+    ].join(' · ');
+  }
 
   /// Runs [pick], which switches to [option]: once confirmed, if that
   /// restarts the agent on another upstream mid-conversation.
@@ -135,14 +147,18 @@ class SessionModelPicker extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) => ListenableBuilder(
-    // Its switches turned, as settings.json says.
-    listenable: Listenable.merge([
-      ?ResumeAfterResetSetting.changes,
-      ModelProviders.current,
-    ]),
-    builder: (context, _) => _build(context),
-  );
+  Widget build(BuildContext context) {
+    ProviderHealthMonitor.instance.ensureStarted();
+    return ListenableBuilder(
+      // Its switches turned, as settings.json says.
+      listenable: Listenable.merge([
+        ?ResumeAfterResetSetting.changes,
+        ModelProviders.current,
+        ProviderHealthMonitor.instance,
+      ]),
+      builder: (context, _) => _build(context),
+    );
+  }
 
   Widget _build(BuildContext context) {
     final model = session.models;

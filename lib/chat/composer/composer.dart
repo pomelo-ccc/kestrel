@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
@@ -1069,6 +1070,14 @@ class ChatComposerState extends State<ChatComposer>
 
   KeyEventResult _handleKey(KeyEvent event) {
     if (event is KeyUpEvent || _isComposing) return KeyEventResult.ignored;
+    if (event is KeyDownEvent &&
+        event.logicalKey == LogicalKeyboardKey.keyE &&
+        HardwareKeyboard.instance.isMetaPressed &&
+        !HardwareKeyboard.instance.isShiftPressed &&
+        !HardwareKeyboard.instance.isAltPressed) {
+      unawaited(_polish());
+      return KeyEventResult.handled;
+    }
     // Run by the window's keybindings (it sees keys first).
     if (ChatKeys.isHandled(event)) return KeyEventResult.handled;
     // An open picker menu (or tooltip) takes arrows, Enter and Esc first.
@@ -1413,6 +1422,29 @@ class ChatComposerState extends State<ChatComposer>
       _focusNode.requestFocus();
     } finally {
       if (mounted) setState(() => _polishing = false);
+    }
+  }
+
+  /// Captures a region of the screen via macOS interactive `screencapture`
+  /// and inserts the resulting PNG straight into the composer.
+  Future<void> _captureScreenshot() async {
+    if (!Platform.isMacOS) return;
+    final path =
+        '${Directory.systemTemp.path}/kestrel_shot_${DateTime.now().millisecondsSinceEpoch}.png';
+    try {
+      final result = await Process.run('/usr/sbin/screencapture', [
+        '-i',
+        '-x',
+        path,
+      ]);
+      if (result.exitCode != 0) return;
+      final file = File(path);
+      if (!await file.exists() || await file.length() == 0) return;
+      if (!mounted) return;
+      await insertFiles([ComposerFile(path)], here: true);
+      _focusNode.requestFocus();
+    } on Object {
+      // Cancelled or unavailable.
     }
   }
 
@@ -1984,6 +2016,11 @@ class ChatComposerState extends State<ChatComposer>
             ),
           ),
           const SizedBox(width: 8),
+          if (Platform.isMacOS &&
+              Platform.environment['FLUTTER_TEST'] != 'true') ...[
+            _ScreenshotButton(onTap: () => unawaited(_captureScreenshot())),
+            const SizedBox(width: 2),
+          ],
           if (ComposerPolishSetting.current()) ...[
             _PolishButton(
               busy: _polishing,
@@ -2042,7 +2079,9 @@ class _PolishButton extends StatelessWidget {
       color: enabled ? colors['icon.foreground'] : AppColors.textFaint,
     );
     return IdeHover(
-      message: busy ? l10n.composerPolishing : l10n.composerPolishHint,
+      message: busy
+          ? l10n.composerPolishing
+          : '${l10n.composerPolishHint} (⌘E · ⌘Z 撤销)',
       child: HoverBuilder(
         cursor: active ? SystemMouseCursors.click : SystemMouseCursors.basic,
         builder: (context, hovered) => GestureDetector(
@@ -2061,6 +2100,44 @@ class _PolishButton extends StatelessWidget {
               borderRadius: BorderRadius.circular(5),
             ),
             child: busy ? IdeSpinning(icon) : icon,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ScreenshotButton extends StatelessWidget {
+  const _ScreenshotButton({required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = themeColors;
+    return IdeHover(
+      message: '框选截图并插入提问 (全局快捷键 ⌃⇧A)',
+      child: HoverBuilder(
+        cursor: SystemMouseCursors.click,
+        builder: (context, hovered) => GestureDetector(
+          onTapDown: (_) {},
+          onTap: onTap,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 120),
+            width: 23,
+            height: 22,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: hovered
+                  ? colors['toolbar.hoverBackground']
+                  : Colors.transparent,
+              borderRadius: BorderRadius.circular(5),
+            ),
+            child: Icon(
+              Codicons.deviceCamera,
+              size: 14,
+              color: colors['icon.foreground'],
+            ),
           ),
         ),
       ),

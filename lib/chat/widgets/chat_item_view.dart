@@ -4,6 +4,7 @@ import '../../browser/browser_steps.dart';
 import '../../images/image_steps.dart';
 import '../../l10n/l10n.dart';
 import '../chat_models.dart';
+import '../chat_session.dart';
 import '../edit_detail.dart';
 import 'activity_row.dart';
 import 'agent_message_card.dart';
@@ -24,6 +25,7 @@ class ChatItemView extends StatelessWidget {
   const ChatItemView({
     super.key,
     required this.item,
+    this.session,
     this.expanded = false,
     this.onToggle,
     this.onEdit,
@@ -34,6 +36,7 @@ class ChatItemView extends StatelessWidget {
   });
 
   final ChatItem item;
+  final ChatSession? session;
   final bool expanded;
   final VoidCallback? onToggle;
 
@@ -127,7 +130,7 @@ class ChatItemView extends StatelessWidget {
         onStop: onStop,
         onMoveToBackground: onMoveToBackground,
       ),
-      final NoticeItem notice => NoticeRow(item: notice),
+      final NoticeItem notice => NoticeRow(item: notice, session: session),
       final PlanItem plan => PlanCard(item: plan),
       TerminalItem(
         :final command,
