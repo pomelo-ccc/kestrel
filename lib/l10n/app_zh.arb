@@ -1661,7 +1661,7 @@
   "generalSettingsShellCommandUninstall": "卸载",
   "menuMore": "更多…",
   "sidebarSearch": "搜索",
-  "sidebarCustomize": "技能",
+  "sidebarCustomize": "插件",
   "sidebarOpenProject": "打开项目",
   "palettePlaceholder": "搜索智能体、对话内容、文件、操作…",
   "paletteFilterAll": "全部",

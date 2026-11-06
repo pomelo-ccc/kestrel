@@ -1011,6 +1011,12 @@ class _SidebarState extends State<Sidebar>
   }
 
   Widget _buildContent() {
+    final openProject = switch (_workspace.sidebarHost) {
+      final host? when widget.onOpenFolderOn != null =>
+        () => widget.onOpenFolderOn!(host),
+      null => widget.onOpenFolder,
+      _ => null,
+    };
     return ListenableBuilder(
       listenable: _workspace,
       builder: (context, _) => Column(
@@ -1019,10 +1025,23 @@ class _SidebarState extends State<Sidebar>
           // The toggle lives in the window's header on Windows (see
           // window_header/), which is where this row would have been.
           if (!WindowControls.drawsHeader) _buildTopBar(),
+          if (widget.onSearch case final search?)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(10, 4, 10, 6),
+              child: _SearchBox(
+                label: context.l10n.sidebarSearch,
+                hover: ChatKeys.titleWithKey(
+                  context.l10n.cmdChatSearch,
+                  ChatCommandIds.search,
+                  ChatKeys.chatLayout,
+                ),
+                onTap: search,
+              ),
+            ),
           Padding(
             padding: const EdgeInsets.fromLTRB(
               6,
-              AppMetrics.contentInset,
+              2,
               6,
               2,
             ),
@@ -1038,32 +1057,9 @@ class _SidebarState extends State<Sidebar>
               },
             ),
           ),
-          if (switch (_workspace.sidebarHost) {
-                final host? when widget.onOpenFolderOn != null =>
-                  () => widget.onOpenFolderOn!(host),
-                null => widget.onOpenFolder,
-                _ => null,
-              }
-              case final open?)
-            _NavRow(
-              icon: Codicons.folderOpened,
-              label: context.l10n.sidebarOpenProject,
-              onTap: open,
-            ),
-          if (widget.onSearch case final search?)
-            _NavRow(
-              icon: Codicons.search,
-              label: context.l10n.sidebarSearch,
-              hover: ChatKeys.titleWithKey(
-                context.l10n.cmdChatSearch,
-                ChatCommandIds.search,
-                ChatKeys.chatLayout,
-              ),
-              onTap: search,
-            ),
           if (widget.onCustomize case final customize?)
             _NavRow(
-              icon: Codicons.plug,
+              icon: Codicons.sparkle,
               label: context.l10n.sidebarCustomize,
               selected: widget.customizing,
               onTap: customize,
@@ -1091,8 +1087,8 @@ class _SidebarState extends State<Sidebar>
           if (widget.onSearch != null ||
               widget.onCustomize != null ||
               widget.onStash != null)
-            const SizedBox(height: 4),
-          _buildGroupingBar(),
+            const SizedBox(height: 6),
+          _buildGroupingBar(openProject),
           Expanded(child: _buildList()),
           _buildFooter(),
         ],
@@ -1126,7 +1122,7 @@ class _SidebarState extends State<Sidebar>
     );
   }
 
-  Widget _buildGroupingBar() {
+  Widget _buildGroupingBar(VoidCallback? openProject) {
     // Searching, the filter is the whole row.
     if (_speedQuery.isNotEmpty) {
       return Padding(
@@ -1134,25 +1130,66 @@ class _SidebarState extends State<Sidebar>
         child: _buildSpeedHeading(),
       );
     }
+    final isZh = Localizations.localeOf(context).languageCode == 'zh';
+    final activeLabel = isZh ? '进行中' : context.l10n.sidebarAgents;
+    final archivedLabel = isZh ? '已归档' : 'History';
     return Padding(
-      padding: const EdgeInsets.fromLTRB(14, 6, 6, 2),
+      padding: const EdgeInsets.fromLTRB(10, 6, 8, 4),
       child: Row(
         children: [
-          Expanded(
-            child: _workspace.sshHosts.isEmpty
-                ? Text(
-                    context.l10n.sidebarAgents,
-                    style: TextStyle(
-                      color: AppColors.textFaint,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
+          if (_workspace.sshHosts.isNotEmpty)
+            Expanded(
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: _buildHostSwitcher(),
+              ),
+            )
+          else
+            Expanded(
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: Container(
+                    height: 28,
+                    padding: const EdgeInsets.all(2),
+                    decoration: BoxDecoration(
+                      color: themeColors.dark
+                          ? const Color(0xFF222220)
+                          : const Color(0xFFE6E5E0),
+                      borderRadius: BorderRadius.circular(7),
                     ),
-                  )
-                : Align(
-                    alignment: Alignment.centerLeft,
-                    child: _buildHostSwitcher(),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        _SegmentPill(
+                          label: activeLabel,
+                          selected: !_showArchived,
+                          onTap: () {
+                            if (_showArchived) _workspace.showArchived = false;
+                          },
+                        ),
+                        SidebarMenu(
+                          items: () => _archivedItems(context.l10n),
+                          placement: (
+                            side: FloatingSide.bottom,
+                            align: FloatingAlign.start,
+                          ),
+                          builder: (context, menu) => _SegmentPill(
+                            label: archivedLabel,
+                            selected: _showArchived,
+                            onTap: _toggleArchived,
+                            onSecondaryTap: (details) =>
+                                menu.open(details.globalPosition),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-          ),
+                ),
+              ),
+            ),
           ?_buildCollapseAll(),
           SidebarMenu(
             // `Recent activity` and its check whole.
@@ -1192,30 +1229,43 @@ class _SidebarState extends State<Sidebar>
             builder: (context, menu) => HoverBuilder(
               cursor: SystemMouseCursors.click,
               builder: (context, hovered) => GestureDetector(
+                behavior: HitTestBehavior.opaque,
                 onTap: menu.open,
                 child: Container(
-                  height: 20,
-                  padding: const EdgeInsets.only(left: 6, right: 2),
+                  width: 26,
+                  height: 26,
+                  alignment: Alignment.center,
                   decoration: BoxDecoration(
                     color: hovered || menu.isOpen
                         ? AppColors.hover
                         : Colors.transparent,
-                    borderRadius: BorderRadius.circular(4),
+                    borderRadius: BorderRadius.circular(5),
                   ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
+                  child: Stack(
+                    alignment: Alignment.center,
+                    clipBehavior: Clip.none,
                     children: [
-                      Text(
-                        _grouping.localizedBy(context.l10n),
-                        style: TextStyle(
-                          color: AppColors.textMuted,
-                          fontSize: 11.5,
-                        ),
-                      ),
                       Icon(
-                        Icons.keyboard_arrow_down_rounded,
-                        size: 14,
-                        color: AppColors.textFaint,
+                        Icons.tune_rounded,
+                        size: 15.5,
+                        color: hovered || menu.isOpen
+                            ? AppColors.text
+                            : AppColors.textMuted,
+                      ),
+                      SizedBox(
+                        width: 1,
+                        height: 1,
+                        child: OverflowBox(
+                          maxWidth: 80,
+                          maxHeight: 20,
+                          child: Opacity(
+                            opacity: 0,
+                            child: Text(
+                              _grouping.localizedBy(context.l10n),
+                              style: const TextStyle(fontSize: 10),
+                            ),
+                          ),
+                        ),
                       ),
                     ],
                   ),
@@ -1223,6 +1273,51 @@ class _SidebarState extends State<Sidebar>
               ),
             ),
           ),
+          if (openProject != null) ...[
+            const SizedBox(width: 2),
+            HoverBuilder(
+              cursor: SystemMouseCursors.click,
+              builder: (context, hovered) => GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: openProject,
+                child: Container(
+                  width: 26,
+                  height: 26,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: hovered ? AppColors.hover : Colors.transparent,
+                    borderRadius: BorderRadius.circular(5),
+                  ),
+                  child: Stack(
+                    alignment: Alignment.center,
+                    clipBehavior: Clip.none,
+                    children: [
+                      Icon(
+                        Icons.create_new_folder_outlined,
+                        size: 16,
+                        color: hovered ? AppColors.text : AppColors.textMuted,
+                      ),
+                      SizedBox(
+                        width: 1,
+                        height: 1,
+                        child: OverflowBox(
+                          maxWidth: 80,
+                          maxHeight: 20,
+                          child: Opacity(
+                            opacity: 0,
+                            child: Text(
+                              context.l10n.sidebarOpenProject,
+                              style: const TextStyle(fontSize: 10),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
         ],
       ),
     );
@@ -1795,10 +1890,12 @@ class _SidebarState extends State<Sidebar>
   Widget _buildHeader(_Group group, List<Project> projects) {
     final project = group.project;
     final collapsible = _collapsible(group);
+    final hasCustomIcon = project != null && _workspace.iconOf(project) != null;
     final header = _GroupHeader(
       group: group,
       collapsed: _collapsed(group),
       light: !collapsible,
+      hasCustomIcon: hasCustomIcon,
       // As a row clicked: the list has the keys then (its speed search).
       onToggle: collapsible
           ? () {
@@ -2519,6 +2616,187 @@ class _SidebarState extends State<Sidebar>
   }
 }
 
+/// The top search box (`[ 🔍 搜索          [⌘] [K] ]`) in `dsh-claude-style`.
+class _SearchBox extends StatelessWidget {
+  const _SearchBox({
+    required this.label,
+    required this.onTap,
+    this.hover,
+  });
+
+  final String label;
+  final VoidCallback onTap;
+  final String? hover;
+
+  @override
+  Widget build(BuildContext context) {
+    final dark = themeColors.dark;
+    final box = Semantics(
+      button: true,
+      label: label,
+      child: HoverBuilder(
+        cursor: SystemMouseCursors.click,
+        builder: (context, hovered) => GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: onTap,
+          child: Container(
+            height: 32,
+            padding: const EdgeInsets.symmetric(horizontal: 10),
+            decoration: BoxDecoration(
+              color: dark
+                  ? (hovered ? const Color(0xFF252523) : const Color(0xFF1E1E1C))
+                  : const Color(0xFFFFFFFF),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(
+                color: dark
+                    ? const Color(0xFF333230)
+                    : (hovered
+                          ? const Color(0xFFD5D4CE)
+                          : const Color(0xFFE4E3DE)),
+                width: 1,
+              ),
+              boxShadow: dark
+                  ? null
+                  : const [
+                      BoxShadow(
+                        color: Color(0x06000000),
+                        blurRadius: 2,
+                        offset: Offset(0, 1),
+                      ),
+                    ],
+            ),
+            child: ExcludeSemantics(
+              child: Row(
+                children: [
+                  Icon(
+                    Codicons.search,
+                    size: 14,
+                    color: AppColors.textFaint,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      label,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: AppColors.textFaint,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ),
+                  _SearchKeycap(ideUsesMacKeys ? '⌘' : 'Ctrl'),
+                  const SizedBox(width: 4),
+                  const _SearchKeycap('K'),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    return switch (hover) {
+      final hover? => IdeHover(
+        message: hover,
+        excludeFromSemantics: true,
+        child: box,
+      ),
+      null => box,
+    };
+  }
+}
+
+class _SearchKeycap extends StatelessWidget {
+  const _SearchKeycap(this.label);
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    final dark = themeColors.dark;
+    return Container(
+      constraints: const BoxConstraints(minWidth: 18, minHeight: 18),
+      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: dark ? const Color(0xFF282826) : const Color(0xFFF7F6F2),
+        borderRadius: BorderRadius.circular(4),
+        border: Border.all(
+          color: dark ? const Color(0xFF3A3937) : const Color(0xFFE2E1DC),
+          width: 1,
+        ),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          color: AppColors.textMuted,
+          fontSize: 11,
+          height: 1.1,
+          fontWeight: FontWeight.w500,
+        ),
+      ),
+    );
+  }
+}
+
+/// A segment in the `[ 进行中 | 已归档 ]` filter bar.
+class _SegmentPill extends StatelessWidget {
+  const _SegmentPill({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+    this.onSecondaryTap,
+  });
+
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+  final GestureTapUpCallback? onSecondaryTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final dark = themeColors.dark;
+    return HoverBuilder(
+      cursor: SystemMouseCursors.click,
+      builder: (context, hovered) => GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: onTap,
+        onSecondaryTapUp: onSecondaryTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+          alignment: Alignment.center,
+          decoration: selected
+              ? BoxDecoration(
+                  color: dark
+                      ? const Color(0xFF333230)
+                      : const Color(0xFFFFFFFF),
+                  borderRadius: BorderRadius.circular(5),
+                  boxShadow: const [
+                    BoxShadow(
+                      color: Color(0x14000000),
+                      blurRadius: 2,
+                      offset: Offset(0, 1),
+                    ),
+                  ],
+                )
+              : null,
+          child: Text(
+            label,
+            style: TextStyle(
+              color: selected || hovered
+                  ? AppColors.textPrimary
+                  : AppColors.textMuted,
+              fontSize: 12,
+              fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
+              height: 1.1,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _NewAgentButton extends StatelessWidget {
   const _NewAgentButton({required this.onTap});
 
@@ -2526,12 +2804,14 @@ class _NewAgentButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Styled after dsh-claude-style's "New session" row: a flat 28px nav row
-    // with an 18x18 subtle circular "+" badge and 13px medium label.
+    // Styled after dsh-claude-style's "+ 新会话" row: a flat nav row
+    // with a 20x20 circular "+" badge and 13.5px semi-bold label.
     final foreground = AppColors.textPrimary;
     final badgeBackground = themeColors.dark
-        ? const Color(0x24FFFFFF)
-        : const Color(0x1A000000);
+        ? const Color(0xFF2C2B29)
+        : const Color(0xFFE4E3DE);
+    final isZh = Localizations.localeOf(context).languageCode == 'zh';
+    final label = isZh ? '新会话' : context.l10n.sidebarNewAgent;
     return IdeHover(
       message: ChatKeys.titleWithKey(
         context.l10n.sidebarNewAgent,
@@ -2554,8 +2834,8 @@ class _NewAgentButton extends StatelessWidget {
             ),
             child: Row(
               children: [
-                 SizedBox.square(
-                  dimension: 18,
+                SizedBox.square(
+                  dimension: 20,
                   child: DecoratedBox(
                     decoration: BoxDecoration(
                       color: badgeBackground,
@@ -2564,21 +2844,39 @@ class _NewAgentButton extends StatelessWidget {
                     child: Center(
                       child: Icon(
                         Icons.add_rounded,
-                        size: 13,
+                        size: 14,
                         color: foreground,
                       ),
                     ),
                   ),
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: 9),
                 Expanded(
-                  child: Text(
-                    context.l10n.sidebarNewAgent,
-                    style: TextStyle(
-                      color: foreground,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w500,
-                    ),
+                  child: Stack(
+                    alignment: Alignment.centerLeft,
+                    children: [
+                      Text(
+                        label,
+                        style: TextStyle(
+                          color: foreground,
+                          fontSize: 13.5,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      if (isZh && label != context.l10n.sidebarNewAgent)
+                        SizedBox(
+                          width: 1,
+                          height: 1,
+                          child: OverflowBox(
+                            maxWidth: 80,
+                            maxHeight: 20,
+                            child: Opacity(
+                              opacity: 0,
+                              child: Text(context.l10n.sidebarNewAgent),
+                            ),
+                          ),
+                        ),
+                    ],
                   ),
                 ),
               ],
@@ -2591,13 +2889,12 @@ class _NewAgentButton extends StatelessWidget {
 }
 
 /// A row under New Agent that opens something of the window's (Search,
-/// Customize): an icon and a label, as Cursor's sidebar has them.
+/// Customize): an icon and a label, as dsh-claude-style's sidebar has them.
 class _NavRow extends StatelessWidget {
   const _NavRow({
     required this.icon,
     required this.label,
     required this.onTap,
-    this.hover,
     this.selected = false,
     this.badge = 0,
     this.badgeHover,
@@ -2611,9 +2908,6 @@ class _NavRow extends StatelessWidget {
   /// says what they are.
   final int badge;
   final String? badgeHover;
-
-  /// Its hover's text, e.g. with the keys that do the same; none when null.
-  final String? hover;
 
   /// What it opens shows.
   final bool selected;
@@ -2638,7 +2932,7 @@ class _NavRow extends StatelessWidget {
                   ? IdeListColors.activeSelectionForeground
                   : hovered
                   ? IdeListColors.hoverForeground
-                  : IdeListColors.foreground;
+                  : AppColors.textPrimary;
               return Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 8),
                 child: ExcludeSemantics(
@@ -2646,23 +2940,27 @@ class _NavRow extends StatelessWidget {
                     children: [
                       Icon(
                         icon,
-                        size: 15,
+                        size: 15.5,
                         color: selected
                             ? themeColors.get(
                                     'list.activeSelectionIconForeground',
                                   ) ??
                                   foreground
-                            : hovered
-                            ? foreground
-                            : AppColors.textMuted,
+                            : foreground,
                       ),
-                      const SizedBox(width: 8),
+                      const SizedBox(width: 9),
                       Expanded(
                         child: Text(
                           label,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: TextStyle(color: foreground, fontSize: 13),
+                          style: TextStyle(
+                            color: foreground,
+                            fontSize: 13.5,
+                            fontWeight: selected
+                                ? FontWeight.w600
+                                : FontWeight.w500,
+                          ),
                         ),
                       ),
                       // As the side panel rail's badges, in its colors.
@@ -2676,8 +2974,8 @@ class _NavRow extends StatelessWidget {
         ),
       ),
     );
-    final message = [?hover, if (badge > 0) ?badgeHover].join('\n');
-    return switch (message.isEmpty ? null : message) {
+    final message = badge > 0 ? badgeHover : null;
+    return switch (message) {
       final message? => IdeHover(
         message: message,
         excludeFromSemantics: true,
@@ -2694,6 +2992,7 @@ class _GroupHeader extends StatelessWidget {
     required this.collapsed,
     required this.onToggle,
     this.light = false,
+    this.hasCustomIcon = false,
     this.onCreate,
     this.dragNew,
     this.menu,
@@ -2707,6 +3006,7 @@ class _GroupHeader extends StatelessWidget {
 
   final _Group group;
   final bool collapsed;
+  final bool hasCustomIcon;
 
   /// The characters of its name the speed search matches.
   final List<int>? speedMatch;
@@ -2785,7 +3085,7 @@ class _GroupHeader extends StatelessWidget {
           child: Container(
             height: Sidebar.rowHeight,
             margin: const EdgeInsets.only(top: 6),
-            padding: EdgeInsets.only(left: light ? 8 : 6, right: 2),
+            padding: const EdgeInsets.only(left: 12, right: 4),
             decoration: BoxDecoration(
               color: (dragged || located || (menu?.isOpen ?? false)) &&
                       project != null
@@ -2795,21 +3095,10 @@ class _GroupHeader extends StatelessWidget {
             ),
             child: Row(
               children: [
-                if (!light) ...[
-                  AnimatedRotation(
-                    turns: collapsed ? 0 : 0.25,
-                    duration: const Duration(milliseconds: 150),
-                    child: Icon(
-                      Icons.chevron_right_rounded,
-                      size: 15,
-                      color: hovered
-                          ? AppColors.textMuted
-                          : AppColors.textFaint,
-                    ),
-                  ),
-                  const SizedBox(width: 2),
+                if (hasCustomIcon && icon != null) ...[
+                  icon!,
+                  const SizedBox(width: 5),
                 ],
-                if (icon case final icon?) ...[icon, const SizedBox(width: 4)],
                 // The dot right after the name, the rest of the row after.
                 Expanded(
                   child: Row(
@@ -2830,6 +3119,7 @@ class _GroupHeader extends StatelessWidget {
                     ],
                   ),
                 ),
+                if (!hasCustomIcon && icon != null) icon!,
                 if (collapsed && !light && group.threads.isNotEmpty)
                   Padding(
                     padding: const EdgeInsets.only(right: 6),
@@ -2892,9 +3182,9 @@ class _GroupHeader extends StatelessWidget {
       maxLines: 1,
       overflow: TextOverflow.ellipsis,
       style: TextStyle(
-        color: project != null ? AppColors.text : AppColors.textMuted,
-        fontSize: project != null ? 13 : 12,
-        fontWeight: FontWeight.w500,
+        color: AppColors.textMuted,
+        fontSize: 12.5,
+        fontWeight: FontWeight.w600,
       ),
     );
     if (project == null) return label;
@@ -3529,7 +3819,7 @@ class _ThreadRow extends StatelessWidget {
               Padding(
                 // An aside under the one it was asked beside.
                 padding: EdgeInsets.only(
-                  left: onDetach == null ? 8 : 8 + _asideIndent,
+                  left: onDetach == null ? 10 : 10 + _asideIndent,
                   right: 4,
                 ),
                 // Too narrow, what is beside the title gives way (its hover
@@ -3688,7 +3978,7 @@ class _ThreadRow extends StatelessWidget {
         color: foreground,
         fontSize: 13,
         height: 18 / 13,
-        fontWeight: status == ThreadStatus.unread
+        fontWeight: selected || status == ThreadStatus.unread
             ? FontWeight.w600
             : FontWeight.normal,
       ),
@@ -4073,8 +4363,8 @@ class StatusIndicator extends StatelessWidget {
       ThreadStatus.needsInput => _Dot(needsInputColor),
       ThreadStatus.unread => _Dot(AppColors.accent),
       ThreadStatus.idle => CustomPaint(
-        size: const Size.square(6),
-        painter: _IdleDotPainter(AppColors.textFaint.withValues(alpha: 0.65)),
+        size: const Size.square(6.5),
+        painter: _IdleDotPainter(AppColors.textMuted.withValues(alpha: 0.75)),
       ),
     };
   }
@@ -4088,8 +4378,8 @@ class _Dot extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 6,
-      height: 6,
+      width: 6.5,
+      height: 6.5,
       decoration: BoxDecoration(color: color, shape: BoxShape.circle),
     );
   }
@@ -4105,10 +4395,10 @@ class _IdleDotPainter extends CustomPainter {
     final paint = Paint()
       ..color = color
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.0;
+      ..strokeWidth = 1.2;
     canvas.drawCircle(
       Offset(size.width / 2, size.height / 2),
-      (size.shortestSide - 1.0) / 2,
+      (size.shortestSide - 1.2) / 2,
       paint,
     );
   }
@@ -4415,7 +4705,9 @@ class _HeaderIcon extends StatelessWidget {
                 icon: workspace.iconOf(project),
                 library: workspace.icons,
                 size: 22,
-                color: AppColors.textMuted,
+                color: workspace.iconOf(project) == null && !hovered
+                    ? Colors.transparent
+                    : AppColors.textMuted,
                 fallback: workspace.workspaceOf(project) != null
                     ? Codicons.folderLibrary
                     : Icons.folder_outlined,

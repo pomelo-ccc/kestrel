@@ -5839,7 +5839,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get sidebarSearch => '搜索';
 
   @override
-  String get sidebarCustomize => '技能';
+  String get sidebarCustomize => '插件';
 
   @override
   String get sidebarOpenProject => '打开项目';

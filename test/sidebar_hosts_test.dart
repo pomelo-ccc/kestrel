@@ -65,7 +65,7 @@ void main() {
     double top(String label) =>
         tester.getTopLeft(inSidebar(find.text(label)).first).dy;
     expect(top('Open Project'), greaterThan(top('New Chat')));
-    expect(top('Open Project'), lessThan(top('Search')));
+    expect(top('Search'), lessThan(top('New Chat')));
 
     workspace.addSshHost('box');
     workspace.sidebarHost = 'box';
