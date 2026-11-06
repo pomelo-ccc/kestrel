@@ -191,6 +191,12 @@ class AgentThread {
   /// asked for or the user names it.
   bool _wantsTitle;
 
+  /// Number of user messages when [_askTitle] last ran.
+  int _titledUserCount = 0;
+
+  /// [ChatSession.lastTurnEndSeq] when [_askTitle] last ran.
+  int _titledTurnSeq = 0;
+
   /// The user named it: a title generated meanwhile is dropped.
   bool _named = false;
 
@@ -2921,7 +2927,12 @@ class Workspace extends ChangeNotifier implements ColorThemeStorage {
           thread._title = text.trim().split('\n').first;
         }
       }
-      if (thread._wantsTitle) _askTitle(thread);
+      if (thread._wantsTitle &&
+          (_userMessageCount(session) > thread._titledUserCount ||
+              (!session.isStreaming &&
+                  session.lastTurnEndSeq > thread._titledTurnSeq))) {
+        _askTitle(thread);
+      }
     }
     // Sent something: its folder is a project now, if it was not.
     if (!_isUntouched(thread) && !_projects.contains(thread.project)) {
@@ -3695,19 +3706,37 @@ class Workspace extends ChangeNotifier implements ColorThemeStorage {
     });
   }
 
+  static int _userMessageCount(ChatSession session) {
+    var count = 0;
+    for (var i = 0; i < session.itemCount; i++) {
+      if (session.itemAt(i) is UserMessageItem) count++;
+    }
+    return count;
+  }
+
   /// Titles [thread] after its first message: images alone after their
   /// file; anything else by [titler], if its kernel keeps the title
   /// (Claude Code's: the message goes to Claude).
   void _askTitle(AgentThread thread) {
     final session = thread.session;
+    final retry = thread._titledUserCount > 0;
     // Not only added at the end: a message goes before the live status.
     for (var i = 0; i < session.itemCount; i++) {
       if (session.itemAt(i) case UserMessageItem(:final text, :final images)) {
-        thread._wantsTitle = false;
+        thread
+          .._wantsTitle = false
+          .._titledUserCount = _userMessageCount(session)
+          .._titledTurnSeq = session.lastTurnEndSeq;
         // A new session there: its project is listed again.
         _unhide(thread.project.path);
+        final prompt = retry ? askedText(session) : text;
         // Within [_sync], which tells the change.
-        _titleAfter(thread, text, images);
+        _titleAfter(
+          thread,
+          prompt.isEmpty ? text : prompt,
+          retry ? const [] : images,
+          allowRetry: !retry,
+        );
         return;
       }
     }
@@ -3718,8 +3747,9 @@ class Workspace extends ChangeNotifier implements ColorThemeStorage {
   void _titleAfter(
     AgentThread thread,
     String text,
-    List<ImageAttachment> images,
-  ) {
+    List<ImageAttachment> images, {
+    bool allowRetry = false,
+  }) {
     final session = thread.session;
     if (agentImageTitle(text, images, l10n()) case final title?) {
       thread._title = title;
@@ -3733,15 +3763,28 @@ class Workspace extends ChangeNotifier implements ColorThemeStorage {
           .then(
             (id) => titler!(
               text,
-              model: model,
+              model: session.selected(KernelChoiceKind.model) ?? model,
               location: thread.project.path,
               session: id,
             ),
           )
+          .catchError((Object _) => null)
           .then((title) {
-            if (title == null || thread._named) return;
+            if (thread._named) return;
             if (_disposed || !_threads.contains(thread)) return;
+            if (title == null) {
+              if (allowRetry) thread._wantsTitle = true;
+              return;
+            }
             _retitle(thread, title);
+            // If the first prompt was very short (e.g. "为什么", "启动", "1=3")
+            // and the model echoed it back verbatim, refine once the agent
+            // replies.
+            if (allowRetry &&
+                title == text.trim() &&
+                title.runes.length <= 6) {
+              thread._wantsTitle = true;
+            }
           }),
     );
   }
@@ -3788,18 +3831,35 @@ class Workspace extends ChangeNotifier implements ColorThemeStorage {
     final titler = this.titler;
     if (titler == null) return null;
     final session = thread.session;
-    final text = askedText(session);
+    if (session.loadingHistory) await _historyRead(session);
+    var text = askedText(session);
+    if (text.isEmpty) text = thread._title.trim();
     if (text.isEmpty) return null;
     return titler(
       text,
-      model: session.selected(KernelChoiceKind.model),
+      model:
+          session.selected(KernelChoiceKind.model) ??
+          keptChoice(thread, KernelChoiceKind.model),
       location: thread.project.path,
       session: thread.id,
     );
   }
 
+  /// Summarizes [thread] by [titler] and applies the generated title.
+  Future<String?> autoTitle(AgentThread thread) async {
+    final title = await summarizeTitle(thread);
+    if (title != null && !_disposed && _threads.contains(thread)) {
+      rename(thread, title);
+    }
+    return title;
+  }
+
   void _retitle(AgentThread thread, String title) {
     thread._title = title;
+    if (thread._id case final id?) {
+      _names[id] = title;
+      _save();
+    }
     if (thread.isOpen) thread.session.rename(title);
     _snapshots[thread] = thread._snapshot;
     notifyListeners();

@@ -550,6 +550,37 @@ void main() {
     await tester.pump(const Duration(seconds: 1));
   });
 
+  testWidgets('retries title generation on the next turn when the first '
+      'attempt fails', (tester) async {
+    final renames = <String>[];
+    var calls = 0;
+    final workspace = await pumpLoaded(
+      tester,
+      kernel: titledClaude(renames),
+      titler: (message, {model, location, session}) async {
+        calls++;
+        return calls == 1 ? null : 'Retried title';
+      },
+    );
+    final thread = workspace.selected;
+    thread.session.send(const ComposerMessage(text: 'First attempt'));
+    await tester.runAsync(() => Future<void>.delayed(Duration.zero));
+    await tester.pump();
+    await tester.runAsync(() => Future<void>.delayed(Duration.zero));
+    expect(calls, 1);
+    expect(thread.title, 'First attempt');
+
+    // Send a follow-up after the first attempt failed.
+    thread.session.send(const ComposerMessage(text: 'Second attempt'));
+    await tester.runAsync(() => Future<void>.delayed(Duration.zero));
+    await tester.pump();
+    await tester.runAsync(() => Future<void>.delayed(Duration.zero));
+    expect(calls, 2);
+    expect(thread.title, 'Retried title');
+    thread.session.stop();
+    await tester.pump(const Duration(seconds: 1));
+  });
+
   testWidgets('renamed in Claude Code (/rename), it is named so here too '
       '(#171)', (tester) async {
     final renames = <String>[];

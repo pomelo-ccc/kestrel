@@ -2058,6 +2058,8 @@ class _SidebarState extends State<Sidebar>
       renaming: identical(thread, _renaming),
       onTap: () => _handleRowTap(thread),
       onRename: () => setState(() => _renaming = thread),
+      onSummarizeTitle: () => _workspace.summarizeTitle(thread),
+      onAutoTitle: () => unawaited(_workspace.autoTitle(thread)),
       onRenamed: (title) {
         if (title != null) _workspace.rename(thread, title);
         setState(() => _renaming = null);
@@ -3657,6 +3659,8 @@ class _ThreadRow extends StatelessWidget {
     required this.renaming,
     required this.onTap,
     required this.onRename,
+    this.onSummarizeTitle,
+    this.onAutoTitle,
     required this.onRenamed,
     required this.onPin,
     required this.onArchive,
@@ -3703,6 +3707,8 @@ class _ThreadRow extends StatelessWidget {
   final bool renaming;
   final VoidCallback onTap;
   final VoidCallback onRename;
+  final Future<String?> Function()? onSummarizeTitle;
+  final VoidCallback? onAutoTitle;
 
   /// The new title, or null when renaming was cancelled.
   final ValueChanged<String?> onRenamed;
@@ -3779,6 +3785,12 @@ class _ThreadRow extends StatelessWidget {
         icon: Icons.edit_outlined,
         onSelected: onRename,
       ),
+      if (onAutoTitle case final autoTitle? when thread.titled)
+        SidebarMenuItem(
+          l10n.chatTitleSummarize,
+          icon: Codicons.sparkle,
+          onSelected: autoTitle,
+        ),
       if (!thread.archived && onDetach == null)
         SidebarMenuItem(
           pinned ? l10n.sidebarUnpin : l10n.sidebarPin,
@@ -3885,6 +3897,7 @@ class _ThreadRow extends StatelessWidget {
                       renaming
                           ? InlineRenameField(
                               initial: thread.localizedTitle(context.l10n),
+                              onSummarize: onSummarizeTitle,
                               onDone: onRenamed,
                             )
                           // What the row has no room for, over the title

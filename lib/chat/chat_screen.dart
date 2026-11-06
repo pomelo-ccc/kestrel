@@ -9,7 +9,9 @@ import 'package:flutter/services.dart';
 
 import '../base/mouse_navigation.dart';
 import '../channel/channel_setup.dart';
+import '../ide/ide_hover.dart';
 import '../ide/ide_menu.dart';
+import '../ide/ide_spinning.dart';
 import '../kernel/kernel_types.dart';
 import '../keybindings/chat_keybindings.dart';
 import '../l10n/l10n.dart';
@@ -54,6 +56,7 @@ import 'stop_confirmation.dart';
 import 'widgets/agent_step.dart';
 import 'widgets/chat_minimap.dart';
 import 'widgets/code_citation.dart';
+import 'widgets/hover_builder.dart';
 import 'widgets/hover_scroll_text.dart';
 import 'widgets/context_meter.dart';
 import 'widgets/inline_rename_field.dart';
@@ -326,6 +329,25 @@ class _ChatScreenState extends State<ChatScreen>
   final GlobalKey _historyKey = GlobalKey();
   bool _contextPanelOpen = false;
   bool _renaming = false;
+  bool _summarizingTitle = false;
+
+  Future<void> _summarizeTitleNow() async {
+    final summarize = widget.onSummarizeTitle;
+    final onRename = widget.onRename;
+    if (summarize == null || onRename == null || _summarizingTitle) return;
+    setState(() => _summarizingTitle = true);
+    String? title;
+    try {
+      title = await summarize();
+    } on Object {
+      title = null;
+    }
+    if (!mounted) return;
+    setState(() => _summarizingTitle = false);
+    if (title != null && title.trim().isNotEmpty) {
+      onRename(title.trim());
+    }
+  }
 
   /// Nothing was sent yet: the composer is in the middle, under [start].
   bool get _starting => widget.start != null && _session.itemCount == 0;
@@ -657,6 +679,10 @@ class _ChatScreenState extends State<ChatScreen>
         ),
       );
     } else {
+      final canSummarize =
+          onRename != null &&
+          widget.onSummarizeTitle != null &&
+          _session.itemCount > 0;
       title = GestureDetector(
         onDoubleTap: onRename == null
             ? null
@@ -669,6 +695,53 @@ class _ChatScreenState extends State<ChatScreen>
       title =
           widget.titleDragBuilder?.call(title) ??
           (widget.windowTitleBar ? TitleBarDragHandle(child: title) : title);
+      if (canSummarize) {
+        final l10n = context.l10n;
+        final textTitle = title;
+        title = HoverBuilder(
+          builder: (context, hovered) => Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Flexible(child: textTitle),
+              if (hovered || _summarizingTitle) ...[
+                const SizedBox(width: 4),
+                TitleBarControls(
+                  child: IdeHover(
+                    message: _summarizingTitle
+                        ? l10n.chatTitleSummarizing
+                        : l10n.chatTitleSummarize,
+                    child: MouseRegion(
+                      cursor: _summarizingTitle
+                          ? SystemMouseCursors.basic
+                          : SystemMouseCursors.click,
+                      child: GestureDetector(
+                        behavior: HitTestBehavior.opaque,
+                        onTap: _summarizingTitle ? null : _summarizeTitleNow,
+                        child: Padding(
+                          padding: const EdgeInsets.all(3),
+                          child: _summarizingTitle
+                              ? IdeSpinning(
+                                  Icon(
+                                    Codicons.loading,
+                                    size: 13,
+                                    color: AppColors.textMuted,
+                                  ),
+                                )
+                              : Icon(
+                                  Codicons.sparkle,
+                                  size: 13,
+                                  color: AppColors.textMuted,
+                                ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ],
+          ),
+        );
+      }
     }
     return Align(
       alignment: Alignment.centerLeft,

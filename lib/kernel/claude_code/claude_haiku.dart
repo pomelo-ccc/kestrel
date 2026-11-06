@@ -54,9 +54,12 @@ Future<String> askClaudeHaiku(
   final host = location == null ? null : RemoteLocation.hostOf(location);
   final providers = ModelProviders.current;
   var custom = providers.resolve(model);
-  if (custom == null && !providers.builtinAvailable) {
+  if (custom == null &&
+      (!providers.builtinAvailable || !providers.builtinOffered)) {
     custom = providers.resolve(providers.firstModel);
-    if (custom == null) throw const ClaudeHaikuException(ClaudeCore.noModel);
+    if (custom == null && !providers.builtinAvailable) {
+      throw const ClaudeHaikuException(ClaudeCore.noModel);
+    }
     exact = false;
   }
   if (custom == null) {

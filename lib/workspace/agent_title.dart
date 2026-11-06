@@ -8,6 +8,7 @@ import '../chat/chat_models.dart';
 import '../chat/chat_session.dart';
 import '../kernel/claude_code/claude_haiku.dart';
 import '../l10n/l10n.dart';
+import '../models/model_provider.dart';
 import '../models/model_providers.dart';
 
 /// Titles a conversation after [message], held with [model] (the
@@ -67,22 +68,39 @@ Future<String?> claudeAgentTitle(
   if (text.length > agentTitleMessageBudget) {
     text = '${text.substring(0, agentTitleMessageBudget)}…';
   }
-  // The auxiliary model; automatic, the session's.
-  final auxiliary = ModelProviders.current.auxiliary(model);
-  try {
-    return cleanAgentTitle(
-      await askClaudeHaiku(
-        _system,
-        '<message>\n$text\n</message>',
-        model: auxiliary.model,
-        exact: auxiliary.exact,
-        location: location,
-        session: session,
-      ),
-    );
-  } on Object {
-    return null;
+  // The auxiliary model; automatic, the session's, with fallback to other
+  // enabled providers if the first fails.
+  final providers = ModelProviders.current;
+  final auxiliary = providers.auxiliary(model);
+  final candidates = <({String? model, bool exact})>[
+    auxiliary,
+    for (final provider in providers.enabled)
+      if (provider.enabledModels.isNotEmpty)
+        (
+          model: modelRef(provider.id, provider.enabledModels.first.id),
+          exact: false,
+        ),
+  ];
+  final tried = <String?>{};
+  for (final candidate in candidates) {
+    if (!tried.add(candidate.model)) continue;
+    try {
+      final title = cleanAgentTitle(
+        await askClaudeHaiku(
+          _system,
+          '<message>\n$text\n</message>',
+          model: candidate.model,
+          exact: candidate.exact,
+          location: location,
+          session: session,
+        ),
+      );
+      if (title != null) return title;
+    } on Object {
+      // Try the next enabled provider.
+    }
   }
+  return null;
 }
 
 /// A reply as a title: its first line, without quotes, Markdown emphasis
@@ -137,12 +155,26 @@ List<String> askedTitles(ChatSession session) {
 /// messages.
 const agentSummaryMessages = 5;
 
-/// What the user asked in [session], for a model to title it after (see
-/// [summaryText]).
-String askedText(ChatSession session) => summaryText([
-  for (var i = 0; i < session.itemCount; i++)
-    if (session.itemAt(i) case UserMessageItem(:final text)) text,
-]);
+/// What the user asked in [session] (and the agent's reply when the
+/// user's prompt alone is short or an image), for a model to title it
+/// after (see [summaryText]).
+String askedText(ChatSession session) {
+  final userText = summaryText([
+    for (var i = 0; i < session.itemCount; i++)
+      if (session.itemAt(i) case UserMessageItem(:final text)) text,
+  ]);
+  if (userText.runes.length >= 10) return userText;
+  final assistantText = summaryText([
+    for (var i = 0; i < session.itemCount; i++)
+      if (session.itemAt(i) case AssistantTextItem(:final text)
+          when text.trim().isNotEmpty)
+        text,
+  ]);
+  return [
+    if (userText.isNotEmpty) userText,
+    if (assistantText.isNotEmpty) assistantText,
+  ].join('\n\n');
+}
 
 /// The last [agentSummaryMessages] of [messages] (in order, oldest
 /// first) that say something besides their images, in order, each cut to
