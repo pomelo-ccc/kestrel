@@ -944,16 +944,7 @@ class _ThemePaletteSection extends StatelessWidget {
   final ValueChanged<String> onSelectPreset;
 
   String _presetLabel(String currentId) {
-    final defaultId = dark
-        ? ThemeSettingDefaults.colorThemeDark
-        : ThemeSettingDefaults.colorThemeLight;
-    final defaultDisplay = dark ? 'Default Dark' : 'Default Light';
-    if (currentId == IdeColorThemeController.autoId || currentId == defaultId) {
-      return defaultDisplay;
-    }
-    final match = entries.where((e) => e.id == currentId).firstOrNull;
-    if (match == null) return defaultDisplay;
-    return match.id == defaultId ? defaultDisplay : match.label;
+    return dark ? 'Default Dark' : 'Default Light';
   }
 
   void _updateColor(ValueNotifier<Color?> target, Color? value) {

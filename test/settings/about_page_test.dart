@@ -28,7 +28,7 @@ void main() {
   ) async {
     await show(tester, const Locale('zh'));
     expect(find.text('关于'), findsOneWidget);
-    expect(find.text('BaoCode'), findsOneWidget);
+    expect(find.text('Kestrel'), findsOneWidget);
     expect(
       find.text(
         '版本 ${currentAppVersion.marketing}（${currentAppVersion.build}）',
@@ -36,11 +36,11 @@ void main() {
       findsOneWidget,
     );
     expect(
-      find.text('github.com/baocode-dev/baocode · 免费开源，GPL-3.0 许可证'),
+      find.text('github.com/pomelo-ccc/kestrel · 免费开源，GPL-3.0 许可证'),
       findsOneWidget,
     );
     expect(find.text('去 GitHub 点 Star'), findsOneWidget);
-    expect(find.text('baocode.dev'), findsOneWidget);
+    expect(find.text('kestrel.dev'), findsOneWidget);
     expect(find.text('更新日志'), findsOneWidget);
     expect(find.text('反馈问题'), findsOneWidget);
     expect(tester.takeException(), isNull);
@@ -49,7 +49,7 @@ void main() {
   test('its links', () {
     expect(
       AboutSettingsPage.issues,
-      Uri.parse('https://github.com/baocode-dev/baocode/issues'),
+      Uri.parse('https://github.com/pomelo-ccc/kestrel/issues'),
     );
   });
 }

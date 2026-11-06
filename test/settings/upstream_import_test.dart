@@ -114,7 +114,7 @@ void main() {
       expect(find.text('alpha.example.com'), findsNothing);
 
       // Why they show, at a click, not a hover.
-      const why = 'These sites are officially listed by BaoCode';
+      const why = 'These sites are officially listed by Kestrel';
       await gesture.moveTo(
         tester.getCenter(find.text('Why am I seeing this?')),
       );
