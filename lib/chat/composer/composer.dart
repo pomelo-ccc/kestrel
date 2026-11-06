@@ -1448,6 +1448,41 @@ class ChatComposerState extends State<ChatComposer>
     }
   }
 
+  /// Inserts external selected text grabbed via global hotkey (`⌃⇧S`) into
+  /// the composer and focuses the input.
+  void insertGrabbedSelection(String selectedText) {
+    final trimmed = selectedText.trim();
+    if (trimmed.isEmpty || !mounted) return;
+    final quoted = trimmed
+        .split('\n')
+        .map((line) => '> $line')
+        .join('\n');
+    final prefix = _controller.text.isEmpty || _controller.text.endsWith('\n')
+        ? ''
+        : '\n';
+    final insertion = '$prefix$quoted\n\n请帮我分析或解释以上内容：';
+    final end = _controller.length;
+    _controller
+      ..breakUndo()
+      ..replace(
+        end,
+        end,
+        insertion,
+        selection: TextSelection.collapsed(offset: end + insertion.length),
+      )
+      ..breakUndo();
+    _saveDraft();
+    _focusNode.requestFocus();
+  }
+
+  void _updateImage(int number, ImageAttachment updated) {
+    if (!mounted) return;
+    setState(() {
+      _pool = {..._pool, number: updated};
+    });
+    _saveDraft();
+  }
+
   // --- Submit --------------------------------------------------------------
 
   ComposerMessage _buildMessage() {
@@ -1692,7 +1727,11 @@ class ChatComposerState extends State<ChatComposer>
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            ComposerImages(images: _pool, child: _editor!),
+            ComposerImages(
+              images: _pool,
+              onUpdateImage: _updateImage,
+              child: _editor!,
+            ),
             _buildToolbar(),
           ],
         ),

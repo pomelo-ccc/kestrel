@@ -19,6 +19,7 @@ import '../models/model_providers.dart';
 import '../models/model_welcome.dart';
 import '../models/provider_health.dart';
 import '../notifications/attention_service.dart';
+import '../notifications/notch_dropzone.dart';
 import '../remote/remote_location.dart';
 import '../remote/remote_status.dart' show ClaudeInstallBanner, SshHostBanner;
 import '../stash/stash_actions.dart';
@@ -66,6 +67,7 @@ import 'widgets/context_meter.dart';
 import 'widgets/inline_rename_field.dart';
 import 'widgets/pixel_loader.dart';
 import 'widgets/plan_start.dart';
+import 'widgets/session_replay_player.dart';
 
 /// Layout, top to bottom:
 /// - history + live turn: a virtual list that yields height;
@@ -1325,7 +1327,11 @@ class _ChatScreenState extends State<ChatScreen>
           )
         : null;
     final speedBadge = _agentShown == null
-        ? _SpeedAndTokenBadge(session: _session)
+        ? _SpeedAndTokenBadge(
+            session: _session,
+            onJumpToTurn: (index) =>
+                ChatHistoryView.scrollToIndex(_historyKey, index),
+          )
         : null;
     if (IslandFootTrailing.hosts(context)) {
       return Row(
@@ -2062,9 +2068,13 @@ class _PanelSlot extends StatelessWidget {
 /// Live streaming speed (`tok/s`) and today's token dashboard pill shown in
 /// the status bar beside [ContextMeter].
 class _SpeedAndTokenBadge extends StatefulWidget {
-  const _SpeedAndTokenBadge({required this.session});
+  const _SpeedAndTokenBadge({
+    required this.session,
+    required this.onJumpToTurn,
+  });
 
   final ChatSession session;
+  final ValueChanged<int> onJumpToTurn;
 
   @override
   State<_SpeedAndTokenBadge> createState() => _SpeedAndTokenBadgeState();
@@ -2134,6 +2144,7 @@ class _SpeedAndTokenBadgeState extends State<_SpeedAndTokenBadge> {
         widget.session,
         ProviderHealthMonitor.instance,
         AttentionVoiceSetting.enabled,
+        NotchDropzone.pipEnabled,
       ]),
       builder: (context, _) {
         final streaming = widget.session.isStreaming;
@@ -2141,6 +2152,8 @@ class _SpeedAndTokenBadgeState extends State<_SpeedAndTokenBadge> {
         final used = widget.session.context?.used ?? 0;
         final todayTotal = SessionSpeedTracker.todayEstimatedTokens + used;
         final voiceOn = AttentionVoiceSetting.enabled.value;
+        final pipOn = NotchDropzone.pipEnabled.value;
+        final hasItems = widget.session.itemCount > 0;
         final String? label;
         if (streaming && speed > 0) {
           label = '⚡ ${speed.toStringAsFixed(1)} tok/s';
@@ -2198,6 +2211,75 @@ class _SpeedAndTokenBadgeState extends State<_SpeedAndTokenBadge> {
                   ),
                 ),
               ),
+            if (hasItems)
+              Padding(
+                padding: const EdgeInsets.only(right: 4),
+                child: IdeHover(
+                  message: '🎞️ 会话沉浸式时间轴回放（Session Replay）',
+                  child: HoverBuilder(
+                    cursor: SystemMouseCursors.click,
+                    builder: (context, hovered) => GestureDetector(
+                      onTap: () => unawaited(
+                        showSessionReplayDialog(
+                          context,
+                          feed: widget.session,
+                          onScrollToIndex: widget.onJumpToTurn,
+                        ),
+                      ),
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 120),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 5,
+                          vertical: 2,
+                        ),
+                        decoration: BoxDecoration(
+                          color: hovered ? AppColors.hover : Colors.transparent,
+                          borderRadius: BorderRadius.circular(5),
+                        ),
+                        child: Icon(
+                          Codicons.playCircle,
+                          size: 13,
+                          color: hovered ? AppColors.accent : AppColors.textFaint,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            Padding(
+              padding: const EdgeInsets.only(right: 4),
+              child: IdeHover(
+                message: pipOn
+                    ? '🪟 已开启右上角画中画盯盘小窗（点击关闭）'
+                    : '🪟 开启右上角画中画迷你盯盘小窗（跨桌面置顶）',
+                child: HoverBuilder(
+                  cursor: SystemMouseCursors.click,
+                  builder: (context, hovered) => GestureDetector(
+                    onTap: () => NotchDropzone.pipEnabled.value = !pipOn,
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 120),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 5,
+                        vertical: 2,
+                      ),
+                      decoration: BoxDecoration(
+                        color: pipOn
+                            ? AppColors.accent.withValues(alpha: 0.14)
+                            : (hovered ? AppColors.hover : Colors.transparent),
+                        borderRadius: BorderRadius.circular(5),
+                      ),
+                      child: Icon(
+                        Codicons.multipleWindows,
+                        size: 13,
+                        color: pipOn
+                            ? AppColors.accent
+                            : (hovered ? AppColors.text : AppColors.textFaint),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
             Padding(
               padding: const EdgeInsets.only(right: 6),
               child: IdeHover(

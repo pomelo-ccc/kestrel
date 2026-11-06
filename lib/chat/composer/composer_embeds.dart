@@ -25,6 +25,7 @@ import '../widgets/selectable_token.dart';
 import '../widgets/text_preview.dart';
 import 'command_details.dart';
 import 'composer_files.dart';
+import 'image_markup_dialog.dart';
 import 'paste_store.dart';
 import 'composer_mock_data.dart';
 
@@ -338,17 +339,30 @@ class ComposerImageEmbed {
 /// The images a composer holds, by number, for the references in its text
 /// to show.
 class ComposerImages extends InheritedWidget {
-  const ComposerImages({super.key, required this.images, required super.child});
+  const ComposerImages({
+    super.key,
+    required this.images,
+    this.onUpdateImage,
+    required super.child,
+  });
 
   final Map<int, ImageAttachment> images;
+  final void Function(int number, ImageAttachment updated)? onUpdateImage;
 
   static Map<int, ImageAttachment> of(BuildContext context) =>
       context.dependOnInheritedWidgetOfExactType<ComposerImages>()?.images ??
       const {};
 
+  static void Function(int number, ImageAttachment updated)? onUpdateOf(
+    BuildContext context,
+  ) => context
+      .dependOnInheritedWidgetOfExactType<ComposerImages>()
+      ?.onUpdateImage;
+
   @override
   bool updateShouldNotify(ComposerImages oldWidget) =>
-      !identical(images, oldWidget.images);
+      !identical(images, oldWidget.images) ||
+      onUpdateImage != oldWidget.onUpdateImage;
 }
 
 /// The composer's things as its editor shows them: each as its tag,
@@ -1293,6 +1307,7 @@ class ComposerImageChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final image = this.image;
+    final onUpdate = ComposerImages.onUpdateOf(context);
     Widget chip = _CenteredOnText(
       textStyle: textStyle,
       child: DefaultTextStyle.merge(
@@ -1340,6 +1355,35 @@ class ComposerImageChip extends StatelessWidget {
                   context.l10n.imageChip(number),
                   style: TextStyle(color: AppColors.text, fontSize: 12),
                 ),
+                if (image != null && onUpdate != null) ...[
+                  const SizedBox(width: 4),
+                  Tooltip(
+                    message: '标注 / 画红框 / 箭头 / 打马赛克',
+                    child: GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onTap: () async {
+                        final updated = await showImageMarkupDialog(
+                          context,
+                          image,
+                        );
+                        if (updated != null) {
+                          onUpdate(number, updated);
+                        }
+                      },
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 2,
+                          vertical: 1,
+                        ),
+                        child: Icon(
+                          Codicons.edit,
+                          size: 11,
+                          color: AppColors.accent,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ],
             ),
           ),

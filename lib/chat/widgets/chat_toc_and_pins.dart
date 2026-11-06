@@ -11,6 +11,7 @@ import '../../theme/workbench_theme.dart' show themeColors;
 import '../chat_feed.dart';
 import '../chat_models.dart';
 import 'hover_builder.dart';
+import 'session_replay_player.dart';
 import 'turn_power_tools.dart';
 
 class PinnedConclusion {
@@ -447,6 +448,29 @@ class _ChatMiniTocRailState extends State<ChatMiniTocRail> {
                               ),
                             ),
                             const Spacer(),
+                            IdeHover(
+                              message: '🎞️ 沉浸式时间轴回放（Session Replay）',
+                              child: HoverBuilder(
+                                cursor: SystemMouseCursors.click,
+                                builder: (context, repHover) => GestureDetector(
+                                  onTap: () => unawaited(
+                                    showSessionReplayDialog(
+                                      context,
+                                      feed: widget.feed,
+                                      onScrollToIndex: widget.onJumpToTurn,
+                                    ),
+                                  ),
+                                  child: Icon(
+                                    Codicons.playCircle,
+                                    size: 13,
+                                    color: repHover
+                                        ? AppColors.accent
+                                        : AppColors.textMuted,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
                             IdeHover(
                               message: '📤 导出完整会话 Markdown (.md)',
                               child: HoverBuilder(
