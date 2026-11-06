@@ -12,26 +12,51 @@ KernelOption localizedKernelOption(
   KernelOption option,
 ) {
   final text = switch ((kernel, kind, option.id)) {
-    ('claude-code', KernelChoiceKind.permission, 'default') => (
-      l10n.composerApprovalDefault,
-      l10n.composerApprovalDefaultDetail,
-    ),
-    ('claude-code', KernelChoiceKind.permission, 'acceptEdits') => (
-      l10n.composerApprovalAcceptEdits,
-      l10n.composerApprovalAcceptEditsDetail,
-    ),
-    ('claude-code', KernelChoiceKind.permission, 'auto') => (
-      l10n.composerApprovalAuto,
-      l10n.composerApprovalAutoDetail,
-    ),
-    ('claude-code', KernelChoiceKind.permission, 'dontAsk') => (
-      l10n.composerApprovalDontAsk,
-      l10n.composerApprovalDontAskDetail,
-    ),
-    ('claude-code', KernelChoiceKind.permission, 'bypassPermissions') => (
-      l10n.composerApprovalFullAccess,
-      l10n.composerApprovalFullAccessDetail,
-    ),
+    (
+      'claude-code' || 'antigravity-cli',
+      KernelChoiceKind.permission,
+      'default',
+    ) =>
+      (
+        l10n.composerApprovalDefault,
+        l10n.composerApprovalDefaultDetail,
+      ),
+    (
+      'claude-code' || 'antigravity-cli',
+      KernelChoiceKind.permission,
+      'acceptEdits',
+    ) =>
+      (
+        l10n.composerApprovalAcceptEdits,
+        l10n.composerApprovalAcceptEditsDetail,
+      ),
+    (
+      'claude-code' || 'antigravity-cli',
+      KernelChoiceKind.permission,
+      'auto',
+    ) =>
+      (
+        l10n.composerApprovalAuto,
+        l10n.composerApprovalAutoDetail,
+      ),
+    (
+      'claude-code' || 'antigravity-cli',
+      KernelChoiceKind.permission,
+      'dontAsk',
+    ) =>
+      (
+        l10n.composerApprovalDontAsk,
+        l10n.composerApprovalDontAskDetail,
+      ),
+    (
+      'claude-code' || 'antigravity-cli',
+      KernelChoiceKind.permission,
+      'bypassPermissions',
+    ) =>
+      (
+        l10n.composerApprovalFullAccess,
+        l10n.composerApprovalFullAccessDetail,
+      ),
     _ => null,
   };
   if (text == null) return option;

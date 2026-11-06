@@ -26,7 +26,25 @@ abstract final class KernelRegistry {
     catalog: const ClaudeCatalog(),
   );
 
-  static List<KernelDescriptor> _all = [claudeCode];
+  static final KernelDescriptor antigravity = KernelDescriptor(
+    id: 'antigravity-cli',
+    label: 'Antigravity CLI',
+    icon: Icons.rocket_launch_rounded,
+    description: 'Google Antigravity coding agent (agy)',
+    create: (context) => ClaudeCodeKernel(
+      antigravity,
+      context,
+      start: startClaude,
+      readHistoryPage: readClaudeHistoryPage,
+      readGoal: readClaudeGoal,
+      forkSession: forkClaudeSession,
+      usageOffBy: () => claudeUsageOffByAt(context.cwd),
+      rejectTooOld: rejectTooOldClaude,
+    ),
+    catalog: const ClaudeCatalog(),
+  );
+
+  static List<KernelDescriptor> _all = [claudeCode, antigravity];
 
   static List<KernelDescriptor> get all => _all;
 

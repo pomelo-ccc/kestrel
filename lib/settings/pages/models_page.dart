@@ -12,6 +12,7 @@ import '../../ide/ide_input.dart';
 import '../../ide/ide_menu.dart';
 import '../../icons/project_icon.dart';
 import '../../icons/project_icon_picker.dart';
+import '../../kernel/antigravity/antigravity_cli.dart';
 import '../../kernel/claude_code/claude_haiku.dart';
 import '../../l10n/l10n.dart';
 import '../../models/codex/codex_api.dart' show codexClientVersion;
@@ -218,6 +219,9 @@ class _ModelsSettingsPageState extends State<ModelsSettingsPage> {
   String _defaultName(BuildContext context, String? value) {
     final l10n = context.l10n;
     if (value == null) return l10n.modelsDefaultLast;
+    if (AntigravityModels.isAntigravityModel(value)) {
+      return 'Antigravity CLI · ${AntigravityModels.labelOf(value)}';
+    }
     if (_providers.resolve(value) case (final provider, final model)) {
       return '${provider.name} · ${provider.labelOf(model)}';
     }
@@ -353,6 +357,31 @@ class _ModelsSettingsPageState extends State<ModelsSettingsPage> {
                       onSelected: () =>
                           unawaited(_providers.setDefaultModel('default')),
                     ),
+                  if (_providers.antigravityOffered)
+                    IdeMenuAction(
+                      'Antigravity CLI',
+                      checked: AntigravityModels.isAntigravityModel(current),
+                      submenu: [
+                        for (final model in AntigravityModels.current)
+                          IdeMenuAction(
+                            model.label,
+                            checked:
+                                current ==
+                                modelRef(
+                                  antigravityBuiltinProviderId,
+                                  model.id,
+                                ),
+                            onSelected: () => unawaited(
+                              _providers.setDefaultModel(
+                                modelRef(
+                                  antigravityBuiltinProviderId,
+                                  model.id,
+                                ),
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
                   for (final provider in _providers.enabled)
                     IdeMenuAction(
                       provider.name,
@@ -393,6 +422,23 @@ class _ModelsSettingsPageState extends State<ModelsSettingsPage> {
                 switchLabel: l10n.modelsEnableProvider(l10n.modelsBuiltinName),
                 onEnabled: (value) =>
                     unawaited(_providers.setBuiltinHidden(!value)),
+              ),
+            if (_providers.antigravityAvailable)
+              _ProviderRow(
+                icon: const ProviderIcon(
+                  antigravityBuiltinProviderId,
+                  size: 16,
+                ),
+                name: 'Antigravity CLI（跟随本机配置）',
+                badge: l10n.modelsBuiltinBadge,
+                detail: '使用你在终端中配置的 Antigravity CLI (agy) 账号与设置',
+                status: _providers.antigravityHidden
+                    ? _Status.off
+                    : _Status.ready,
+                enabled: !_providers.antigravityHidden,
+                switchLabel: l10n.modelsEnableProvider('Antigravity CLI'),
+                onEnabled: (value) =>
+                    unawaited(_providers.setAntigravityHidden(!value)),
               ),
             // The newest at a site BaoCode lists first (one imported later
             // takes the place of one before); the rest in their order.

@@ -8,6 +8,8 @@ import '../icons/icon_library.dart';
 import '../icons/project_icon.dart';
 import '../icons/project_icon_view.dart';
 import '../icons/site_icons.dart';
+import '../kernel/antigravity/antigravity_cli.dart'
+    show antigravityBuiltinProviderId;
 import '../theme/codicons.dart';
 import 'featured_upstreams.dart';
 import 'model_brand.dart';
@@ -66,6 +68,9 @@ class ProviderIcon extends StatelessWidget {
   Widget build(BuildContext context) {
     if (id == builtinProviderId) {
       return BrandLogo(builtinProviderLogo, size: size, color: color);
+    }
+    if (id == antigravityBuiltinProviderId) {
+      return BrandLogo('google', size: size, color: color);
     }
     final providers = ModelProviders.current;
     return ListenableBuilder(

@@ -380,6 +380,7 @@ class ChatSession extends ChangeNotifier implements ChatFeed {
       queuedInPlace: _queuedInPlace,
     );
     _connect(descriptor);
+    if (_views > 0) _kernel.prepare();
     notifyListeners();
   }
 

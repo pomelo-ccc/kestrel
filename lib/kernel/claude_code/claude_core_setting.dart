@@ -11,18 +11,29 @@ enum ClaudeCore {
 
   /// The Claude Code CLI, as a process: downloaded the first time where
   /// the machine has none (see LocalClaude), once picked.
-  cli;
+  cli,
+
+  /// The Antigravity CLI (`agy`), run as a local stream-json process.
+  antigravity;
 
   static const settingKey = 'claudeCode.core';
 
   /// When the setting is unset, or not one of these: the CLI where Claude
-  /// Code is on this machine, else the built-in core. Nothing is downloaded
-  /// unasked, nor the CLI suggested.
-  static ClaudeCore get fallback => cliInstalled() ? cli : builtin;
+  /// Code is on this machine, else Antigravity CLI if installed, else the
+  /// built-in core. Nothing is downloaded unasked, nor the CLI suggested.
+  static ClaudeCore get fallback => cliInstalled()
+      ? cli
+      : antigravityInstalled()
+      ? antigravity
+      : builtin;
 
   /// Whether Claude Code is on this machine, as last looked; main() points
   /// it at `LocalClaude.installed`.
   static bool Function() cliInstalled = () => false;
+
+  /// Whether Antigravity CLI (`agy`) is on this machine; main() points it
+  /// at `LocalAntigravity.installed`.
+  static bool Function() antigravityInstalled = () => false;
 
   static ClaudeCore parse(Object? setting) =>
       values.where((value) => value.name == setting).firstOrNull ?? fallback;

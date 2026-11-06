@@ -50,6 +50,7 @@ import 'icons/emoji_sheet.dart';
 import 'icons/icon_library.dart';
 import 'icons/icon_storage.dart';
 import 'icons/site_icons.dart';
+import 'kernel/antigravity/antigravity_cli.dart';
 import 'kernel/claude_code/claude_code_kernel.dart';
 import 'kernel/claude_code/claude_core_setting.dart';
 import 'kernel/claude_code/claude_onboarding.dart';
@@ -520,16 +521,21 @@ void followSettingsFiles(SettingsFiles files) {
       }
     }
   };
-  // Settings → General → Claude Code: the build to run, read as each
-  // agent starts.
+  // Settings → General → Claude Code / Antigravity CLI: the build to run,
+  // read as each agent starts.
   ClaudePathSetting.current = () =>
       ClaudePathSetting.parse(files.settings[ClaudePathSetting.settingKey]);
+  AntigravityPathSetting.current = () => AntigravityPathSetting.parse(
+    files.settings[AntigravityPathSetting.settingKey],
+  );
   // Settings → General → Claude Code: the core sessions run on (BaoCode's
   // own, or the CLI), read as each agent starts. Unset, the CLI where it
   // is installed (looked for on the app's PATH, then the shell's), else
   // the built-in core.
   ClaudeCore.cliInstalled = localClaudeInstalled;
+  ClaudeCore.antigravityInstalled = LocalAntigravity.installed;
   unawaited(lookForLocalClaude());
+  unawaited(LocalAntigravity.lookForInstall());
   ClaudeCore.current = () =>
       ClaudeCore.parse(files.settings[ClaudeCore.settingKey]);
   ClaudeCore.changes = files.settings;

@@ -63,6 +63,7 @@ class ModelProviders extends ChangeNotifier {
 
   static const providersKey = 'models.providers';
   static const builtinHiddenKey = 'models.builtin.hidden';
+  static const antigravityHiddenKey = 'models.antigravity.hidden';
   static const defaultKey = 'models.default';
   static const auxiliaryKey = 'models.auxiliary';
   static const actionsKey = 'models.actions';
@@ -139,6 +140,18 @@ class ModelProviders extends ChangeNotifier {
   /// Whether Claude Code as set up on this machine is in the picker.
   bool get builtinOffered => builtinAvailable && !builtinHidden;
 
+  /// Whether Antigravity CLI (`agy`) is hidden from the picker.
+  bool get antigravityHidden => _read(antigravityHiddenKey) == true;
+
+  /// Whether Antigravity CLI (`agy`) is available as a built-in engine.
+  bool get antigravityAvailable =>
+      !ChannelSetup.channelBuild &&
+      (ClaudeCore.current() == ClaudeCore.antigravity ||
+          ClaudeCore.antigravityInstalled());
+
+  /// Whether Antigravity CLI (`agy`) is offered in the picker.
+  bool get antigravityOffered => antigravityAvailable && !antigravityHidden;
+
   /// The model a session on BaoCode's own core starts on when the one
   /// picked is no upstream's: the first of the first upstream turned on;
   /// null without one.
@@ -153,7 +166,9 @@ class ModelProviders extends ChangeNotifier {
   String? get defaultModel => switch (_read(defaultKey)) {
     final String model
         when model.isNotEmpty &&
-            (builtinAvailable || parseModelRef(model) != null) =>
+            (builtinAvailable ||
+                antigravityAvailable ||
+                parseModelRef(model) != null) =>
       model,
     _ => null,
   };
@@ -313,6 +328,9 @@ class ModelProviders extends ChangeNotifier {
 
   Future<void> setBuiltinHidden(bool hidden) =>
       _write(builtinHiddenKey, hidden ? true : null);
+
+  Future<void> setAntigravityHidden(bool hidden) =>
+      _write(antigravityHiddenKey, hidden ? true : null);
 
   Future<void> setDefaultModel(String? model) => _write(defaultKey, model);
 

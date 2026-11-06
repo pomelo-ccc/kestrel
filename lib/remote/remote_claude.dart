@@ -14,6 +14,7 @@ import 'package:bao_remote/client.dart';
 import 'package:bao_remote/files.dart' show IdeFileNotFoundException;
 
 import '../kernel/agent_kernel.dart';
+import '../kernel/antigravity/antigravity_transport.dart';
 import '../kernel/claude_code/claude_code_transport.dart';
 import '../kernel/claude_code/claude_core_setting.dart';
 import '../kernel/claude_code/claude_haiku.dart';
@@ -37,13 +38,21 @@ const remoteClaudeInstallCommand =
 Future<ClaudeCodeTransport> startClaude(ClaudeLaunch launch) async {
   final host = RemoteLocation.hostOf(launch.cwd);
   if (host == null) {
-    // On this machine: BaoCode's own core, unless the CLI is picked.
+    if (isAntigravityLaunch(launch)) {
+      return startAntigravity(launch);
+    }
+    // On this machine: BaoCode's own core, unless a CLI engine is picked.
     return switch (ClaudeCore.current()) {
       ClaudeCore.builtin when launch.env == null => throw const ClaudeNoModel(
         ClaudeCore.noModel,
       ),
       ClaudeCore.builtin => startDartCore(launch),
       ClaudeCore.cli => startClaudeProcess(launch),
+      ClaudeCore.antigravity => launch.env != null
+          ? (ClaudeCore.cliInstalled()
+                ? startClaudeProcess(launch)
+                : startDartCore(launch))
+          : startAntigravity(launch),
     };
   }
   return RemoteClaudeTransport.start(SshHosts.instance[host], launch);
