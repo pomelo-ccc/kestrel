@@ -1890,12 +1890,10 @@ class _SidebarState extends State<Sidebar>
   Widget _buildHeader(_Group group, List<Project> projects) {
     final project = group.project;
     final collapsible = _collapsible(group);
-    final hasCustomIcon = project != null && _workspace.iconOf(project) != null;
     final header = _GroupHeader(
       group: group,
       collapsed: _collapsed(group),
       light: !collapsible,
-      hasCustomIcon: hasCustomIcon,
       // As a row clicked: the list has the keys then (its speed search).
       onToggle: collapsible
           ? () {
@@ -2023,20 +2021,6 @@ class _SidebarState extends State<Sidebar>
       drag: widget.drag,
       showProject: group.project == null,
       showTime: SidebarTimes.shown.value,
-      projectIcon: switch (_workspace.iconOf(thread.project)) {
-        null when _workspace.workspaceOf(thread.project) != null => Icon(
-          Codicons.folderLibrary,
-          size: 12,
-          color: AppColors.textFaint,
-        ),
-        null => null,
-        final icon => ProjectIconView(
-          icon: icon,
-          library: _workspace.icons,
-          size: 14,
-          color: AppColors.textFaint,
-        ),
-      },
       renaming: identical(thread, _renaming),
       onTap: () => _handleRowTap(thread),
       onRename: () => setState(() => _renaming = thread),
@@ -2992,7 +2976,6 @@ class _GroupHeader extends StatelessWidget {
     required this.collapsed,
     required this.onToggle,
     this.light = false,
-    this.hasCustomIcon = false,
     this.onCreate,
     this.dragNew,
     this.menu,
@@ -3006,7 +2989,6 @@ class _GroupHeader extends StatelessWidget {
 
   final _Group group;
   final bool collapsed;
-  final bool hasCustomIcon;
 
   /// The characters of its name the speed search matches.
   final List<int>? speedMatch;
@@ -3095,10 +3077,6 @@ class _GroupHeader extends StatelessWidget {
             ),
             child: Row(
               children: [
-                if (hasCustomIcon && icon != null) ...[
-                  icon!,
-                  const SizedBox(width: 5),
-                ],
                 // The dot right after the name, the rest of the row after.
                 Expanded(
                   child: Row(
@@ -3119,7 +3097,7 @@ class _GroupHeader extends StatelessWidget {
                     ],
                   ),
                 ),
-                if (!hasCustomIcon && icon != null) icon!,
+                if (icon != null) Opacity(opacity: 0, child: icon!),
                 if (collapsed && !light && group.threads.isNotEmpty)
                   Padding(
                     padding: const EdgeInsets.only(right: 6),
@@ -3621,7 +3599,6 @@ class _ThreadRow extends StatelessWidget {
     required this.drag,
     required this.showProject,
     required this.showTime,
-    this.projectIcon,
     required this.renaming,
     required this.onTap,
     required this.onRename,
@@ -3665,9 +3642,6 @@ class _ThreadRow extends StatelessWidget {
   /// Whether the time it last did something shows at its end (its hover
   /// shows it either way).
   final bool showTime;
-
-  /// Before the project's name, when it shows and has an icon.
-  final Widget? projectIcon;
   final bool renaming;
   final VoidCallback onTap;
   final VoidCallback onRename;
@@ -3949,10 +3923,6 @@ class _ThreadRow extends StatelessWidget {
           TextSpan(text: thread.localizedTitle(l10n)),
           if (showProject) ...[
             const TextSpan(text: '  '),
-            if (projectIcon case final icon?) ...[
-              WidgetSpan(alignment: PlaceholderAlignment.middle, child: icon),
-              const TextSpan(text: ' '),
-            ],
             TextSpan(
               text: thread.project.name,
               style: TextStyle(
