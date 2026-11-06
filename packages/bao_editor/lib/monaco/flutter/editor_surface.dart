@@ -2008,9 +2008,12 @@ class _EditorSurfaceState extends State<EditorSurface>
       final delta = _wheelDelta(event);
       bool moves(double by, double at, double max) =>
           by < 0 ? at > 0 : by > 0 && at < max;
-      if (!moves(delta.dx, _scrollLeft, _maxScrollLeft(layout)) &&
-          !moves(delta.dy, _scrollTop, _maxScrollTop(layout))) {
-        return;
+      final canMoveX = moves(delta.dx, _scrollLeft, _maxScrollLeft(layout));
+      final canMoveY = moves(delta.dy, _scrollTop, _maxScrollTop(layout));
+      if (delta.dy.abs() >= delta.dx.abs()) {
+        if (!canMoveY) return;
+      } else {
+        if (!canMoveX) return;
       }
     }
     GestureBinding.instance.pointerSignalResolver.register(event, (resolved) {

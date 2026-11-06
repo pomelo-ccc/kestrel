@@ -166,9 +166,7 @@ class _CardState extends State<_Card> {
     scrollbar: true,
     // A line round it, no background.
     codeBlock: true,
-    // Scrolled to its end, a wheel goes on to the conversation only from
-    // outside it.
-    keepWheel: true,
+    keepWheel: false,
     header: widget.header,
     bottom: (context, hovered) => ValueListenableBuilder(
       valueListenable: _horizontal,
