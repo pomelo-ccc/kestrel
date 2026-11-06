@@ -9,10 +9,13 @@ import '../../ide/ide_hover.dart';
 import '../../l10n/l10n.dart';
 import '../../theme/app_theme.dart';
 import '../../theme/codicons.dart';
+import '../chat_feed.dart';
 import '../chat_models.dart';
+import '../chat_session.dart';
 import 'agent_step.dart';
 import 'hover_builder.dart';
 import 'rolling_text.dart';
+import 'turn_power_tools.dart';
 
 /// Lucide's icons the footer uses.
 const _copyIcon = 'assets/icons/lucide-copy.svg';
@@ -48,7 +51,7 @@ abstract final class LiveTurnStatsSetting {
 /// figures rolling as they change.
 ///
 /// The time first and the tokens last, either way.
-class TurnFooter extends StatelessWidget {
+class TurnFooter extends StatefulWidget {
   const TurnFooter({
     super.key,
     this.answer,
@@ -58,6 +61,8 @@ class TurnFooter extends StatelessWidget {
     this.since,
     this.pinned = false,
     this.onTogglePin,
+    this.summary,
+    this.feed,
   });
 
   /// What the copy button copies; no button when null.
@@ -75,6 +80,10 @@ class TurnFooter extends StatelessWidget {
   final bool pinned;
   final VoidCallback? onTogglePin;
 
+  /// Aggregated turn activity (edited files, commands, prompt text).
+  final TurnSummaryData? summary;
+  final ChatFeed? feed;
+
   /// "$0.42", "$0.0031": two figures past the first that is not 0, at
   /// least two decimals.
   static String formatCost(double usd) {
@@ -84,29 +93,6 @@ class TurnFooter extends StatelessWidget {
       digits++;
     }
     return '\$${usd.toStringAsFixed(digits)}';
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = context.l10n;
-    final live = this.live;
-    if (live == null) {
-      return _padded(
-        _line([
-          if (answer case final answer?) _CopyButton(text: answer),
-          if (answer != null && onTogglePin != null)
-            _PinButton(pinned: pinned, onTap: onTogglePin!),
-          ..._stats(l10n),
-        ]),
-      );
-    }
-    // Turned off in settings: no line at all.
-    return ListenableBuilder(
-      listenable: LiveTurnStatsSetting.changes ?? Listenable.merge(const []),
-      builder: (context, _) => LiveTurnStatsSetting.current()
-          ? _padded(_LiveStats(output: live, since: since))
-          : const SizedBox.shrink(),
-    );
   }
 
   static Widget _padded(Widget line) => SelectionContainer.disabled(
@@ -122,7 +108,79 @@ class TurnFooter extends StatelessWidget {
     children: items,
   );
 
+  @override
+  State<TurnFooter> createState() => _TurnFooterState();
+}
+
+class _TurnFooterState extends State<TurnFooter> {
+  ({String providerName, String modelId, String modelLabel})? _challenger;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = context.l10n;
+    final live = widget.live;
+    if (live == null) {
+      final answer = widget.answer;
+      final summary = widget.summary;
+      final feed = widget.feed;
+      final session = feed is ChatSession ? feed : null;
+      return SelectionContainer.disabled(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (summary != null && summary.hasNotableActivity)
+              TurnSummaryCard(summary: summary),
+            Padding(
+              padding: const EdgeInsets.only(top: 6),
+              child: TurnFooter._line([
+                if (answer != null) _CopyButton(text: answer),
+                if (answer != null && widget.onTogglePin != null)
+                  _PinButton(
+                    pinned: widget.pinned,
+                    onTap: widget.onTogglePin!,
+                  ),
+                if (answer != null && summary != null)
+                  ProjectMemoryButton(
+                    answer: answer,
+                    promptText: summary.promptText,
+                    projectRoot: session?.root,
+                  ),
+                if (summary != null && feed != null)
+                  ExportTurnButton(summary: summary, feed: feed),
+                if (answer != null &&
+                    summary != null &&
+                    summary.promptText.trim().isNotEmpty)
+                  ModelPkButton(
+                    onPickChallenger: (c) => setState(() => _challenger = c),
+                  ),
+                ..._stats(l10n),
+              ]),
+            ),
+            if (_challenger != null && answer != null && summary != null)
+              ModelPkComparisonCard(
+                promptText: summary.promptText,
+                originalAnswer: answer,
+                challenger: _challenger!,
+                session: session,
+                onClose: () => setState(() => _challenger = null),
+              ),
+          ],
+        ),
+      );
+    }
+    // Turned off in settings: no line at all.
+    return ListenableBuilder(
+      listenable: LiveTurnStatsSetting.changes ?? Listenable.merge(const []),
+      builder: (context, _) => LiveTurnStatsSetting.current()
+          ? TurnFooter._padded(_LiveStats(output: live, since: widget.since))
+          : const SizedBox.shrink(),
+    );
+  }
+
   List<Widget> _stats(AppLocalizations l10n) {
+    final usage = widget.usage;
+    final worked = widget.worked;
     final speed = usage?.tokensPerSecond;
     final cost = usage?.costUsd;
     final tokens = usage?.totalTokens;
@@ -139,7 +197,8 @@ class TurnFooter extends StatelessWidget {
           text: l10n.turnSpeed(speed.toStringAsFixed(2)),
           hint: l10n.turnSpeedHint,
         ),
-      if (cost != null) _Stat(text: formatCost(cost), hint: l10n.turnCostHint),
+      if (cost != null)
+        _Stat(text: TurnFooter.formatCost(cost), hint: l10n.turnCostHint),
       if (tokens != null && tokens > 0)
         _Stat(
           text: l10n.turnTokens(AgentStep.formatTokens(tokens, decimals: 2)),

@@ -1,13 +1,17 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../ide/ide_hover.dart';
+import '../../ide/ide_notifications.dart';
 import '../../theme/app_theme.dart';
 import '../../theme/codicons.dart';
 import '../../theme/workbench_theme.dart' show themeColors;
 import '../chat_feed.dart';
 import '../chat_models.dart';
 import 'hover_builder.dart';
+import 'turn_power_tools.dart';
 
 class PinnedConclusion {
   const PinnedConclusion({
@@ -281,6 +285,29 @@ class _PinCardRow extends StatelessWidget {
           ),
         ),
         IdeHover(
+          message: '🧠 记入项目记忆 (写入 CLAUDE.md)',
+          child: HoverBuilder(
+            cursor: SystemMouseCursors.click,
+            builder: (context, hovered) => GestureDetector(
+              onTap: () => unawaited(
+                showMemoryCapsuleDialog(
+                  context,
+                  answer: pin.answer,
+                  promptText: pin.promptTitle,
+                ),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(4),
+                child: Icon(
+                  Codicons.book,
+                  size: 13,
+                  color: hovered ? AppColors.text : AppColors.textMuted,
+                ),
+              ),
+            ),
+          ),
+        ),
+        IdeHover(
           message: '复制结论',
           child: HoverBuilder(
             cursor: SystemMouseCursors.click,
@@ -417,6 +444,44 @@ class _ChatMiniTocRailState extends State<ChatMiniTocRail> {
                                 color: AppColors.textMuted,
                                 fontSize: 11,
                                 fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            const Spacer(),
+                            IdeHover(
+                              message: '📤 导出完整会话 Markdown (.md)',
+                              child: HoverBuilder(
+                                cursor: SystemMouseCursors.click,
+                                builder: (context, expHover) => GestureDetector(
+                                  onTap: () async {
+                                    final md = MarkdownExporter.formatFullSession(
+                                      widget.feed,
+                                    );
+                                    await Clipboard.setData(
+                                      ClipboardData(text: md),
+                                    );
+                                    final path =
+                                        await MarkdownExporter.saveToDownloads(
+                                          md,
+                                          prefix: 'Kestrel-会话复盘',
+                                        );
+                                    if (!context.mounted) return;
+                                    IdeNotificationsScope.maybeOf(
+                                      context,
+                                    )?.notify(
+                                      IdeSeverity.info,
+                                      path != null
+                                          ? '📤 已复制并导出完整会话至：$path'
+                                          : '📤 已复制完整会话 Markdown 笔记',
+                                    );
+                                  },
+                                  child: Icon(
+                                    Codicons.markdown,
+                                    size: 13,
+                                    color: expHover
+                                        ? AppColors.text
+                                        : AppColors.textMuted,
+                                  ),
+                                ),
                               ),
                             ),
                           ],

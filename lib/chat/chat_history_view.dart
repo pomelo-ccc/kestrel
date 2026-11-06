@@ -40,6 +40,7 @@ import 'widgets/fold_line.dart';
 import 'widgets/hover_builder.dart';
 import 'widgets/lazy_segment.dart' show SelectionEndHolder;
 import 'widgets/turn_footer.dart';
+import 'widgets/turn_power_tools.dart';
 import 'widgets/user_message_bubble.dart';
 import '../base/safe_selection_indexes.dart';
 
@@ -258,12 +259,20 @@ class _ChatHistoryViewState extends State<ChatHistoryView>
       }
     }
     final answer = words.isEmpty ? null : words.join('\n\n');
+    final summary = TurnSummaryData.collect(
+      _feed,
+      promptIndex: prompt,
+      endIndex: index,
+      answerText: answer,
+    );
     return ListenableBuilder(
       listenable: ChatPinsStore.instance,
       builder: (context, _) => TurnFooter(
         answer: answer,
         worked: message.worked,
         usage: message.usage,
+        summary: summary,
+        feed: _feed,
         pinned: ChatPinsStore.instance.isPinned(_feed, prompt),
         onTogglePin: answer == null
             ? null
