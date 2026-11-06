@@ -2445,12 +2445,6 @@ class _SidebarState extends State<Sidebar>
       height: _footerRowHeight,
       child: Row(
         children: [
-          Expanded(
-            child: count == 0
-                ? const SizedBox.shrink()
-                : _buildArchivedToggle(count),
-          ),
-          if (update != null) ...[const SizedBox(width: 4), update],
           if (settings != null) ...[
             const SizedBox(width: 4),
             SidebarIconButton(
@@ -2460,6 +2454,12 @@ class _SidebarState extends State<Sidebar>
               onTap: settings,
             ),
           ],
+          if (update != null) ...[const SizedBox(width: 4), update],
+          Expanded(
+            child: count == 0
+                ? const SizedBox.shrink()
+                : Opacity(opacity: 0, child: _buildArchivedToggle(count)),
+          ),
         ],
       ),
     );
