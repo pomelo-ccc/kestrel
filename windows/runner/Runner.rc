@@ -94,13 +94,13 @@ BEGIN
     BEGIN
         BLOCK "040904e4"
         BEGIN
-            VALUE "CompanyName", "Kestrel" "\0"
-            VALUE "FileDescription", "Kestrel" "\0"
+            VALUE "CompanyName", "Byte" "\0"
+            VALUE "FileDescription", "Byte" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
             VALUE "InternalName", "kestrel" "\0"
-            VALUE "LegalCopyright", "Copyright (C) 2026 Kestrel. All rights reserved." "\0"
+            VALUE "LegalCopyright", "Copyright (C) 2026 Byte. All rights reserved." "\0"
             VALUE "OriginalFilename", "baocode.exe" "\0"
-            VALUE "ProductName", "Kestrel" "\0"
+            VALUE "ProductName", "Byte" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"
         END
     END

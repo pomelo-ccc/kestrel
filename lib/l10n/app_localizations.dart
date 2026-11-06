@@ -179,7 +179,7 @@ abstract class AppLocalizations {
   /// No description provided for @languageSettingsDescription.
   ///
   /// In en, this message translates to:
-  /// **'The language of Kestrel\'s menus, views and messages. Changes apply at once.'**
+  /// **'The language of Byte\'s menus, views and messages. Changes apply at once.'**
   String get languageSettingsDescription;
 
   /// Follow System, with the language the system's resolves to, named in its own language.
@@ -2873,7 +2873,7 @@ abstract class AppLocalizations {
   /// No description provided for @menuAboutBaoCode.
   ///
   /// In en, this message translates to:
-  /// **'About Kestrel'**
+  /// **'About Byte'**
   String get menuAboutBaoCode;
 
   /// Tooltip.
@@ -2951,7 +2951,7 @@ abstract class AppLocalizations {
   /// No description provided for @browserOtherApp.
   ///
   /// In en, this message translates to:
-  /// **'Another Kestrel is connected to the browser.'**
+  /// **'Another Byte is connected to the browser.'**
   String get browserOtherApp;
 
   /// The card in the conversation while an agent watches the user do something in their browser (browser_watch), recording it.
@@ -2963,7 +2963,7 @@ abstract class AppLocalizations {
   /// No description provided for @browserWatchHint.
   ///
   /// In en, this message translates to:
-  /// **'Do it in the Kestrel tab of your browser. When you\'re done, click Done here or the Kestrel button in the browser\'s toolbar.'**
+  /// **'Do it in the Byte tab of your browser. When you\'re done, click Done here or the Byte button in the browser\'s toolbar.'**
   String get browserWatchHint;
 
   /// No description provided for @browserWatchSteps.
@@ -6200,7 +6200,7 @@ abstract class AppLocalizations {
   /// **'Who the commits and pull requests an agent writes credit. Applies to agents started after a change; Claude Code only for now.'**
   String get generalSettingsCommitAttributionDescription;
 
-  /// Settings → General → Claude Code row: what runs Claude Code sessions, Kestrel's built-in core (written in Dart) or the Claude Code CLI.
+  /// Settings → General → Claude Code row: what runs Claude Code sessions, Byte's built-in core (written in Dart) or the Claude Code CLI.
   ///
   /// In en, this message translates to:
   /// **'Core'**
@@ -6209,10 +6209,10 @@ abstract class AppLocalizations {
   /// No description provided for @generalSettingsClaudeCoreDescription.
   ///
   /// In en, this message translates to:
-  /// **'Claude Code CLI: Anthropic\'s own program, with this machine\'s sign-in and setup; pick it to use a Claude subscription. Built-in: comes with Kestrel, and uses only the models added in Settings → Models. By default, the CLI where this machine has Claude Code, else the built-in core; the CLI, picked where there is none, is downloaded for you. Changes apply to new sessions.'**
+  /// **'Claude Code CLI: Anthropic\'s own program, with this machine\'s sign-in and setup; pick it to use a Claude subscription. Built-in: comes with Byte, and uses only the models added in Settings → Models. By default, the CLI where this machine has Claude Code, else the built-in core; the CLI, picked where there is none, is downloaded for you. Changes apply to new sessions.'**
   String get generalSettingsClaudeCoreDescription;
 
-  /// Claude Code core choice: Kestrel's own agent core, written in Dart and run inside the app.
+  /// Claude Code core choice: Byte's own agent core, written in Dart and run inside the app.
   ///
   /// In en, this message translates to:
   /// **'Built-in'**
@@ -6449,7 +6449,7 @@ abstract class AppLocalizations {
   /// No description provided for @trayShow.
   ///
   /// In en, this message translates to:
-  /// **'Show Kestrel'**
+  /// **'Show Byte'**
   String get trayShow;
 
   /// Tray menu header over the agents waiting on the user.
@@ -6473,7 +6473,7 @@ abstract class AppLocalizations {
   /// No description provided for @trayQuit.
   ///
   /// In en, this message translates to:
-  /// **'Quit Kestrel'**
+  /// **'Quit Byte'**
   String get trayQuit;
 
   /// Notification: the agent waits on the user.
@@ -8766,7 +8766,7 @@ abstract class AppLocalizations {
   /// No description provided for @kbUnknownContextKeys.
   ///
   /// In en, this message translates to:
-  /// **'{count, plural, =1{Kestrel does not know the context key {keys}: this keybinding never applies.} other{Kestrel does not know the context keys {keys}: this keybinding never applies.}}'**
+  /// **'{count, plural, =1{Byte does not know the context key {keys}: this keybinding never applies.} other{Byte does not know the context keys {keys}: this keybinding never applies.}}'**
   String kbUnknownContextKeys(int count, String keys);
 
   /// No description provided for @kbChangeFailed.
@@ -8904,7 +8904,7 @@ abstract class AppLocalizations {
   /// No description provided for @kbCannotReadKey.
   ///
   /// In en, this message translates to:
-  /// **'Kestrel cannot read the key “{key}”: this keybinding never applies.'**
+  /// **'Byte cannot read the key “{key}”: this keybinding never applies.'**
   String kbCannotReadKey(String key);
 
   /// No description provided for @kbNotSupported.
@@ -8916,7 +8916,7 @@ abstract class AppLocalizations {
   /// No description provided for @kbNotSupportedHover.
   ///
   /// In en, this message translates to:
-  /// **'Kestrel does not have this command: the keybinding is kept, but does nothing.'**
+  /// **'Byte does not have this command: the keybinding is kept, but does nothing.'**
   String get kbNotSupportedHover;
 
   /// No description provided for @kbPressKeys.
@@ -9006,37 +9006,37 @@ abstract class AppLocalizations {
   /// No description provided for @dataDirAlreadyHolds.
   ///
   /// In en, this message translates to:
-  /// **'The folder already holds Kestrel data'**
+  /// **'The folder already holds Byte data'**
   String get dataDirAlreadyHolds;
 
   /// No description provided for @dataDirMoveBack.
   ///
   /// In en, this message translates to:
-  /// **'Move Kestrel\'s data back to the default folder?'**
+  /// **'Move Byte\'s data back to the default folder?'**
   String get dataDirMoveBack;
 
   /// No description provided for @dataDirMoveHere.
   ///
   /// In en, this message translates to:
-  /// **'Move Kestrel\'s data to this folder?'**
+  /// **'Move Byte\'s data to this folder?'**
   String get dataDirMoveHere;
 
   /// No description provided for @dataDirUseAsIsDetail.
   ///
   /// In en, this message translates to:
-  /// **'After a restart Kestrel uses the data there as it is; nothing is copied, and the current folder keeps yours.'**
+  /// **'After a restart Byte uses the data there as it is; nothing is copied, and the current folder keeps yours.'**
   String get dataDirUseAsIsDetail;
 
   /// No description provided for @dataDirCopyDetail.
   ///
   /// In en, this message translates to:
-  /// **'Kestrel copies its settings, keybindings, language servers and state there, and uses that folder after a restart.'**
+  /// **'Byte copies its settings, keybindings, language servers and state there, and uses that folder after a restart.'**
   String get dataDirCopyDetail;
 
   /// No description provided for @dataDirOtherFiles.
   ///
   /// In en, this message translates to:
-  /// **'The folder holds other files: they stay, beside Kestrel\'s own.'**
+  /// **'The folder holds other files: they stay, beside Byte\'s own.'**
   String get dataDirOtherFiles;
 
   /// No description provided for @dataDirUseItsData.
@@ -9078,13 +9078,13 @@ abstract class AppLocalizations {
   /// No description provided for @dataDirRestartTitle.
   ///
   /// In en, this message translates to:
-  /// **'Restart Kestrel to use the new data folder'**
+  /// **'Restart Byte to use the new data folder'**
   String get dataDirRestartTitle;
 
   /// No description provided for @dataDirRestartDetail.
   ///
   /// In en, this message translates to:
-  /// **'Kestrel keeps using {current} until it restarts. The next start uses {next}, and offers to remove what is left in the old one.'**
+  /// **'Byte keeps using {current} until it restarts. The next start uses {next}, and offers to remove what is left in the old one.'**
   String dataDirRestartDetail(String current, String next);
 
   /// No description provided for @dataDirTheNewFolder.
@@ -9096,7 +9096,7 @@ abstract class AppLocalizations {
   /// No description provided for @quitConfirmMessage.
   ///
   /// In en, this message translates to:
-  /// **'Quit Kestrel?'**
+  /// **'Quit Byte?'**
   String get quitConfirmMessage;
 
   /// No description provided for @quitConfirmDetail.
@@ -9156,7 +9156,7 @@ abstract class AppLocalizations {
   /// No description provided for @dataDirDescription.
   ///
   /// In en, this message translates to:
-  /// **'Where Kestrel keeps your settings, keybindings, language servers and its own state. Other programs keep files there too (the web view\'s caches); Kestrel never moves or removes those.'**
+  /// **'Where Byte keeps your settings, keybindings, language servers and its own state. Other programs keep files there too (the web view\'s caches); Byte never moves or removes those.'**
   String get dataDirDescription;
 
   /// No description provided for @dataDirCurrentFolder.
@@ -9204,19 +9204,19 @@ abstract class AppLocalizations {
   /// No description provided for @dataDirSettingUnreadable.
   ///
   /// In en, this message translates to:
-  /// **'Kestrel\'s data folder setting cannot be read'**
+  /// **'Byte\'s data folder setting cannot be read'**
   String get dataDirSettingUnreadable;
 
   /// No description provided for @dataDirCannotWrite.
   ///
   /// In en, this message translates to:
-  /// **'Kestrel cannot write to its data folder'**
+  /// **'Byte cannot write to its data folder'**
   String get dataDirCannotWrite;
 
   /// No description provided for @dataDirUnavailable.
   ///
   /// In en, this message translates to:
-  /// **'Kestrel\'s data folder is not available'**
+  /// **'Byte\'s data folder is not available'**
   String get dataDirUnavailable;
 
   /// No description provided for @dataDirWhereEnv.
@@ -9228,7 +9228,7 @@ abstract class AppLocalizations {
   /// No description provided for @dataDirWhereFixPointer.
   ///
   /// In en, this message translates to:
-  /// **'Fix or delete {file} and try again; Kestrel changes it only if you choose another folder.'**
+  /// **'Fix or delete {file} and try again; Byte changes it only if you choose another folder.'**
   String dataDirWhereFixPointer(String file);
 
   /// No description provided for @dataDirWherePointer.
@@ -9264,13 +9264,13 @@ abstract class AppLocalizations {
   /// No description provided for @dataDirRemoveOldTitle.
   ///
   /// In en, this message translates to:
-  /// **'Remove the data Kestrel left in its previous folder?'**
+  /// **'Remove the data Byte left in its previous folder?'**
   String get dataDirRemoveOldTitle;
 
   /// No description provided for @dataDirRemoveOldDetail.
   ///
   /// In en, this message translates to:
-  /// **'Kestrel now keeps its data in {current}. Only its own items are removed from the previous folder ({items}); the folder and everything else in it stay.'**
+  /// **'Byte now keeps its data in {current}. Only its own items are removed from the previous folder ({items}); the folder and everything else in it stay.'**
   String dataDirRemoveOldDetail(String current, String items);
 
   /// No description provided for @dataDirRemove.
@@ -9294,7 +9294,7 @@ abstract class AppLocalizations {
   /// No description provided for @dataDirRemoveOldInUseDetail.
   ///
   /// In en, this message translates to:
-  /// **'Files in {items} are in use, perhaps by another program. Everything else was removed; Kestrel offers to remove the rest the next time it starts.'**
+  /// **'Files in {items} are in use, perhaps by another program. Everything else was removed; Byte offers to remove the rest the next time it starts.'**
   String dataDirRemoveOldInUseDetail(String items);
 
   /// No description provided for @impTitle.
@@ -9624,7 +9624,7 @@ abstract class AppLocalizations {
   /// No description provided for @shellCommandOccupied.
   ///
   /// In en, this message translates to:
-  /// **'{path} already runs another app\'s \'{name}\' command. Replace it with Kestrel\'s?'**
+  /// **'{path} already runs another app\'s \'{name}\' command. Replace it with Byte\'s?'**
   String shellCommandOccupied(String path, String name);
 
   /// No description provided for @shellCommandReplace.
@@ -9654,7 +9654,7 @@ abstract class AppLocalizations {
   /// No description provided for @generalSettingsMainWindowDescription.
   ///
   /// In en, this message translates to:
-  /// **'What Kestrel opens to: the agents, or the IDE windows (as Restore Windows says), never both. By default, wherever it was left when it last quit.'**
+  /// **'What Byte opens to: the agents, or the IDE windows (as Restore Windows says), never both. By default, wherever it was left when it last quit.'**
   String get generalSettingsMainWindowDescription;
 
   /// No description provided for @generalSettingsMainWindowLabel.
@@ -9750,7 +9750,7 @@ abstract class AppLocalizations {
   /// No description provided for @claudePathInUseDownloaded.
   ///
   /// In en, this message translates to:
-  /// **'In use: Claude Code {version}, downloaded by Kestrel'**
+  /// **'In use: Claude Code {version}, downloaded by Byte'**
   String claudePathInUseDownloaded(String version);
 
   /// No description provided for @claudePathMissing.
@@ -10032,7 +10032,7 @@ abstract class AppLocalizations {
   /// No description provided for @generalSettingsShellCommandDescription.
   ///
   /// In en, this message translates to:
-  /// **'Open files and folders in Kestrel from a terminal: \'code <path>\'. Installed at {location}.'**
+  /// **'Open files and folders in Byte from a terminal: \'code <path>\'. Installed at {location}.'**
   String generalSettingsShellCommandDescription(String location);
 
   /// No description provided for @generalSettingsShellCommandInstalled.
@@ -10566,7 +10566,7 @@ abstract class AppLocalizations {
   /// No description provided for @modelsFeaturedNote.
   ///
   /// In en, this message translates to:
-  /// **'These sites are officially listed by Kestrel'**
+  /// **'These sites are officially listed by Byte'**
   String get modelsFeaturedNote;
 
   /// No description provided for @modelsFeaturedNoteHow.
@@ -10680,7 +10680,7 @@ abstract class AppLocalizations {
   /// No description provided for @modelsImportInvalidDetail.
   ///
   /// In en, this message translates to:
-  /// **'It needs a base URL (http or https) and a protocol Kestrel knows. Ask the site for a new link, or add the upstream by hand in Settings → Models.'**
+  /// **'It needs a base URL (http or https) and a protocol Byte knows. Ask the site for a new link, or add the upstream by hand in Settings → Models.'**
   String get modelsImportInvalidDetail;
 
   /// No description provided for @modelsAddProvider.
@@ -10788,7 +10788,7 @@ abstract class AppLocalizations {
   /// No description provided for @modelsAccountsImportConfirmDetail.
   ///
   /// In en, this message translates to:
-  /// **'Kestrel will keep the credentials securely without changing the original file or actively refreshing tokens during import. Renewing them later may rotate the refresh token and require the original tool to sign in again. Only import credentials you are authorized to use.'**
+  /// **'Byte will keep the credentials securely without changing the original file or actively refreshing tokens during import. Renewing them later may rotate the refresh token and require the original tool to sign in again. Only import credentials you are authorized to use.'**
   String get modelsAccountsImportConfirmDetail;
 
   /// No description provided for @modelsAccountsImportFailed.
@@ -11394,7 +11394,7 @@ abstract class AppLocalizations {
   /// No description provided for @modelsRolesDescription.
   ///
   /// In en, this message translates to:
-  /// **'Which model Claude Code uses for each part of its work. Unset, the model picked stands in. All but the main model may be another upstream\'s: Kestrel\'s local proxy sends their requests there.'**
+  /// **'Which model Claude Code uses for each part of its work. Unset, the model picked stands in. All but the main model may be another upstream\'s: Byte\'s local proxy sends their requests there.'**
   String get modelsRolesDescription;
 
   /// No description provided for @modelsRoleUnset.
@@ -11958,7 +11958,7 @@ abstract class AppLocalizations {
   /// No description provided for @updatesSettingsDescription.
   ///
   /// In en, this message translates to:
-  /// **'Kestrel looks for new versions on kestrel.dev.'**
+  /// **'Byte looks for new versions on kestrel.dev.'**
   String get updatesSettingsDescription;
 
   /// No description provided for @updateCurrentVersion.
@@ -11994,37 +11994,37 @@ abstract class AppLocalizations {
   /// No description provided for @updateUpToDate.
   ///
   /// In en, this message translates to:
-  /// **'Kestrel is up to date.'**
+  /// **'Byte is up to date.'**
   String get updateUpToDate;
 
   /// No description provided for @updateAvailable.
   ///
   /// In en, this message translates to:
-  /// **'Kestrel {version} is available.'**
+  /// **'Byte {version} is available.'**
   String updateAvailable(String version);
 
   /// No description provided for @updateReady.
   ///
   /// In en, this message translates to:
-  /// **'Kestrel {version} has been downloaded. Restart to update.'**
+  /// **'Byte {version} has been downloaded. Restart to update.'**
   String updateReady(String version);
 
   /// No description provided for @updateDownloading.
   ///
   /// In en, this message translates to:
-  /// **'Downloading Kestrel {version}…'**
+  /// **'Downloading Byte {version}…'**
   String updateDownloading(String version);
 
   /// No description provided for @updateDownloadingProgress.
   ///
   /// In en, this message translates to:
-  /// **'Downloading Kestrel {version}… {percent}%'**
+  /// **'Downloading Byte {version}… {percent}%'**
   String updateDownloadingProgress(String version, int percent);
 
   /// No description provided for @updateMandatory.
   ///
   /// In en, this message translates to:
-  /// **'This version of Kestrel is no longer supported. Update to {version} to keep using it.'**
+  /// **'This version of Byte is no longer supported. Update to {version} to keep using it.'**
   String updateMandatory(String version);
 
   /// No description provided for @updateRestartNow.
@@ -12054,7 +12054,7 @@ abstract class AppLocalizations {
   /// No description provided for @updateFailed.
   ///
   /// In en, this message translates to:
-  /// **'Couldn\'t update Kestrel: {error}'**
+  /// **'Couldn\'t update Byte: {error}'**
   String updateFailed(String error);
 
   /// No description provided for @updateCheckFailed.
@@ -12072,13 +12072,13 @@ abstract class AppLocalizations {
   /// No description provided for @updateUnsupported.
   ///
   /// In en, this message translates to:
-  /// **'This build of Kestrel doesn\'t update itself.'**
+  /// **'This build of Byte doesn\'t update itself.'**
   String get updateUnsupported;
 
   /// No description provided for @updateManual.
   ///
   /// In en, this message translates to:
-  /// **'Kestrel can\'t update itself here ({reason}). Download the new version from kestrel.dev.'**
+  /// **'Byte can\'t update itself here ({reason}). Download the new version from kestrel.dev.'**
   String updateManual(String reason);
 
   /// No description provided for @updateOpenDownloadPage.
@@ -12090,7 +12090,7 @@ abstract class AppLocalizations {
   /// No description provided for @updateUnfinished.
   ///
   /// In en, this message translates to:
-  /// **'Kestrel {version} wasn\'t installed: this is still {current}. Try again from Settings > Updates, or download it from kestrel.dev.'**
+  /// **'Byte {version} wasn\'t installed: this is still {current}. Try again from Settings > Updates, or download it from kestrel.dev.'**
   String updateUnfinished(String version, String current);
 
   /// No description provided for @updateShowLog.
@@ -12120,7 +12120,7 @@ abstract class AppLocalizations {
   /// No description provided for @updateModeDescription.
   ///
   /// In en, this message translates to:
-  /// **'Whether Kestrel looks for new versions by itself (update.mode).'**
+  /// **'Whether Byte looks for new versions by itself (update.mode).'**
   String get updateModeDescription;
 
   /// The update mode dropdown, as read out.
@@ -12156,7 +12156,7 @@ abstract class AppLocalizations {
   /// No description provided for @diagnosticsDescription.
   ///
   /// In en, this message translates to:
-  /// **'Send Kestrel\'s error logs and the crash and hang reports the system kept of it to its developers to help track down a problem. Nothing is sent until you upload.'**
+  /// **'Send Byte\'s error logs and the crash and hang reports the system kept of it to its developers to help track down a problem. Nothing is sent until you upload.'**
   String get diagnosticsDescription;
 
   /// No description provided for @diagnosticsUpload.
@@ -12228,7 +12228,7 @@ abstract class AppLocalizations {
   /// No description provided for @diagnosticsUploadedDetail.
   ///
   /// In en, this message translates to:
-  /// **'Give this ID to Kestrel\'s developers so they can find these logs.'**
+  /// **'Give this ID to Byte\'s developers so they can find these logs.'**
   String get diagnosticsUploadedDetail;
 
   /// No description provided for @diagnosticsOmittedDumps.
@@ -12858,13 +12858,13 @@ abstract class AppLocalizations {
   /// No description provided for @generalSettingsContextMenuDescription.
   ///
   /// In en, this message translates to:
-  /// **'Adds \"Open with Kestrel\" (a new agent) and \"Open with Fast Ide\" (a new IDE window) to the context menu of files, folders and a folder\'s background.'**
+  /// **'Adds \"Open with Byte\" (a new agent) and \"Open with Fast Ide\" (a new IDE window) to the context menu of files, folders and a folder\'s background.'**
   String get generalSettingsContextMenuDescription;
 
   /// No description provided for @generalSettingsContextMenuMacNote.
   ///
   /// In en, this message translates to:
-  /// **'Finder\'s own setting is in System Settings\' extensions, where the Kestrel extension can also be turned on and off.'**
+  /// **'Finder\'s own setting is in System Settings\' extensions, where the Byte extension can also be turned on and off.'**
   String get generalSettingsContextMenuMacNote;
 
   /// No description provided for @generalSettingsContextMenuOn.
@@ -13125,7 +13125,7 @@ abstract class AppLocalizations {
   /// **'Installing Claude Code on {host}… {percent}%'**
   String remoteInstallingClaudeProgress(String host, int percent);
 
-  /// Shown over the chat while Claude Code is downloaded into Kestrel's data folder, the user having none that runs (or only one too old), before the agent starts.
+  /// Shown over the chat while Claude Code is downloaded into Byte's data folder, the user having none that runs (or only one too old), before the agent starts.
   ///
   /// In en, this message translates to:
   /// **'Downloading Claude Code… {percent}%'**
@@ -13188,7 +13188,7 @@ abstract class AppLocalizations {
   /// No description provided for @tipsSetupTitle.
   ///
   /// In en, this message translates to:
-  /// **'Set Up Kestrel'**
+  /// **'Set Up Byte'**
   String get tipsSetupTitle;
 
   /// No description provided for @tipsSetupCount.
@@ -13242,7 +13242,7 @@ abstract class AppLocalizations {
   /// No description provided for @tipsUpdated.
   ///
   /// In en, this message translates to:
-  /// **'Kestrel was updated to {version}. New: {features}.'**
+  /// **'Byte was updated to {version}. New: {features}.'**
   String tipsUpdated(String version, String features);
 
   /// No description provided for @tipsListSeparator.
@@ -13266,7 +13266,7 @@ abstract class AppLocalizations {
   /// No description provided for @tipContextMenuBody.
   ///
   /// In en, this message translates to:
-  /// **'Open files and folders in Kestrel from their context menu.'**
+  /// **'Open files and folders in Byte from their context menu.'**
   String get tipContextMenuBody;
 
   /// No description provided for @tipShellCommandTitle.
@@ -13278,7 +13278,7 @@ abstract class AppLocalizations {
   /// No description provided for @tipShellCommandBody.
   ///
   /// In en, this message translates to:
-  /// **'Open folders in Kestrel from a terminal: {name} <path>.'**
+  /// **'Open folders in Byte from a terminal: {name} <path>.'**
   String tipShellCommandBody(String name);
 
   /// No description provided for @tipImportKeybindingsTitle.
@@ -13308,19 +13308,19 @@ abstract class AppLocalizations {
   /// No description provided for @cmdStarOnGitHub.
   ///
   /// In en, this message translates to:
-  /// **'Star Kestrel on GitHub'**
+  /// **'Star Byte on GitHub'**
   String get cmdStarOnGitHub;
 
   /// No description provided for @starPromptMessage.
   ///
   /// In en, this message translates to:
-  /// **'Enjoying Kestrel?'**
+  /// **'Enjoying Byte?'**
   String get starPromptMessage;
 
   /// No description provided for @starPromptDetail.
   ///
   /// In en, this message translates to:
-  /// **'Kestrel is free and open source. If it helps you, a star on GitHub helps other people find it.'**
+  /// **'Byte is free and open source. If it helps you, a star on GitHub helps other people find it.'**
   String get starPromptDetail;
 
   /// No description provided for @starPromptStar.
@@ -13590,7 +13590,7 @@ abstract class AppLocalizations {
   /// No description provided for @networkSettingsDescription.
   ///
   /// In en, this message translates to:
-  /// **'How Kestrel and the Claude Code it starts reach the internet.'**
+  /// **'How Byte and the Claude Code it starts reach the internet.'**
   String get networkSettingsDescription;
 
   /// No description provided for @networkProxy.
@@ -13602,7 +13602,7 @@ abstract class AppLocalizations {
   /// No description provided for @networkProxyDescription.
   ///
   /// In en, this message translates to:
-  /// **'The proxy for Kestrel and Claude Code (http.proxyMode). System Proxy follows the system\'s settings, such as Clash\'s system proxy. New sessions take a change; restart a running one for it.'**
+  /// **'The proxy for Byte and Claude Code (http.proxyMode). System Proxy follows the system\'s settings, such as Clash\'s system proxy. New sessions take a change; restart a running one for it.'**
   String get networkProxyDescription;
 
   /// The proxy dropdown, as read out.
@@ -13698,7 +13698,7 @@ abstract class AppLocalizations {
   /// No description provided for @networkProxyStatusAutoConfig.
   ///
   /// In en, this message translates to:
-  /// **'Direct: the system sets its proxy with an auto-config (PAC) file, which Kestrel doesn\'t follow. Turn on Clash\'s system proxy, or enter the address manually.'**
+  /// **'Direct: the system sets its proxy with an auto-config (PAC) file, which Byte doesn\'t follow. Turn on Clash\'s system proxy, or enter the address manually.'**
   String get networkProxyStatusAutoConfig;
 
   /// No description provided for @networkProxyRefresh.
@@ -13842,7 +13842,7 @@ abstract class AppLocalizations {
   /// No description provided for @extsCapabilityPartialDetail.
   ///
   /// In en, this message translates to:
-  /// **'Its themes apply; the rest of it does nothing in Kestrel.'**
+  /// **'Its themes apply; the rest of it does nothing in Byte.'**
   String get extsCapabilityPartialDetail;
 
   /// No description provided for @extsEngineIncompatible.
@@ -14208,7 +14208,7 @@ abstract class AppLocalizations {
   /// No description provided for @extsCapabilityUnsupportedDetail.
   ///
   /// In en, this message translates to:
-  /// **'It has no color or file icon theme: Kestrel only uses themes from extensions.'**
+  /// **'It has no color or file icon theme: Byte only uses themes from extensions.'**
   String get extsCapabilityUnsupportedDetail;
 
   /// No description provided for @extsFindingCode.
@@ -14388,7 +14388,7 @@ abstract class AppLocalizations {
   /// No description provided for @mobileSettingsDescription.
   ///
   /// In en, this message translates to:
-  /// **'Follow and drive this computer\'s agents from Kestrel on your phone: directly on the same network, across the internet through a hole punched in the routers between them, or through Kestrel\'s relay when neither works. What goes between them is end-to-end encrypted; a relay cannot read it.'**
+  /// **'Follow and drive this computer\'s agents from Byte on your phone: directly on the same network, across the internet through a hole punched in the routers between them, or through Byte\'s relay when neither works. What goes between them is end-to-end encrypted; a relay cannot read it.'**
   String get mobileSettingsDescription;
 
   /// No description provided for @mobileAllow.
@@ -14448,7 +14448,7 @@ abstract class AppLocalizations {
   /// No description provided for @mobilePairDescription.
   ///
   /// In en, this message translates to:
-  /// **'Scan the code with Kestrel on the phone (Me → Paired computers → Pair a computer), or pick this computer under Nearby Computers there.'**
+  /// **'Scan the code with Byte on the phone (Me → Paired computers → Pair a computer), or pick this computer under Nearby Computers there.'**
   String get mobilePairDescription;
 
   /// No description provided for @mobilePairShow.
@@ -14700,7 +14700,7 @@ abstract class AppLocalizations {
   /// No description provided for @mobileRelayModeAutoDescription.
   ///
   /// In en, this message translates to:
-  /// **'Kestrel\'s relays, the nearest that answers.'**
+  /// **'Byte\'s relays, the nearest that answers.'**
   String get mobileRelayModeAutoDescription;
 
   /// No description provided for @mobileRelayModePinned.
@@ -14712,7 +14712,7 @@ abstract class AppLocalizations {
   /// No description provided for @mobileRelayModePinnedDescription.
   ///
   /// In en, this message translates to:
-  /// **'Only the one picked: one of Kestrel\'s, or a custom address.'**
+  /// **'Only the one picked: one of Byte\'s, or a custom address.'**
   String get mobileRelayModePinnedDescription;
 
   /// No description provided for @mobileRelayModeDirect.
@@ -15642,7 +15642,7 @@ abstract class AppLocalizations {
   /// No description provided for @stashImplement.
   ///
   /// In en, this message translates to:
-  /// **'Implement in Kestrel'**
+  /// **'Implement in Byte'**
   String get stashImplement;
 
   /// No description provided for @stashImplementHow.
@@ -15840,7 +15840,7 @@ abstract class AppLocalizations {
   /// No description provided for @stashSettingsDirectoryRestart.
   ///
   /// In en, this message translates to:
-  /// **'Takes effect after Kestrel restarts.'**
+  /// **'Takes effect after Byte restarts.'**
   String get stashSettingsDirectoryRestart;
 
   /// Opens the list of every stash beside the one written in, in the stash panel.
@@ -16080,7 +16080,7 @@ abstract class AppLocalizations {
   /// No description provided for @accountsSignOutDetail.
   ///
   /// In en, this message translates to:
-  /// **'The token is deleted from this computer. To revoke Kestrel\'s access altogether, revoke it in your {forge} settings too.'**
+  /// **'The token is deleted from this computer. To revoke Byte\'s access altogether, revoke it in your {forge} settings too.'**
   String accountsSignOutDetail(String forge);
 
   /// No description provided for @accountsRevoke.
@@ -16152,7 +16152,7 @@ abstract class AppLocalizations {
   /// What a self-signed or privately issued forge certificate is, before the user confirms it.
   ///
   /// In en, this message translates to:
-  /// **'The certificate of {host} cannot be verified ({issuer}).\n\nSHA-256 fingerprint:\n{fingerprint}\n\nTrusting it lets Kestrel reach this server, and only the certificate with this fingerprint is accepted. You are asked again if the certificate changes.'**
+  /// **'The certificate of {host} cannot be verified ({issuer}).\n\nSHA-256 fingerprint:\n{fingerprint}\n\nTrusting it lets Byte reach this server, and only the certificate with this fingerprint is accepted. You are asked again if the certificate changes.'**
   String accountsCertificateDetail(
     String host,
     String issuer,
@@ -16174,7 +16174,7 @@ abstract class AppLocalizations {
   /// No description provided for @accountsBrowserDetail.
   ///
   /// In en, this message translates to:
-  /// **'Enter this code on {host} to let Kestrel access your account:'**
+  /// **'Enter this code on {host} to let Byte access your account:'**
   String accountsBrowserDetail(String host);
 
   /// No description provided for @accountsCopyAndOpen.
@@ -16546,7 +16546,7 @@ abstract class AppLocalizations {
   /// No description provided for @stashWelcomeAgent.
   ///
   /// In en, this message translates to:
-  /// **'Click Implement in Kestrel, or mention it in a conversation; the conversation and the stash stay linked.'**
+  /// **'Click Implement in Byte, or mention it in a conversation; the conversation and the stash stay linked.'**
   String get stashWelcomeAgent;
 
   /// No description provided for @stashWelcomeTrackTitle.
@@ -16666,7 +16666,7 @@ abstract class AppLocalizations {
   /// No description provided for @browserSettingsNotRunningDescription.
   ///
   /// In en, this message translates to:
-  /// **'Open a browser with Kestrel\'s extension: it connects automatically.'**
+  /// **'Open a browser with Byte\'s extension: it connects automatically.'**
   String get browserSettingsNotRunningDescription;
 
   /// No description provided for @browserSettingsSandboxed.
@@ -16678,7 +16678,7 @@ abstract class AppLocalizations {
   /// No description provided for @browserSettingsSandboxedDescription.
   ///
   /// In en, this message translates to:
-  /// **'Their sandbox keeps Kestrel\'s helper from running. Install the browser from its own .deb or .rpm package instead, such as Google Chrome from google.com/chrome.'**
+  /// **'Their sandbox keeps Byte\'s helper from running. Install the browser from its own .deb or .rpm package instead, such as Google Chrome from google.com/chrome.'**
   String get browserSettingsSandboxedDescription;
 
   /// A browser connected, by its name (Google Chrome, Microsoft Edge…).
@@ -16687,13 +16687,13 @@ abstract class AppLocalizations {
   /// **'{browser} connected'**
   String browserSettingsConnected(String browser);
 
-  /// A browser connected whose extension Kestrel cannot use: one too old, or newer than the app.
+  /// A browser connected whose extension Byte cannot use: one too old, or newer than the app.
   ///
   /// In en, this message translates to:
   /// **'{browser}: extension version doesn\'t match'**
   String browserSettingsIncompatible(String browser);
 
-  /// The version of Kestrel's extension in a connected browser.
+  /// The version of Byte's extension in a connected browser.
   ///
   /// In en, this message translates to:
   /// **'Extension {version}'**
@@ -16708,7 +16708,7 @@ abstract class AppLocalizations {
   /// No description provided for @browserSettingsAppOld.
   ///
   /// In en, this message translates to:
-  /// **'The extension is newer than this Kestrel. Update Kestrel.'**
+  /// **'The extension is newer than this Byte. Update Byte.'**
   String get browserSettingsAppOld;
 
   /// No description provided for @browserSettingsNoFileAccess.
@@ -16720,7 +16720,7 @@ abstract class AppLocalizations {
   /// No description provided for @browserSettingsNoFileAccessDescription.
   ///
   /// In en, this message translates to:
-  /// **'Agents can\'t open local HTML files or upload files. In chrome://extensions, click Details on Kestrel and turn on Allow access to file URLs.'**
+  /// **'Agents can\'t open local HTML files or upload files. In chrome://extensions, click Details on Byte and turn on Allow access to file URLs.'**
   String get browserSettingsNoFileAccessDescription;
 
   /// No description provided for @browserSettingsInstall.
@@ -16780,7 +16780,7 @@ abstract class AppLocalizations {
   /// No description provided for @browserHistoryDescription.
   ///
   /// In en, this message translates to:
-  /// **'What the tabs shared with Kestrel do is kept as it happens, no recording needed: the pages, the requests, console errors and warnings. Agents look back at it when you ask (“it failed when I saved”). Kept on this computer; cookies and tokens are not.'**
+  /// **'What the tabs shared with Byte do is kept as it happens, no recording needed: the pages, the requests, console errors and warnings. Agents look back at it when you ask (“it failed when I saved”). Kept on this computer; cookies and tokens are not.'**
   String get browserHistoryDescription;
 
   /// No description provided for @browserHistoryDetailed.
@@ -16846,7 +16846,7 @@ abstract class AppLocalizations {
   /// No description provided for @browserWelcomeLead.
   ///
   /// In en, this message translates to:
-  /// **'With Kestrel\'s extension, agents open pages, read them, click and type in your own Chrome, signed in as you are.'**
+  /// **'With Byte\'s extension, agents open pages, read them, click and type in your own Chrome, signed in as you are.'**
   String get browserWelcomeLead;
 
   /// No description provided for @browserWelcomeSharedTitle.
@@ -16858,7 +16858,7 @@ abstract class AppLocalizations {
   /// No description provided for @browserWelcomeShared.
   ///
   /// In en, this message translates to:
-  /// **'They work in the yellow Kestrel tab group alone; your other tabs stay yours.'**
+  /// **'They work in the yellow Byte tab group alone; your other tabs stay yours.'**
   String get browserWelcomeShared;
 
   /// No description provided for @browserWelcomeWatchTitle.
@@ -16954,7 +16954,7 @@ abstract class AppLocalizations {
   /// No description provided for @modelWelcomeLead.
   ///
   /// In en, this message translates to:
-  /// **'Kestrel runs your agents on a model of your choosing. Add an upstream, a service with an API key, and its models are ready to use.'**
+  /// **'Byte runs your agents on a model of your choosing. Add an upstream, a service with an API key, and its models are ready to use.'**
   String get modelWelcomeLead;
 
   /// No description provided for @modelWelcomeAnyTitle.
@@ -17308,7 +17308,7 @@ abstract class AppLocalizations {
   /// No description provided for @sshServerCoreBuiltinHint.
   ///
   /// In en, this message translates to:
-  /// **'Kestrel\'s own core: it runs on the upstreams of Settings → Models.'**
+  /// **'Byte\'s own core: it runs on the upstreams of Settings → Models.'**
   String get sshServerCoreBuiltinHint;
 
   /// No description provided for @sshServerCoreCliHint.
@@ -17440,7 +17440,7 @@ abstract class AppLocalizations {
   /// No description provided for @channelSetupTitle.
   ///
   /// In en, this message translates to:
-  /// **'Welcome to Kestrel'**
+  /// **'Welcome to Byte'**
   String get channelSetupTitle;
 
   /// No description provided for @channelSetupLead.
@@ -17458,7 +17458,7 @@ abstract class AppLocalizations {
   /// No description provided for @channelSetupStep.
   ///
   /// In en, this message translates to:
-  /// **'Kestrel opens kestrel.dev in your browser. Once the page says it\'s done, Kestrel continues on its own.'**
+  /// **'Byte opens kestrel.dev in your browser. Once the page says it\'s done, Byte continues on its own.'**
   String get channelSetupStep;
 
   /// No description provided for @channelSetupWaitingTitle.
@@ -17470,7 +17470,7 @@ abstract class AppLocalizations {
   /// No description provided for @channelSetupWaiting.
   ///
   /// In en, this message translates to:
-  /// **'Once the page says it\'s done, Kestrel continues on its own. Closed the page by mistake? Open it again.'**
+  /// **'Once the page says it\'s done, Byte continues on its own. Closed the page by mistake? Open it again.'**
   String get channelSetupWaiting;
 
   /// No description provided for @channelSetupOpenFailedTitle.
@@ -17482,7 +17482,7 @@ abstract class AppLocalizations {
   /// No description provided for @channelSetupOpenFailed.
   ///
   /// In en, this message translates to:
-  /// **'Copy this address and open it in your browser. Once the page says it\'s done, Kestrel continues on its own.'**
+  /// **'Copy this address and open it in your browser. Once the page says it\'s done, Byte continues on its own.'**
   String get channelSetupOpenFailed;
 
   /// No description provided for @channelSetupAddressCopied.
@@ -17548,7 +17548,7 @@ abstract class AppLocalizations {
   /// No description provided for @channelSetupLinkOther.
   ///
   /// In en, this message translates to:
-  /// **'That link is for another Kestrel install. Use the page this Kestrel opened.'**
+  /// **'That link is for another Byte install. Use the page this Byte opened.'**
   String get channelSetupLinkOther;
 
   /// No description provided for @channelSetupTrouble.
@@ -17578,7 +17578,7 @@ abstract class AppLocalizations {
   /// No description provided for @channelSetupPrivate.
   ///
   /// In en, this message translates to:
-  /// **'The page only tells Kestrel where you heard of it, like a video or a website.'**
+  /// **'The page only tells Byte where you heard of it, like a video or a website.'**
   String get channelSetupPrivate;
 
   /// No description provided for @channelSetupFindingTitle.
@@ -17602,7 +17602,7 @@ abstract class AppLocalizations {
   /// No description provided for @channelSetupSiteOffline.
   ///
   /// In en, this message translates to:
-  /// **'Kestrel needs to be online to read your channel. Check your connection and retry.'**
+  /// **'Byte needs to be online to read your channel. Check your connection and retry.'**
   String get channelSetupSiteOffline;
 
   /// No description provided for @channelSetupUnavailableTitle.
@@ -17692,7 +17692,7 @@ abstract class AppLocalizations {
   /// No description provided for @channelAccountSignOutDetail.
   ///
   /// In en, this message translates to:
-  /// **'You\'ll need to sign in to {channel} again to keep using Kestrel.'**
+  /// **'You\'ll need to sign in to {channel} again to keep using Byte.'**
   String channelAccountSignOutDetail(String channel);
 
   /// No description provided for @channelAccountOpenSite.
@@ -18094,7 +18094,7 @@ abstract class AppLocalizations {
   /// No description provided for @stashImplementEmpty.
   ///
   /// In en, this message translates to:
-  /// **'Write something first, then implement it in Kestrel'**
+  /// **'Write something first, then implement it in Byte'**
   String get stashImplementEmpty;
 
   /// No description provided for @stashIssueDuplicateBanner.
@@ -21388,7 +21388,7 @@ abstract class AppLocalizations {
   /// No description provided for @ustatConversationEmptyDetail.
   ///
   /// In en, this message translates to:
-  /// **'Only conversations on a custom upstream are counted: Claude\'s official service does not go through Kestrel\'s proxy.'**
+  /// **'Only conversations on a custom upstream are counted: Claude\'s official service does not go through Byte\'s proxy.'**
   String get ustatConversationEmptyDetail;
 
   /// No description provided for @ustatRecordOff.
@@ -21424,7 +21424,7 @@ abstract class AppLocalizations {
   /// No description provided for @ustatRecordDescription.
   ///
   /// In en, this message translates to:
-  /// **'Claude Code\'s own calls are read from what it prints; sessions on a custom upstream go through Kestrel\'s local proxy, which keeps each call. Applies to agents started from now on.'**
+  /// **'Claude Code\'s own calls are read from what it prints; sessions on a custom upstream go through Byte\'s local proxy, which keeps each call. Applies to agents started from now on.'**
   String get ustatRecordDescription;
 
   /// No description provided for @ustatRecordOffDescription.
@@ -21976,7 +21976,7 @@ abstract class AppLocalizations {
   /// No description provided for @ustatPricesAgentHint.
   ///
   /// In en, this message translates to:
-  /// **'Kestrel can keep these for you: ask it in a chat to look up the current prices of these models and update them. It checks the upstream\'s own pricing page and writes them here.'**
+  /// **'Byte can keep these for you: ask it in a chat to look up the current prices of these models and update them. It checks the upstream\'s own pricing page and writes them here.'**
   String get ustatPricesAgentHint;
 
   /// No description provided for @ustatPriceCurrency.

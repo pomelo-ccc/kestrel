@@ -51,6 +51,8 @@
 	<string>6.0</string>
 	<key>CFBundleName</key>
 	<string>$(PRODUCT_NAME)</string>
+	<key>CFBundleDisplayName</key>
+	<string>$(PRODUCT_NAME)</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
@@ -78,7 +80,7 @@
 	     Without this string it refuses at once, with no dialog and no
 	     entry under Privacy & Security → Automation. -->
 	<key>NSAppleEventsUsageDescription</key>
-	<string>A program run in Kestrel wants to control another app.</string>
+	<string>A program run in Byte wants to control another app.</string>
 	<key>NSHumanReadableCopyright</key>
 	<string>$(PRODUCT_COPYRIGHT)</string>
 	<key>NSMainNibFile</key>
@@ -86,7 +88,7 @@
 	<key>NSPrincipalClass</key>
 	<string>NSApplication</string>
 	<key>NSLocalNetworkUsageDescription</key>
-	<string>Kestrel lets the phones paired with it find it on the local network.</string>
+	<string>Byte lets the phones paired with it find it on the local network.</string>
 	<key>NSBonjourServices</key>
 	<array>
 		<string>_baocode._tcp</string>

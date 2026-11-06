@@ -123,7 +123,7 @@ abstract final class NotchDropzone {
 
       final target = _activeOrUrgentThread(workspace);
       final status = target?.shownStatus ?? ThreadStatus.idle;
-      final title = target?.title ?? 'Kestrel';
+      final title = target?.title ?? 'Byte';
       final session = (target != null && target.isOpen) ? target.session : null;
       final pending = session?.pendingInteraction;
       final needsApproval = pending is ApprovalRequest;

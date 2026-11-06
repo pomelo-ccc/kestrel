@@ -498,7 +498,7 @@ class _MemoryCapsuleDialogState extends State<_MemoryCapsuleDialog> {
     try {
       final file = File(path);
       await file.parent.create(recursive: true);
-      const sectionHeader = '## 🧠 Kestrel 项目记忆与规范';
+      const sectionHeader = '## 🧠 Byte 项目记忆与规范';
       final dateStr = DateTime.now().toIso8601String().substring(0, 10);
       final entry = '\n<!-- $dateStr -->\n$rule\n';
       if (await file.exists()) {
@@ -709,7 +709,7 @@ class _ExportTurnButtonState extends State<ExportTurnButton> {
     if (fullSession || HardwareKeyboard.instance.isShiftPressed) {
       savedPath = await MarkdownExporter.saveToDownloads(
         md,
-        prefix: fullSession ? 'Kestrel-会话复盘' : 'Kestrel-单轮问答',
+        prefix: fullSession ? 'Byte-会话复盘' : 'Byte-单轮问答',
       );
     }
     if (!mounted) return;
@@ -774,7 +774,7 @@ abstract final class MarkdownExporter {
       buf.writeln();
     }
     if (s.answerText != null && s.answerText!.trim().isNotEmpty) {
-      buf.writeln('## 🤖 Kestrel 回答');
+      buf.writeln('## 🤖 Byte 回答');
       buf.writeln();
       buf.writeln(s.answerText!.trim());
       buf.writeln();
@@ -794,7 +794,7 @@ abstract final class MarkdownExporter {
   static String formatFullSession(ChatFeed feed) {
     final buf = StringBuffer();
     final now = DateTime.now().toIso8601String().substring(0, 19).replaceAll('T', ' ');
-    buf.writeln('# 🦅 Kestrel 会话复盘笔记');
+    buf.writeln('# 🦅 Byte 会话复盘笔记');
     buf.writeln();
     buf.writeln('- **导出时间**：`$now`');
     if (feed is ChatSession && feed.root != null) {

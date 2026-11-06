@@ -1,4 +1,4 @@
-# Kestrel
+# Byte
 
 [English](README.md) · **简体中文** · [日本語](README_JA.md) · [Français](README_FR.md) · [Español](README_ES.md)
 
@@ -6,21 +6,21 @@
 
 [官网](https://baocode.dev) · [下载](https://baocode.dev/download) · [更新日志](https://baocode.dev/changelog)
 
-![用户对 Kestrel 的评价](docs/readme/reviews-zh.png)
+![用户对 Byte 的评价](docs/readme/reviews-zh.png)
 
-![Kestrel 主窗口：按项目分组的智能体、并排显示的两个对话，以及模型选择器](site/shots/main.png)
+![Byte 主窗口：按项目分组的智能体、并排显示的两个对话，以及模型选择器](site/shots/main.png)
 
 > 本文是英文 README 的中文介绍；如内容有差异，以 [English](README.md) 为准。链接指向的文档和网站不一定提供中文版本。
 
-## 为什么做 Kestrel
+## 为什么做 Byte
 
-我们每天都在使用 Claude Code。终端适合运行它，却不适合阅读它：长篇 diff 很容易滚出视野，先前的步骤难以重新找到，审查修改又需要切换应用。Kestrel 就是我们希望为它提供的那个窗口。
+我们每天都在使用 Claude Code。终端适合运行它，却不适合阅读它：长篇 diff 很容易滚出视野，先前的步骤难以重新找到，审查修改又需要切换应用。Byte 就是我们希望为它提供的那个窗口。
 
-Kestrel 有意不包含自己的智能体。Claude Code 才是智能体，它拥有工具、技能、插件、MCP 服务器、子智能体和 hooks 生态。Kestrel 为它提供易于阅读的界面，并让周边功能开箱即用。它运行你已经安装的 Claude Code，沿用你的设置和 `CLAUDE.md`。
+Byte 有意不包含自己的智能体。Claude Code 才是智能体，它拥有工具、技能、插件、MCP 服务器、子智能体和 hooks 生态。Byte 为它提供易于阅读的界面，并让周边功能开箱即用。它运行你已经安装的 Claude Code，沿用你的设置和 `CLAUDE.md`。
 
 ## 功能
 
-- **为阅读而生的界面。** 文件读取、搜索和命令可以折叠为单行。Claude 做出的修改可以逐文件保留或撤销；检查点保存在 Kestrel 自己的数据目录中，不会写入仓库的 `.git`。
+- **为阅读而生的界面。** 文件读取、搜索和命令可以折叠为单行。Claude 做出的修改可以逐文件保留或撤销；检查点保存在 Byte 自己的数据目录中，不会写入仓库的 `.git`。
 - **目标。** 输入 `/goal` 和你希望完成的任务，Claude 会持续工作直到达成目标，输入框上方会显示目标及进度。
 - **富文本输入。** 从编辑器复制的代码会以文件和行号引用的形式加入输入；粘贴的图片和拖入的文件可以放在句子中指定的位置。
 - **快速 IDE。** 内置编辑器、终端，以及带提交图的源代码管理。Claude Code 可以起草提交信息，并支持快捷键映射和语言服务器。
@@ -33,9 +33,9 @@ Kestrel 有意不包含自己的智能体。Claude Code 才是智能体，它拥
 
 ## 速度
 
-Kestrel 是原生应用，直接通过 GPU 绘制界面。以下为英文 README 中列出的 Kestrel 数值，并非本翻译重新测量的结果；实际表现取决于硬件、版本和使用场景。
+Byte 是原生应用，直接通过 GPU 绘制界面。以下为英文 README 中列出的 Byte 数值，并非本翻译重新测量的结果；实际表现取决于硬件、版本和使用场景。
 
-| 指标 | Kestrel |
+| 指标 | Byte |
 | --- | --- |
 | 启动时间 | 约 0.18 秒 |
 | 单窗口空闲内存占用 | 约 120 MB |
@@ -49,7 +49,7 @@ Kestrel 是原生应用，直接通过 GPU 绘制界面。以下为英文 README
 
 ## 从源码构建
 
-Kestrel 使用 Flutter 开发，Dart SDK 要求为 `^3.13.4`。
+Byte 使用 Flutter 开发，Dart SDK 要求为 `^3.13.4`。
 
 ```sh
 flutter pub get
@@ -59,9 +59,9 @@ flutter run -d macos        # Windows 使用：flutter run -d windows
 构建发行版本，产物写入 `build/installers/`：
 
 ```sh
-dart run tool/build_macos.dart            # Kestrel-<version>-{arm64,x64}.dmg 和 Kestrel-<version>-mac-{arm64,x64}.zip
-dart run tool/build_windows.dart          # Kestrel-<version>-setup.exe（需要 Inno Setup）
-flutter build linux --release && sh tool/package_linux_deb.sh   # Kestrel-<version>-linux-{amd64,arm64}.deb 和 .tar.gz，在 Ubuntu 上
+dart run tool/build_macos.dart            # Byte-<version>-{arm64,x64}.dmg 和 Byte-<version>-mac-{arm64,x64}.zip
+dart run tool/build_windows.dart          # Byte-<version>-setup.exe（需要 Inno Setup）
+flutter build linux --release && sh tool/package_linux_deb.sh   # Byte-<version>-linux-{amd64,arm64}.deb 和 .tar.gz，在 Ubuntu 上
 dart run tool/build_remote_server.dart    # 用于 Linux x64 和 arm64 的 SSH 远程服务器
 ```
 
@@ -89,6 +89,6 @@ dart run tool/build_remote_server.dart    # 用于 Linux x64 和 arm64 的 SSH �
 
 ## 许可证
 
-Kestrel 使用 [GNU General Public License v3.0](LICENSE)（GPL-3.0-only）许可证。[packages/](packages) 中的编辑器和终端相关包（bao_editor、bao_xterm、bao_pty）使用 MIT 许可证。第三方组件保留其自身许可证，具体文件位于对应源码旁。
+Byte 使用 [GNU General Public License v3.0](LICENSE)（GPL-3.0-only）许可证。[packages/](packages) 中的编辑器和终端相关包（bao_editor、bao_xterm、bao_pty）使用 MIT 许可证。第三方组件保留其自身许可证，具体文件位于对应源码旁。
 
-Kestrel 是独立项目，与 Anthropic 无隶属关系，也未获得其背书。
+Byte 是独立项目，与 Anthropic 无隶属关系，也未获得其背书。

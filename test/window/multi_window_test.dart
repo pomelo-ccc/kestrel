@@ -98,7 +98,7 @@ void main() {
     expect(_inView(0, find.byType(IdeWorkbench)), findsNothing);
     expect(window.delegate, isNotNull);
     expect(window.delegate!.ideSpace, isNotNull);
-    expect(host.titles[window.viewId], 'baocode — Kestrel');
+    expect(host.titles[window.viewId], 'baocode — Byte');
 
     // Asking the IDE in the chat's window goes to the IDE's.
     workspace.layout = WorkspaceLayout.ide;

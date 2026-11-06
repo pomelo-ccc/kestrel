@@ -486,7 +486,7 @@ class _ChatMiniTocRailState extends State<ChatMiniTocRail> {
                                     final path =
                                         await MarkdownExporter.saveToDownloads(
                                           md,
-                                          prefix: 'Kestrel-会话复盘',
+                                          prefix: 'Byte-会话复盘',
                                         );
                                     if (!context.mounted) return;
                                     IdeNotificationsScope.maybeOf(

@@ -183,7 +183,7 @@ class _ChannelSetupWelcomeState extends State<ChannelSetupWelcome>
     if (account.signedIn) {
       unawaited(account.settle());
     } else {
-      unawaited(account.signIn(title: _gate.channel?.info.name ?? 'Kestrel'));
+      unawaited(account.signIn(title: _gate.channel?.info.name ?? 'Byte'));
     }
   }
 

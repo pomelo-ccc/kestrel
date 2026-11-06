@@ -28,7 +28,7 @@ void main() {
   ) async {
     await show(tester, const Locale('zh'));
     expect(find.text('关于'), findsOneWidget);
-    expect(find.text('Kestrel'), findsOneWidget);
+    expect(find.text('Byte'), findsOneWidget);
     expect(
       find.text(
         '版本 ${currentAppVersion.marketing}（${currentAppVersion.build}）',

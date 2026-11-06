@@ -14,7 +14,7 @@ class BaoWordmark extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Semantics(
-      label: 'Kestrel',
+      label: 'Byte',
       child: CustomPaint(
         size: _WordmarkPainter.sizeFor(cell),
         painter: _WordmarkPainter(color: color, cell: cell),
@@ -29,7 +29,7 @@ class _WordmarkPainter extends CustomPainter {
   final Color color;
   final double cell;
 
-  /// The mark: Kestrel's 8 × 6 falcon wings, a dot to its cells.
+  /// The mark: Byte's 8 × 6 pulse wings, a dot to its cells.
   static const _mark = [
     '#......#',
     '###..###',
@@ -42,14 +42,12 @@ class _WordmarkPainter extends CustomPainter {
   /// 5 × 5 capitals, sitting on the mark's bottom row; set wide, a small
   /// label rather than a title.
   static const _glyphs = {
-    'K': ['#...#', '#..#.', '###..', '#..#.', '#...#'],
-    'E': ['#####', '#....', '####.', '#....', '#####'],
-    'S': ['.####', '#....', '.###.', '....#', '####.'],
+    'B': ['####.', '#...#', '####.', '#...#', '####.'],
+    'Y': ['#...#', '.#.#.', '..#..', '..#..', '..#..'],
     'T': ['#####', '..#..', '..#..', '..#..', '..#..'],
-    'R': ['####.', '#...#', '####.', '#..#.', '#...#'],
-    'L': ['#....', '#....', '#....', '#....', '#####'],
+    'E': ['#####', '#....', '####.', '#....', '#####'],
   };
-  static const _word = 'KESTREL';
+  static const _word = 'BYTE';
   static const _glyphW = 5, _glyphH = 5, _tracking = 2;
 
   /// Between the mark and the name.

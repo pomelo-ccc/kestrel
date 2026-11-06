@@ -58,7 +58,7 @@ class AboutSettingsPage extends StatelessWidget {
                     textBaseline: TextBaseline.alphabetic,
                     children: [
                       Text(
-                        'Kestrel',
+                        'Byte',
                         style: TextStyle(
                           color: AppColors.textPrimary,
                           fontSize: 17,

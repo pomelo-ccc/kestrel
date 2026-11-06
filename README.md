@@ -1,4 +1,4 @@
-# Kestrel
+# Byte
 <a href="https://trendshift.io/repositories/289180?utm_source=trendshift-badge&amp;utm_medium=badge&amp;utm_campaign=badge-trendshift-289180" target="_blank" rel="noopener noreferrer"><img src="https://trendshift.io/api/badge/trendshift/repositories/289180/daily?language=Dart" alt="baocode-dev%2Fbaocode | Trendshift" width="250" height="55"/></a>
 
 **English** · [简体中文](README_CN.md) · [日本語](README_JA.md) · [Français](README_FR.md) · [Español](README_ES.md)
@@ -7,19 +7,19 @@ An awesome, easy-to-use desktop UI for [Claude Code](https://github.com/anthropi
 
 [Website](https://baocode.dev) · [Download](https://baocode.dev/download) · [Changelog](https://baocode.dev/changelog)
 
-![What users say about Kestrel](docs/readme/reviews.png)
+![What users say about Byte](docs/readme/reviews.png)
 
-![Kestrel's main window: agents grouped by project, two conversations side by side, and the model picker](site/shots/main.png)
+![Byte's main window: agents grouped by project, two conversations side by side, and the model picker](site/shots/main.png)
 
 ## Why
 
-We use Claude Code every day. The terminal is a fine place to run it, but a poor place to read it: long diffs scroll out of view, earlier steps are hard to find again, and reviewing what changed means switching to another app. Kestrel is the window we wanted around it.
+We use Claude Code every day. The terminal is a fine place to run it, but a poor place to read it: long diffs scroll out of view, earlier steps are hard to find again, and reviewing what changed means switching to another app. Byte is the window we wanted around it.
 
-Kestrel has no agent of its own, by design. Claude Code is the agent, and its ecosystem is unmatched: its tools, skills, plugins, MCP servers, subagents and hooks. Kestrel gives it the interface it deserves and makes everything around it work out of the box. It runs the Claude Code you already have, with your settings and your `CLAUDE.md`.
+Byte has no agent of its own, by design. Claude Code is the agent, and its ecosystem is unmatched: its tools, skills, plugins, MCP servers, subagents and hooks. Byte gives it the interface it deserves and makes everything around it work out of the box. It runs the Claude Code you already have, with your settings and your `CLAUDE.md`.
 
 ## Features
 
-- **An interface made for reading.** Reads, searches and commands fold into single lines. Keep or Undo each change Claude made, file by file; checkpoints live in Kestrel's own data folder, never in your repository's `.git`.
+- **An interface made for reading.** Reads, searches and commands fold into single lines. Keep or Undo each change Claude made, file by file; checkpoints live in Byte's own data folder, never in your repository's `.git`.
 - **Goals.** Type `/goal` and what you want done, and Claude keeps working until it is met, with the goal and its progress above the input.
 - **A rich-text input.** Code copied from the editor arrives as a reference to its file and lines; pasted images and dropped files sit where you put them in the sentence.
 - **Fast IDE.** An editor, a terminal and Source Control with a commit graph, built in. Claude Code drafts your commit messages. VS Code, IntelliJ, Sublime and Atom keymaps, and language servers.
@@ -32,9 +32,9 @@ Kestrel has no agent of its own, by design. Claude Code is the agent, and its ec
 
 ## Speed
 
-VS Code and Cursor are built on Electron: each window is a web page, and every copy carries its own Chromium and Node.js. Kestrel is a native app that draws its own interface straight to the GPU.
+VS Code and Cursor are built on Electron: each window is a web page, and every copy carries its own Chromium and Node.js. Byte is a native app that draws its own interface straight to the GPU.
 
-| | Kestrel | VS Code | Cursor |
+| | Byte | VS Code | Cursor |
 | --- | --- | --- | --- |
 | Launch | ≈ 0.18 s | ≈ 2–3 s | ≈ 2–3 s |
 | Memory, one window idle | ≈ 120 MB | ≈ 970 MB | ≈ 1.9 GB |
@@ -48,7 +48,7 @@ VS Code and Cursor are built on Electron: each window is a web page, and every c
 
 ## Building from source
 
-Kestrel is a Flutter app (Dart SDK `^3.13.4`).
+Byte is a Flutter app (Dart SDK `^3.13.4`).
 
 ```sh
 flutter pub get
@@ -58,9 +58,9 @@ flutter run -d macos        # or: flutter run -d windows
 To build what is released, into `build/installers/`:
 
 ```sh
-dart run tool/build_macos.dart            # Kestrel-<version>-{arm64,x64}.dmg and Kestrel-<version>-mac-{arm64,x64}.zip
-dart run tool/build_windows.dart          # Kestrel-<version>-setup.exe (needs Inno Setup)
-flutter build linux --release && sh tool/package_linux_deb.sh   # Kestrel-<version>-linux-{amd64,arm64}.deb and .tar.gz, on Ubuntu
+dart run tool/build_macos.dart            # Byte-<version>-{arm64,x64}.dmg and Byte-<version>-mac-{arm64,x64}.zip
+dart run tool/build_windows.dart          # Byte-<version>-setup.exe (needs Inno Setup)
+flutter build linux --release && sh tool/package_linux_deb.sh   # Byte-<version>-linux-{amd64,arm64}.deb and .tar.gz, on Ubuntu
 dart run tool/build_remote_server.dart    # the SSH remote server, for Linux x64 and arm64
 ```
 
@@ -88,10 +88,10 @@ Issues and pull requests are welcome. Discuss a change in an issue before you wr
 
 ## License
 
-Kestrel is licensed under the [GNU General Public License v3.0](LICENSE)
+Byte is licensed under the [GNU General Public License v3.0](LICENSE)
 (GPL-3.0-only). The editor and terminal packages in [packages/](packages)
 (bao_editor, bao_xterm, bao_pty) are MIT. Third-party components keep their
 own licenses, found next to them in the source tree.
 
-Kestrel is an independent project, not affiliated with or endorsed by
+Byte is an independent project, not affiliated with or endorsed by
 Anthropic.

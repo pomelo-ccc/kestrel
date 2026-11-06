@@ -64,7 +64,7 @@ void main() {
     await _tap(tester, 'Turn On');
     await tester.pumpAndSettle();
     expect(menu.calls, [
-      (agent: 'Open with Kestrel', ide: 'Open with Fast Ide'),
+      (agent: 'Open with Byte', ide: 'Open with Fast Ide'),
     ]);
     expect(find.text('On'), findsOneWidget);
 

@@ -32,7 +32,7 @@ void main() {
     final workspace = await _pumpApp(tester);
     final response = tester.binding.handleRequestAppExit();
     await tester.pump();
-    expect(find.text('Quit Kestrel?'), findsOneWidget);
+    expect(find.text('Quit Byte?'), findsOneWidget);
     expect(
       find.text('Running agents and terminals will be stopped.'),
       findsOneWidget,
@@ -41,7 +41,7 @@ void main() {
     await tester.tap(find.text('Cancel'));
     await tester.pump();
     expect(await response, AppExitResponse.cancel);
-    expect(find.text('Quit Kestrel?'), findsNothing);
+    expect(find.text('Quit Byte?'), findsNothing);
     await _stop(tester, workspace);
   });
 
@@ -60,7 +60,7 @@ void main() {
     final first = tester.binding.handleRequestAppExit();
     await tester.pump();
     expect(await tester.binding.handleRequestAppExit(), AppExitResponse.cancel);
-    expect(find.text('Quit Kestrel?'), findsOneWidget);
+    expect(find.text('Quit Byte?'), findsOneWidget);
 
     await tester.tap(find.text('Cancel'));
     await tester.pump();
@@ -91,7 +91,7 @@ void main() {
     final workspace = await _pumpApp(tester);
     QuitConfirmation.skipNext();
     expect(await tester.binding.handleRequestAppExit(), AppExitResponse.exit);
-    expect(find.text('Quit Kestrel?'), findsNothing);
+    expect(find.text('Quit Byte?'), findsNothing);
     await _stop(tester, workspace);
   });
 }

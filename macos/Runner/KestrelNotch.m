@@ -185,7 +185,7 @@ static OSStatus KestrelHotKeyHandler(EventHandlerCallRef nextHandler,
 
 - (NSDragOperation)draggingEntered:(id<NSDraggingInfo>)sender {
   self.highlight = YES;
-  gLabelField.stringValue = @"✨ 松开鼠标，立即投喂给 Kestrel";
+  gLabelField.stringValue = @"✨ 松开鼠标，立即投喂给 Byte";
   [self setNeedsDisplay:YES];
   return NSDragOperationCopy;
 }
@@ -448,7 +448,7 @@ static void KestrelSetupPipPanel(void) {
   KestrelPipCardView *card = [[KestrelPipCardView alloc] initWithFrame:NSMakeRect(0, 0, width, height)];
 
   gPipTitleField = [[NSTextField alloc] initWithFrame:NSMakeRect(12, 82, 168, 18)];
-  gPipTitleField.stringValue = @"🦅 Kestrel 盯盘小窗";
+  gPipTitleField.stringValue = @"🦅 Byte 盯盘小窗";
   gPipTitleField.editable = NO;
   gPipTitleField.selectable = NO;
   gPipTitleField.bezeled = NO;
@@ -511,6 +511,27 @@ void KestrelNotchInit(const char *inboxPathCString) {
     gInboxPath = [path copy];
     gStatusPath = [[NSTemporaryDirectory() stringByAppendingPathComponent:@"kestrel_live_status.json"] copy];
     if (gNotchPanel != nil) return;
+
+    // Ensure macOS menu bar & window titles say "Byte"
+    NSMenu *mainMenu = [NSApp mainMenu];
+    if (mainMenu && mainMenu.numberOfItems > 0) {
+      NSMenuItem *appItem = [mainMenu itemAtIndex:0];
+      appItem.title = @"Byte";
+      NSMenu *appSubmenu = appItem.submenu;
+      if (appSubmenu) {
+        appSubmenu.title = @"Byte";
+        for (NSMenuItem *sub in appSubmenu.itemArray) {
+          if ([sub.title containsString:@"Kestrel"]) {
+            sub.title = [sub.title stringByReplacingOccurrencesOfString:@"Kestrel" withString:@"Byte"];
+          }
+        }
+      }
+    }
+    for (NSWindow *win in [NSApp windows]) {
+      if ([win.title isEqualToString:@"Kestrel"]) {
+        win.title = @"Byte";
+      }
+    }
 
     CGFloat width = 310;
     CGFloat height = 38;

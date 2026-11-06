@@ -318,7 +318,7 @@ void main() {
       const LocalClaudeFound('/data/claude-2.1.4', '2.1.4', downloaded: true),
     );
     expect(
-      find.text('In use: Claude Code 2.1.4, downloaded by Kestrel'),
+      find.text('In use: Claude Code 2.1.4, downloaded by Byte'),
       findsOneWidget,
     );
     await show(const LocalClaudeMissing());

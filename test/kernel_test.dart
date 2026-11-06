@@ -5638,8 +5638,8 @@ void main() {
           ClaudeLaunch(cwd: '/p', attribution: attribution);
       expect(flagSettings(launch(CommitAttribution.baocode)), {
         'attribution': {
-          'commit': 'Co-Authored-By: Kestrel <noreply@kestrel.dev>',
-          'pr': '🤖 Generated with [Kestrel](https://kestrel.dev)',
+          'commit': 'Co-Authored-By: Byte <noreply@kestrel.dev>',
+          'pr': '🤖 Generated with [Byte](https://kestrel.dev)',
         },
       });
       expect(flagSettings(launch(CommitAttribution.none)), {

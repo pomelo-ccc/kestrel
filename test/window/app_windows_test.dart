@@ -168,7 +168,7 @@ void main() {
       final a = await harness.windows.showFolder('/w/a');
       await harness.windows.showFolder('/w/b');
       expect(harness.folders, ['/w/a', '/w/b']);
-      expect(harness.host.titles[a!.viewId], 'a — Kestrel');
+      expect(harness.host.titles[a!.viewId], 'a — Byte');
       expect(harness.order, ['/w/b', '/w/a', 'chat']);
 
       expect(await harness.windows.showFolder('/w/a'), same(a));
@@ -208,7 +208,7 @@ void main() {
       await harness.windows.newWindow();
       await harness.windows.newWindow();
       expect(harness.folders, [null, null]);
-      expect(harness.host.created.first.title, 'Welcome — Kestrel');
+      expect(harness.host.created.first.title, 'Welcome — Byte');
     });
 
     testWidgets('window.newWindowDimensions: inherit, below and right of the '
@@ -346,7 +346,7 @@ void main() {
       expect(harness.folders, ['/w/b']);
       expect(window.folder, '/w/b');
       expect(harness.host.created, hasLength(1));
-      expect(harness.host.titles[window.viewId], 'b — Kestrel');
+      expect(harness.host.titles[window.viewId], 'b — Byte');
 
       // A file, there too, though another window had it.
       await code(harness, ['c']);
@@ -409,7 +409,7 @@ void main() {
   });
 
   group('Open with BaoCode', () {
-    String agentTitle(String title) => '$title — Kestrel';
+    String agentTitle(String title) => '$title — Byte';
 
     testWidgets('a folder: a new agent in it, as its project, in a new '
         'narrow window of its own, each time', (tester) async {
@@ -836,7 +836,7 @@ void main() {
     // Asked in the window in front: b's.
     expect(harness.host.focused, harness.window('/w/b').viewId);
 
-    expect(find.text('Quit Kestrel?'), findsOneWidget);
+    expect(find.text('Quit Byte?'), findsOneWidget);
     await tester.tap(find.text('Quit'));
     await tester.pump();
     expect(await quitting, isTrue);
@@ -848,7 +848,7 @@ void main() {
     await harness.windows.showFolder('/w/a');
     await harness.showDialogs(tester);
     expect(await harness.windows.confirmQuit(), isTrue);
-    expect(find.text('Quit Kestrel?'), findsNothing);
+    expect(find.text('Quit Byte?'), findsNothing);
   });
 
   testWidgets('quitting from the tray, everything hidden, shows the window '
@@ -862,7 +862,7 @@ void main() {
 
     final quitting = harness.windows.confirmQuit();
     await tester.pump();
-    expect(find.text('Quit Kestrel?'), findsOneWidget);
+    expect(find.text('Quit Byte?'), findsOneWidget);
     expect(harness.windows.chat.shown, isTrue);
     expect(harness.host.focused, 0);
     await tester.tap(find.text('Quit'));
@@ -959,7 +959,7 @@ void main() {
     await tester.tap(find.text('Cancel'));
     await tester.pump();
     expect(await quitting, isFalse);
-    expect(find.text('Quit Kestrel?'), findsNothing);
+    expect(find.text('Quit Byte?'), findsNothing);
   });
 
   group('restoring', () {

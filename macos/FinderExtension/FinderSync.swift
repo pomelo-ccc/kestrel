@@ -57,10 +57,10 @@ class FinderSync: FIFinderSync {
     return image
   }
 
-  override var toolbarItemName: String { "Kestrel" }
+  override var toolbarItemName: String { "Byte" }
 
   override var toolbarItemToolTip: String {
-    Self.chinese ? "在 Kestrel 中打开当前文件夹" : "Open the current folder in Kestrel"
+    Self.chinese ? "在 Byte 中打开当前文件夹" : "Open the current folder in Byte"
   }
 
   override var toolbarItemImage: NSImage { Self.icon(size: 32) }
@@ -80,7 +80,7 @@ class FinderSync: FIFinderSync {
     }
     let icon = Self.icon(size: 16)
     let agent = NSMenuItem(
-      title: Self.openWith("Kestrel"), action: #selector(openAgent(_:)), keyEquivalent: "")
+      title: Self.openWith("Byte"), action: #selector(openAgent(_:)), keyEquivalent: "")
     agent.image = icon
     menu.addItem(agent)
     let ide = NSMenuItem(

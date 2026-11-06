@@ -62,7 +62,7 @@ class GeneralSettingsPage extends StatelessWidget {
   static String attributionName(BuildContext context, CommitAttribution value) {
     final l10n = context.l10n;
     return switch (value) {
-      CommitAttribution.baocode => 'Kestrel',
+      CommitAttribution.baocode => 'Byte',
       CommitAttribution.agent => l10n.generalSettingsAttributionAgent,
       CommitAttribution.none => l10n.generalSettingsAttributionNone,
     };
@@ -643,7 +643,7 @@ class _ContextMenuSettingState extends State<_ContextMenuSetting> {
                 ? () => unawaited(
                     _run(
                       () => ContextMenu.install((
-                        agent: l10n.contextMenuOpenWith('Kestrel'),
+                        agent: l10n.contextMenuOpenWith('Byte'),
                         ide: l10n.contextMenuOpenWith('Fast Ide'),
                       )),
                     ),

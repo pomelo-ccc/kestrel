@@ -308,7 +308,7 @@ void main() {
     expect(find.byType(GeneralSettingsPage), findsOneWidget);
     // The main window's comes first.
     final dropdown = find.byType(SettingsDropdown).at(1);
-    expect(tester.widget<SettingsDropdown>(dropdown).current, 'Kestrel');
+    expect(tester.widget<SettingsDropdown>(dropdown).current, 'Byte');
     expect(find.text(CommitAttribution.baoCodeCommit), findsOneWidget);
 
     Future<void> choose(String label) async {
@@ -331,13 +331,13 @@ void main() {
       contains('"chat.commitAttribution": "none"'),
     );
 
-    await choose('Kestrel');
+    await choose('Byte');
     await settle(
       tester,
       () => !files.settings.values.containsKey(CommitAttribution.settingKey),
     );
     await tester.pump();
-    expect(tester.widget<SettingsDropdown>(dropdown).current, 'Kestrel');
+    expect(tester.widget<SettingsDropdown>(dropdown).current, 'Byte');
   }, variant: TargetPlatformVariant.only(TargetPlatform.macOS));
 
   testWidgets('the main window is kept in settings.json, the default '

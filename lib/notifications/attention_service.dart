@@ -11,7 +11,7 @@ import 'attention_host.dart';
 import 'attention_settings.dart';
 import 'notification_sound.dart';
 
-/// Controls whether Kestrel speaks a 1-sentence TTS summary via macOS `say`
+/// Controls whether Byte speaks a 1-sentence TTS summary via macOS `say`
 /// when an agent finishes a turn or needs user input.
 abstract final class AttentionVoiceSetting {
   static final ValueNotifier<bool> enabled = ValueNotifier<bool>(false);
@@ -182,8 +182,8 @@ class AttentionService {
           (id: _id(thread), title: thread.localizedTitle(l10n)),
       ],
       tooltip: waiting.isEmpty
-          ? 'Kestrel'
-          : 'Kestrel · ${l10n.trayWaitingCount(waiting.length)}',
+          ? 'Byte'
+          : 'Byte · ${l10n.trayWaitingCount(waiting.length)}',
       labels: {
         'show': l10n.trayShow,
         'waiting': l10n.trayWaiting,
