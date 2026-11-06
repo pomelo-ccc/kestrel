@@ -17,7 +17,7 @@ import 'version.dart';
 PlatformUpdates? platformUpdates({required String updatesDirectory}) {
   final environment = Platform.environment;
   final override = environment[manifestUrlVariable]?.trim() ?? '';
-  if (!kReleaseMode && override.isEmpty) return null;
+  if (override.isEmpty) return null;
   final manifestUrl = Uri.tryParse(
     override.isEmpty ? defaultManifestUrl : override,
   );
