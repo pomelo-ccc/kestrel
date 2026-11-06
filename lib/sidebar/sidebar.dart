@@ -2417,12 +2417,7 @@ class _SidebarState extends State<Sidebar>
     // No line over it: the list fades out above it instead. Its buttons'
     // middle where the row under the conversation's card has its own.
     return Padding(
-      padding: const EdgeInsets.fromLTRB(
-        6,
-        6,
-        6,
-        (Islands.belowHeight - _footerRowHeight) / 2,
-      ),
+      padding: const EdgeInsets.fromLTRB(10, 6, 10, 12),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -2432,7 +2427,7 @@ class _SidebarState extends State<Sidebar>
   }
 
   /// The footer's buttons' row: the archived toggle's height.
-  static const _footerRowHeight = 26.0;
+  static const _footerRowHeight = 28.0;
 
   Widget _buildFooterButtons(
     int count,
@@ -2445,16 +2440,14 @@ class _SidebarState extends State<Sidebar>
       height: _footerRowHeight,
       child: Row(
         children: [
-          if (settings != null) ...[
-            const SizedBox(width: 4),
+          if (settings != null)
             SidebarIconButton(
               icon: Codicons.settingsGear,
               tooltip: context.l10n.settingsTitle,
               command: openSettingsCommandId,
               onTap: settings,
             ),
-          ],
-          if (update != null) ...[const SizedBox(width: 4), update],
+          if (update != null) ...[const SizedBox(width: 6), update],
           Expanded(
             child: count == 0
                 ? const SizedBox.shrink()
