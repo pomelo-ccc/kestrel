@@ -4730,6 +4730,12 @@ abstract class AppLocalizations {
   /// **'Worked for {duration}'**
   String turnWorked(String duration);
 
+  /// A turn the user stopped, its work folded, e.g. "Stopped after 4m 32s".
+  ///
+  /// In en, this message translates to:
+  /// **'Stopped after {duration}'**
+  String turnStopped(String duration);
+
   /// Over a round of planning's card in the conversation.
   ///
   /// In en, this message translates to:
@@ -11460,7 +11466,7 @@ abstract class AppLocalizations {
   /// No description provided for @modelsRoleSubagentDescription.
   ///
   /// In en, this message translates to:
-  /// **'CLAUDE_CODE_SUBAGENT_MODEL: the model every subagent runs on, over the one its definition or the agent\'s call names (but inherit).'**
+  /// **'CLAUDE_CODE_SUBAGENT_MODEL: the model every subagent runs on, the built-in Explore and Plan and those defined as inherit too, over the one its definition or the agent\'s call names.'**
   String get modelsRoleSubagentDescription;
 
   /// Under a role that picks another upstream's model, once that upstream or model is gone.
@@ -18979,6 +18985,30 @@ abstract class AppLocalizations {
   /// **'Unified Viewer'**
   String get diffUnified;
 
+  /// No description provided for @gitDetailsLayout.
+  ///
+  /// In en, this message translates to:
+  /// **'Details Position'**
+  String get gitDetailsLayout;
+
+  /// No description provided for @gitDetailsLayoutAuto.
+  ///
+  /// In en, this message translates to:
+  /// **'Right When Wide Enough'**
+  String get gitDetailsLayoutAuto;
+
+  /// No description provided for @gitDetailsLayoutBeside.
+  ///
+  /// In en, this message translates to:
+  /// **'Right'**
+  String get gitDetailsLayoutBeside;
+
+  /// No description provided for @gitDetailsLayoutBelow.
+  ///
+  /// In en, this message translates to:
+  /// **'Bottom'**
+  String get gitDetailsLayoutBelow;
+
   /// No description provided for @diffIgnoreWhitespace.
   ///
   /// In en, this message translates to:
@@ -21456,6 +21486,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Nothing kept yet'**
   String get ustatSpaceEmpty;
+
+  /// No description provided for @ustatLoading.
+  ///
+  /// In en, this message translates to:
+  /// **'Reading the calls…'**
+  String get ustatLoading;
 
   /// No description provided for @ustatClearEllipsis.
   ///

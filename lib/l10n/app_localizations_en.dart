@@ -2703,6 +2703,11 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String turnStopped(String duration) {
+    return 'Stopped after $duration';
+  }
+
+  @override
   String get planCardLabel => 'Plan';
 
   @override
@@ -7076,7 +7081,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get modelsRoleSubagentDescription =>
-      'CLAUDE_CODE_SUBAGENT_MODEL: the model every subagent runs on, over the one its definition or the agent\'s call names (but inherit).';
+      'CLAUDE_CODE_SUBAGENT_MODEL: the model every subagent runs on, the built-in Explore and Plan and those defined as inherit too, over the one its definition or the agent\'s call names.';
 
   @override
   String get modelsRoleMissing =>
@@ -11647,6 +11652,18 @@ class AppLocalizationsEn extends AppLocalizations {
   String get diffUnified => 'Unified Viewer';
 
   @override
+  String get gitDetailsLayout => 'Details Position';
+
+  @override
+  String get gitDetailsLayoutAuto => 'Right When Wide Enough';
+
+  @override
+  String get gitDetailsLayoutBeside => 'Right';
+
+  @override
+  String get gitDetailsLayoutBelow => 'Bottom';
+
+  @override
   String get diffIgnoreWhitespace => 'Ignore Whitespace at Line Ends';
 
   @override
@@ -13132,6 +13149,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get ustatSpaceEmpty => 'Nothing kept yet';
+
+  @override
+  String get ustatLoading => 'Reading the calls…';
 
   @override
   String get ustatClearEllipsis => 'Clear…';

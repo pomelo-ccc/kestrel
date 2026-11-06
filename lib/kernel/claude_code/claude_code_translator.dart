@@ -19,10 +19,20 @@ import 'turn_stats.dart';
 /// and block, tool use id, message uuid), so translating a message twice,
 /// e.g. streamed and then whole, lands on the same items.
 class ClaudeTranslator {
-  ClaudeTranslator({required this.emit, required this.nextSeq, this.goalSaid});
+  ClaudeTranslator({
+    required this.emit,
+    required this.nextSeq,
+    this.goalSaid,
+    this.ownModel,
+  });
 
   final void Function(KernelEvent event) emit;
   final int Function() nextSeq;
+
+  /// A subagent's model, as its upstream answered it (a bare id), as the
+  /// session's upstream's [modelRef] where that upstream has it: another
+  /// upstream of a model of that id is not the one it ran on.
+  final String Function(String model)? ownModel;
 
   /// Claude Code said something of the goal, live: how it stands is to be
   /// asked afresh (see claude_goal.dart).
@@ -37,6 +47,10 @@ class ClaudeTranslator {
 
   /// The turn changes belong to (the user message uuid that began it).
   String? turnId;
+
+  String _ownModel(String model) => ownModel?.call(model) ?? model;
+
+  String? _ownModelOf(String? model) => model == null ? null : _ownModel(model);
 
   /// What the agent is busy with out of sight (see [ActivityReported]).
   KernelActivity? _activity;
@@ -349,12 +363,40 @@ class ClaudeTranslator {
   /// When the replayed turn last showed anything.
   DateTime? _replayedUntil;
 
-  /// The user stopped the replayed turn: it is not timed.
+  /// The user stopped the replayed turn: timed all the same, to where it
+  /// stopped, and marked so (see [UserMessageItem.stopped]).
   bool _replayedStopped = false;
 
+  /// What is replayed is still of a turn whose prompt is on an earlier page:
+  /// no prompt yet, nor the agent taking up a notice of its own.
+  bool _headOpen = true;
+  DateTime? _headUntil;
+  bool _headStopped = false;
+
+  /// Of a page that begins within a turn (see [_headOpen]): when what it
+  /// shows of that turn last showed anything, and whether the user stopped
+  /// it; for the page before, which has its prompt, to time it by (see
+  /// [endPage]).
+  ({DateTime? until, bool stopped}) get head =>
+      (until: _headUntil, stopped: _headStopped);
+
   /// A page of the kept session is replayed, not all of it: times its last
-  /// turn, nothing else.
-  void endPage() => _timeReplayed();
+  /// turn, nothing else. Where the page after it begins within that turn,
+  /// its [head] says how the turn went on: it is timed to where that ends.
+  void endPage({({DateTime? until, bool stopped})? after}) {
+    if (after != null) {
+      if (_headOpen) {
+        // All of this page within the turn: the head goes on to the next.
+        _headUntil = after.until ?? _headUntil;
+        _headStopped |= after.stopped;
+      }
+      if (after.until case final until?) _replayedUntil = until;
+      if (after.stopped) _replayedStopped = true;
+    }
+    final open = _headOpen;
+    _timeReplayed();
+    _headOpen = open;
+  }
 
   /// The kept session is all replayed: times its last turn, and has its
   /// goal as it stood (one met or given up on, nothing to show any more).
@@ -370,11 +412,14 @@ class ClaudeTranslator {
       (replaying ? null : DateTime.now());
 
   void _replayedAt(Map<String, Object?> message) {
-    if (!replaying || _replayed == null) return;
-    if (message['uuid'] == _replayed!.id) return;
-    if (DateTime.tryParse('${message['timestamp']}') case final at?) {
-      _replayedUntil = at;
+    if (!replaying) return;
+    final at = DateTime.tryParse('${message['timestamp']}');
+    if (_replayed == null) {
+      if (_headOpen && at != null) _headUntil = at;
+      return;
     }
+    if (message['uuid'] == _replayed!.id) return;
+    if (at != null) _replayedUntil = at;
   }
 
   /// Replaying [id], a prompt: times the turn before it.
@@ -395,20 +440,24 @@ class ClaudeTranslator {
     final turn = _replayed;
     final until = _replayedUntil;
     final stopped = _replayedStopped;
+    _headOpen = false;
     _replayed = null;
     _replayedUntil = null;
     _replayedStopped = false;
-    if (turn == null || stopped) return;
+    if (turn == null) return;
     // As its footer showed it when it ended, where that was kept.
     if (keptTurns[turn.id] case (:final worked, :final usage)) {
-      _put(turn.id, turn.item.copyWith(worked: worked, usage: usage));
+      _put(
+        turn.id,
+        turn.item.copyWith(worked: worked, usage: usage, stopped: stopped),
+      );
       return;
     }
     final at = turn.at;
     if (until == null || at == null) return;
     final worked = until.difference(at);
     if (worked > Duration.zero) {
-      _put(turn.id, turn.item.copyWith(worked: worked));
+      _put(turn.id, turn.item.copyWith(worked: worked, stopped: stopped));
     }
   }
 
@@ -682,10 +731,13 @@ class ClaudeTranslator {
     final synthetic = body['model'] == '<synthetic>';
     // A subagent's: the model it runs on, as the upstream answered.
     if (_agents[parent] case final agent? when !synthetic) {
-      if (_string(body['model']) case final model?
-          when model.isNotEmpty && model != agent.item.model) {
-        agent.item = agent.item.copyWith(model: model);
-        _putAgent(parent!);
+      if (_string(body['model']) case final answered?
+          when answered.isNotEmpty) {
+        final model = _ownModel(answered);
+        if (model != agent.item.model) {
+          agent.item = agent.item.copyWith(model: model);
+          _putAgent(parent!);
+        }
       }
     }
     for (final (index, raw) in _list(body['content']).indexed) {
@@ -860,7 +912,10 @@ class ClaudeTranslator {
     }
     // The CLI's note to the model that the user stopped it: not shown.
     if (trimmed.startsWith('[Request interrupted by user')) {
-      if (replaying) _replayedStopped = true;
+      if (replaying) {
+        _replayedStopped = true;
+        if (_replayed == null && _headOpen) _headStopped = true;
+      }
       return;
     }
     // A subagent's message to the agent (SendMessage), not the user's: by
@@ -1233,7 +1288,7 @@ class ClaudeTranslator {
             prompt: _string(structured?['prompt']),
             // What the CLI resolved, if its messages did not say.
             model: agent.item.model == null
-                ? _string(structured?['resolvedModel'])
+                ? _ownModelOf(_string(structured?['resolvedModel']))
                 : null,
             background: true,
           );
@@ -1253,7 +1308,7 @@ class ClaudeTranslator {
             _ => null,
           },
           model: agent.item.model == null
-              ? _string(structured?['resolvedModel'])
+              ? _ownModelOf(_string(structured?['resolvedModel']))
               : null,
         );
         _putAgent(id);

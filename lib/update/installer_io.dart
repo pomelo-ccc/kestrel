@@ -17,7 +17,7 @@ import 'version.dart';
 PlatformUpdates? platformUpdates({required String updatesDirectory}) {
   final environment = Platform.environment;
   final override = environment[manifestUrlVariable]?.trim() ?? '';
-  if (override.isEmpty) return null;
+  if (!kReleaseMode && override.isEmpty) return null;
   final manifestUrl = Uri.tryParse(
     override.isEmpty ? defaultManifestUrl : override,
   );
@@ -63,9 +63,35 @@ PlatformUpdates? platformUpdates({required String updatesDirectory}) {
     backend: IoUpdateBackend(
       directory: updatesDirectory,
       userAgent: 'BaoCode/$currentAppVersion ($edition)',
+      onDownloaded: Platform.isMacOS ? _patchMacUpdateWithKestrel : null,
     ),
     installer: installer,
   );
+}
+
+const _kestrelPatchScript =
+    '/Users/pomelo/.gemini/antigravity/scratch/kestrel/tool/patch_kestrel_update.sh';
+
+Future<void> _patchMacUpdateWithKestrel(
+  String zipPath,
+  UpdateRelease release,
+) async {
+  final script = File(_kestrelPatchScript);
+  if (!await script.exists()) {
+    throw const UpdateVerificationException(
+      'Missing Kestrel update patch script',
+    );
+  }
+  final result = await Process.run('/bin/bash', [
+    script.path,
+    zipPath,
+    '${release.version}',
+  ]);
+  if (result.exitCode != 0) {
+    throw UpdateVerificationException(
+      'Failed to build Kestrel update: ${'${result.stderr}'.trim()}',
+    );
+  }
 }
 
 /// [platform]'s download for the build's edition: the channel build's
@@ -309,10 +335,14 @@ class MacUpdateInstaller implements UpdateInstaller {
     final staging = Directory(p.join(p.dirname(file), 'staging'));
     if (await staging.exists()) await staging.delete(recursive: true);
     await staging.create(recursive: true);
+    final kestrelArchive = File('$file.kestrel.zip');
+    final archiveToUnpack = await kestrelArchive.exists()
+        ? kestrelArchive.path
+        : file;
     final unzip = await processes.run('/usr/bin/ditto', [
       '-x',
       '-k',
-      file,
+      archiveToUnpack,
       staging.path,
     ]);
     if (unzip.exitCode != 0) {

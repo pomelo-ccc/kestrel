@@ -23,6 +23,7 @@ class IoUpdateBackend implements UpdateBackend {
     this.userAgent = 'BaoCode',
     this.publicKey = updatePublicKey,
     this.timeout = const Duration(seconds: 30),
+    this.onDownloaded,
   }) : _client = client ?? HttpClient.new;
 
   /// `updates/` in the data folder.
@@ -35,6 +36,10 @@ class IoUpdateBackend implements UpdateBackend {
 
   /// For connecting, and for a response that stops sending.
   final Duration timeout;
+
+  /// Optional post-download hook (e.g. patching Kestrel customizations onto an
+  /// upstream release archive before offering it).
+  final Future<void> Function(String path, UpdateRelease release)? onDownloaded;
 
   final HttpClient Function() _client;
 
@@ -94,7 +99,10 @@ class IoUpdateBackend implements UpdateBackend {
     await target.parent.create(recursive: true);
     if (await target.exists()) {
       // Downloaded before, and not installed yet.
-      if (await verify(target, release) == null) return target.path;
+      if (await verify(target, release) == null) {
+        if (onDownloaded != null) await onDownloaded!(target.path, release);
+        return target.path;
+      }
       await target.delete();
     }
     final part = File('${target.path}.part');
@@ -105,6 +113,7 @@ class IoUpdateBackend implements UpdateBackend {
       throw UpdateVerificationException(problem);
     }
     await part.rename(target.path);
+    if (onDownloaded != null) await onDownloaded!(target.path, release);
     return target.path;
   }
 

@@ -1616,6 +1616,15 @@
       }
     }
   },
+  "turnStopped": "Stopped after {duration}",
+  "@turnStopped": {
+    "description": "A turn the user stopped, its work folded, e.g. \"Stopped after 4m 32s\".",
+    "placeholders": {
+      "duration": {
+        "type": "String"
+      }
+    }
+  },
   "planCardLabel": "Plan",
   "@planCardLabel": {
     "description": "Over a round of planning's card in the conversation."
@@ -5062,7 +5071,7 @@
   "modelsRoleHaikuDescription": "ANTHROPIC_DEFAULT_HAIKU_MODEL: Claude Code's background work, and agents' titles.",
   "modelsRoleHaikuWarning": "Unset, background work runs on the model picked, which may be slower and cost more. Pick a small, fast model.",
   "modelsRoleSubagent": "Subagents",
-  "modelsRoleSubagentDescription": "CLAUDE_CODE_SUBAGENT_MODEL: the model every subagent runs on, over the one its definition or the agent's call names (but inherit).",
+  "modelsRoleSubagentDescription": "CLAUDE_CODE_SUBAGENT_MODEL: the model every subagent runs on, the built-in Explore and Plan and those defined as inherit too, over the one its definition or the agent's call names.",
   "modelsRoleMissing": "This model is no longer one of its upstream's: requests to it will fail.",
   "@modelsRoleMissing": {
     "description": "Under a role that picks another upstream's model, once that upstream or model is gone."
@@ -8044,6 +8053,10 @@
   "diffLayoutAuto": "Side by Side When Wide Enough",
   "diffSideBySide": "Side-by-Side Viewer",
   "diffUnified": "Unified Viewer",
+  "gitDetailsLayout": "Details Position",
+  "gitDetailsLayoutAuto": "Right When Wide Enough",
+  "gitDetailsLayoutBeside": "Right",
+  "gitDetailsLayoutBelow": "Bottom",
   "diffIgnoreWhitespace": "Ignore Whitespace at Line Ends",
   "diffWhitespaceNone": "Do Not Ignore Whitespace",
   "diffIgnoreAllWhitespace": "Ignore All Whitespace",
@@ -8549,6 +8562,7 @@
   "ustatSpaceDetail": "{days} days kept, since {oldest}",
   "@ustatSpaceDetail": {"placeholders": {"days": {"type": "int"}, "oldest": {"type": "String"}}},
   "ustatSpaceEmpty": "Nothing kept yet",
+  "ustatLoading": "Reading the calls…",
   "ustatClearEllipsis": "Clear…",
   "ustatClear": "Clear",
   "ustatClearOlderThan": "Clear all but the last {days} days",
