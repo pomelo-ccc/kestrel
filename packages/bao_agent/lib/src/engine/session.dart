@@ -849,10 +849,7 @@ class AgentSession {
     } on ApiError catch (error) {
       final main = resolvedModel;
       if (first == main || error.authentication) rethrow;
-      if (error.status == 404 || error.status == 400 || error.status == 403) {
-        return _query(main, system, prompt, cancel, maxTokens);
-      }
-      rethrow;
+      return _query(main, system, prompt, cancel, maxTokens);
     }
   }
 

@@ -2099,10 +2099,13 @@ class AgentEngine {
       final suggestion = await session.quickQuery(
         system: suggestionSystem,
         prompt: suggestionPrompt(conversation),
-        maxTokens: 60,
+        maxTokens: 200,
       );
       if (_turn != null || _queue.isNotEmpty || _closed) return;
-      final text = suggestion.trim().replaceAll(RegExp(r'''^["']|["']$'''), '');
+      final stripped = suggestion
+          .replaceAll(RegExp(r'<think>[\s\S]*?</think>', caseSensitive: false), '')
+          .trim();
+      final text = stripped.replaceAll(RegExp(r'''^["']|["']$'''), '').trim();
       if (text.isEmpty || text.length > 200) return;
       session.emit({
         'type': 'prompt_suggestion',

@@ -11,6 +11,7 @@ import 'package:bao_markdown/bao_markdown.dart';
 
 import '../../kernel/agent_kernel.dart';
 import '../../kernel/kernel_types.dart';
+import '../../kernel/prompt_suggestions.dart';
 import '../../keybindings/chat_keybindings.dart';
 import '../../l10n/l10n.dart';
 import '../../theme/app_theme.dart';
@@ -606,11 +607,20 @@ class ChatComposerState extends State<ChatComposer>
 
   bool get _canSend => _hasContent || _images.isNotEmpty;
 
-  // --- Suggested prompt ----------------------------------------------------
+  // --- Suggested prompt & Predictive input ---------------------------------
+
+  static final bool _isFlutterTest =
+      Platform.environment['FLUTTER_TEST'] == 'true';
 
   /// What the agent suggests sending next, shown as the placeholder of an
   /// empty dock composer; Tab takes it.
   String? _suggestion;
+
+  /// Contextual next-step suggestions for the empty dock composer.
+  List<String> _emptySuggestions = const [];
+
+  /// Real-time inline completion prediction while the user is typing.
+  String? _inlinePrediction;
 
   /// The key that takes it, as the keybindings have it now: shown after
   /// it; none when unbound.
@@ -623,15 +633,232 @@ class ChatComposerState extends State<ChatComposer>
     ChatContextKeys.inputHasText: false,
   };
 
-  void _acceptSuggestion() {
-    final suggestion = MdAtoms.strip(_suggestion ?? '');
+  void _acceptSuggestion([String? chosen]) {
+    final suggestion = MdAtoms.strip(chosen ?? _suggestion ?? '');
     if (suggestion.isEmpty) return;
-    _controller.replace(
-      0,
-      0,
-      suggestion,
-      selection: TextSelection.collapsed(offset: suggestion.length),
-    );
+    _controller
+      ..breakUndo()
+      ..replace(
+        0,
+        _controller.length,
+        suggestion,
+        selection: TextSelection.collapsed(offset: suggestion.length),
+      )
+      ..breakUndo();
+    _focusNode.requestFocus();
+  }
+
+  void _acceptInlinePrediction() {
+    final prediction = _inlinePrediction;
+    if (prediction == null || prediction.isEmpty) return;
+    _controller
+      ..breakUndo()
+      ..replace(
+        0,
+        _controller.length,
+        prediction,
+        selection: TextSelection.collapsed(offset: prediction.length),
+      )
+      ..breakUndo();
+    _focusNode.requestFocus();
+  }
+
+  /// Extracts the most recently modified or read filename from the session.
+  String? _recentSessionFile() {
+    final session = widget.session;
+    final count = session.itemCount;
+    for (var i = count - 1; i >= math.max(0, count - 30); i--) {
+      final item = session.itemAt(i);
+      if (item case CodeDiffItem(:final fileName) when fileName.isNotEmpty) {
+        return fileName.split(RegExp(r'[/\\]')).last;
+      }
+      if (item case ToolCallItem(
+        kind: ToolKind.edit || ToolKind.read,
+        :final target,
+      ) when target.isNotEmpty) {
+        return target.split(RegExp(r'[/\\]')).last;
+      }
+    }
+    return null;
+  }
+
+  /// Contextual next-step prompt suggestions when the input box is empty.
+  List<String> _computeEmptySuggestions() {
+    if (widget.onSubmit != null) return const [];
+    final session = widget.session;
+    if (session.isStreaming || session.pendingInteraction != null) {
+      return const [];
+    }
+    if (!PromptSuggestions.current()) return const [];
+    final fromKernel = session.promptSuggestion?.trim();
+    if (_isFlutterTest) {
+      return [if (fromKernel != null && fromKernel.isNotEmpty) fromKernel];
+    }
+    final results = <String>[];
+    void addUnique(String value) {
+      final cleaned = value.trim();
+      if (cleaned.isNotEmpty && !results.contains(cleaned)) {
+        results.add(cleaned);
+      }
+    }
+
+    if (fromKernel != null && fromKernel.isNotEmpty) {
+      addUnique(fromKernel);
+    }
+
+    final count = session.itemCount;
+    String? recentFile;
+    bool hadFailedCommand = false;
+    bool askedQuestion = false;
+    for (var i = count - 1; i >= math.max(0, count - 25); i--) {
+      final item = session.itemAt(i);
+      if (recentFile == null &&
+          item is CodeDiffItem &&
+          item.fileName.isNotEmpty) {
+        recentFile = item.fileName.split(RegExp(r'[/\\]')).last;
+      }
+      if (item is TerminalItem && item.status == CommandStatus.failed) {
+        hadFailedCommand = true;
+      }
+      if (item is AssistantTextItem && i >= count - 3) {
+        final t = item.text.trimRight();
+        if (t.endsWith('?') || t.endsWith('？')) {
+          askedQuestion = true;
+        }
+      }
+    }
+
+    if (hadFailedCommand) {
+      addUnique('分析刚才报错的原因并修复问题');
+      addUnique('重新运行命令验证修复结果');
+    }
+    if (askedQuestion) {
+      addUnique('好的，请按这个方案继续执行');
+    }
+    if (recentFile != null) {
+      addUnique('检查 $recentFile 的改动并验证是否有编译警告');
+      addUnique('继续优化 $recentFile 的交互与细节');
+    }
+    if (count > 0) {
+      addUnique('继续完成下一步并验证效果');
+      addUnique('总结一下刚才所做的修改');
+    } else {
+      addUnique('帮我分析当前项目的核心结构与模块划分');
+      addUnique('检查最近的 git 改动并排查潜在问题');
+    }
+    return results.take(3).toList(growable: false);
+  }
+
+  /// Real-time inline predictive completion while typing in the composer.
+  String? _computeInlinePrediction(String rawText) {
+    if (_isFlutterTest ||
+        widget.onSubmit != null ||
+        _trigger != null ||
+        !PromptSuggestions.current()) {
+      return null;
+    }
+    if (rawText.contains(MdAtoms.open) || rawText.contains('\n')) {
+      return null;
+    }
+    final trimmed = rawText.trimLeft();
+    if (trimmed.isEmpty || trimmed.length > 60) return null;
+    final lower = trimmed.toLowerCase();
+
+    // 1. Match previously sent prompts in this session (most recent first).
+    for (final sent in _sentPrompts().reversed) {
+      final clean = sent.trim();
+      if (!clean.contains('\n') &&
+          clean.length <= 80 &&
+          clean.length > trimmed.length + 1 &&
+          clean.toLowerCase().startsWith(lower)) {
+        return clean;
+      }
+    }
+
+    // 2. Match contextual empty-state suggestions.
+    for (final suggestion in _computeEmptySuggestions()) {
+      if (suggestion.length > trimmed.length + 1 &&
+          suggestion.toLowerCase().startsWith(lower)) {
+        return suggestion;
+      }
+    }
+
+    // 3. Match context-aware developer templates.
+    final recentFile = _recentSessionFile();
+    final fileTarget = recentFile ?? '当前代码';
+    final templates = <String>[
+      '帮我检查 $fileTarget 的逻辑并修复潜在问题',
+      '帮我优化这里的界面交互与视觉细节',
+      '帮我分析一下为什么会出现这个问题',
+      '请帮我检查并修复这个问题',
+      '为什么这里没有生效？请帮我排查原因',
+      '怎么修复这个问题并确保测试通过？',
+      '如何优化这里的实现让体验更流畅？',
+      '修复这个问题并重新构建应用验证',
+      '看看 $fileTarget 这里为什么有问题',
+      '检查一下修改后的代码是否有分析警告或错误',
+      '运行测试并确认所有用例通过',
+      '测试一下刚才改动的功能是否正常',
+      '继续完成剩下的步骤并验证效果',
+      '优化一下这里的性能与动画流畅度',
+      '重构这部分代码，保持结构清晰简洁',
+      '提交当前的改动并生成清晰的 commit message',
+      '解释一下这段代码的实现原理与调用流程',
+      '排查一下最近改动引发的异常原因',
+      '分析一下哪里耗时较长或存在性能瓶颈',
+      '把刚才的修改应用并重新打开应用验证',
+      '加一个更直观的交互提示和状态反馈',
+      '修改这里的样式，使其更贴合整体暖色主题',
+      '还是有这个问题，请深入排查根本原因',
+      '再检查一下边界情况和异常分支处理',
+      '对比一下修改前后的差异并确认无误',
+      '总结一下刚才所做的改动和影响范围',
+      'Run tests and verify the changes in $fileTarget',
+      'Fix the issue and check for any analyzer warnings',
+      'Explain how this works and why it behaves this way',
+      'Check $fileTarget for edge cases and potential bugs',
+      'Continue with the next step and verify',
+      'Refactor this code to make it cleaner and more maintainable',
+    ];
+    for (final template in templates) {
+      if (template.length > trimmed.length + 1 &&
+          template.toLowerCase().startsWith(lower)) {
+        return template;
+      }
+    }
+
+    // 4. Smart suffix completion for arbitrary phrases as the user types.
+    final rightTrimmed = trimmed.trimRight();
+    if (rightTrimmed.length >= 2 &&
+        rightTrimmed.length <= 28 &&
+        !RegExp(r'[，。！？,.!?：:]$').hasMatch(rightTrimmed)) {
+      if (rightTrimmed.startsWith('帮我') || rightTrimmed.startsWith('请帮我')) {
+        return rightTrimmed.length < 5
+            ? '$rightTrimmed检查 $fileTarget 并优化实现细节'
+            : '$rightTrimmed，并验证修改后的效果';
+      }
+      if (rightTrimmed.startsWith('为什么') ||
+          rightTrimmed.startsWith('怎么') ||
+          rightTrimmed.startsWith('如何')) {
+        return '$rightTrimmed？请帮我排查原因并给出修复方案';
+      }
+      if (rightTrimmed.startsWith('修复') ||
+          rightTrimmed.startsWith('解决') ||
+          rightTrimmed.startsWith('排查')) {
+        return '$rightTrimmed，并确认没有引入新的问题';
+      }
+      if (rightTrimmed.startsWith('优化') ||
+          rightTrimmed.startsWith('调整') ||
+          rightTrimmed.startsWith('修改') ||
+          rightTrimmed.startsWith('把')) {
+        return '$rightTrimmed，让交互体验更加自然顺畅';
+      }
+      if (RegExp(r'[\u4e00-\u9fa5]').hasMatch(rightTrimmed) &&
+          rightTrimmed.length <= 16) {
+        return '$rightTrimmed — 请帮我检查并完善这部分功能';
+      }
+    }
+    return null;
   }
 
   /// The text area's own scroll position (it scrolls past its maximum
@@ -823,6 +1050,7 @@ class ChatComposerState extends State<ChatComposer>
     pool: _pool,
     canSend: _canSend,
     polishable: ComposerPolishSetting.current() && _hasWords(),
+    inlinePrediction: _inlinePrediction,
   );
 
   /// Whether the text has words to polish: read again only once it
@@ -903,6 +1131,7 @@ class ChatComposerState extends State<ChatComposer>
     _trigger = visible ? trigger : null;
     _syncMenuRegistration();
     _hasContent = hasContent;
+    _inlinePrediction = hasContent ? _computeInlinePrediction(text) : null;
     if (_shownOfText() != _shownBuilt) setState(() {});
   }
 
@@ -1077,6 +1306,22 @@ class ChatComposerState extends State<ChatComposer>
         !HardwareKeyboard.instance.isAltPressed) {
       unawaited(_polish());
       return KeyEventResult.handled;
+    }
+    if (event is KeyDownEvent &&
+        event.logicalKey == LogicalKeyboardKey.tab &&
+        !HardwareKeyboard.instance.isShiftPressed &&
+        !HardwareKeyboard.instance.isMetaPressed &&
+        !HardwareKeyboard.instance.isControlPressed &&
+        !HardwareKeyboard.instance.isAltPressed &&
+        _trigger == null) {
+      if (_hasContent && _inlinePrediction != null) {
+        _acceptInlinePrediction();
+        return KeyEventResult.handled;
+      }
+      if (!_hasContent && _suggestion != null) {
+        _acceptSuggestion();
+        return KeyEventResult.handled;
+      }
     }
     // Run by the window's keybindings (it sees keys first).
     if (ChatKeys.isHandled(event)) return KeyEventResult.handled;
@@ -1574,8 +1819,10 @@ class ChatComposerState extends State<ChatComposer>
   Widget build(BuildContext context) {
     _shownBuilt = _shownOfText();
     final focused = _focusNode.hasFocus;
+    final emptySuggestions = _computeEmptySuggestions();
+    _emptySuggestions = emptySuggestions;
     final suggestion = widget.onSubmit == null
-        ? widget.session.promptSuggestion
+        ? (widget.session.promptSuggestion ?? emptySuggestions.firstOrNull)
         : null;
     // Its key follows the keybindings (the window builds again when they
     // change).
@@ -1683,6 +1930,7 @@ class ChatComposerState extends State<ChatComposer>
       _shownBuilt,
       _editor,
       _polishing,
+      _emptySuggestions.join('\n'),
       ComposerPolishSetting.current(),
       l10n,
       themeColors,
@@ -1751,7 +1999,243 @@ class ChatComposerState extends State<ChatComposer>
               onUpdateImage: _updateImage,
               child: _editor!,
             ),
+            ?_buildPredictiveBar(),
             _buildToolbar(),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget? _buildPredictiveBar() {
+    if (_isFlutterTest ||
+        widget.onSubmit != null ||
+        !PromptSuggestions.current() ||
+        widget.session.isStreaming ||
+        widget.session.pendingInteraction != null) {
+      return null;
+    }
+    final dark = themeColors.dark;
+    // Mode 1: Real-time inline completion while typing.
+    if (_hasContent) {
+      final prediction = _inlinePrediction;
+      if (prediction == null || prediction.isEmpty) return null;
+      final typed = _controller.text.trimLeft();
+      final String prefix;
+      final String suffix;
+      if (prediction.toLowerCase().startsWith(typed.toLowerCase()) &&
+          prediction.length > typed.length) {
+        prefix = typed;
+        suffix = prediction.substring(typed.length);
+      } else {
+        prefix = '';
+        suffix = prediction;
+      }
+      return Padding(
+        padding: const EdgeInsets.fromLTRB(10, 2, 10, 2),
+        child: HoverBuilder(
+          cursor: SystemMouseCursors.click,
+          builder: (context, hovered) => GestureDetector(
+            onTapDown: (_) {},
+            onTap: _acceptInlinePrediction,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4.5),
+              decoration: BoxDecoration(
+                color: hovered
+                    ? AppColors.accent.withValues(alpha: dark ? 0.16 : 0.11)
+                    : AppColors.accent.withValues(alpha: dark ? 0.09 : 0.06),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: AppColors.accent.withValues(
+                    alpha: hovered ? 0.35 : (dark ? 0.22 : 0.18),
+                  ),
+                ),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    Codicons.sparkle,
+                    size: 12,
+                    color: AppColors.accent,
+                  ),
+                  const SizedBox(width: 5),
+                  Text(
+                    '预测补全',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.accent,
+                    ),
+                  ),
+                  const SizedBox(width: 7),
+                  Expanded(
+                    child: Text.rich(
+                      TextSpan(
+                        children: [
+                          if (prefix.isNotEmpty)
+                            TextSpan(
+                              text: prefix,
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: AppColors.textMuted,
+                              ),
+                            ),
+                          TextSpan(
+                            text: suffix,
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.text,
+                            ),
+                          ),
+                        ],
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 5,
+                      vertical: 1.5,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppColors.accent.withValues(
+                        alpha: dark ? 0.22 : 0.14,
+                      ),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Text(
+                      'Tab 补全',
+                      style: TextStyle(
+                        fontSize: 10.5,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.accent,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    // Mode 2: Empty input next-step prompt suggestions.
+    if (_images.isNotEmpty || _emptySuggestions.isEmpty) return null;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(10, 2, 10, 2),
+      child: SizedBox(
+        height: 26,
+        child: Row(
+          children: [
+            Icon(
+              Codicons.sparkle,
+              size: 12,
+              color: AppColors.accent.withValues(alpha: 0.85),
+            ),
+            const SizedBox(width: 4),
+            Text(
+              '预测',
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+                color: AppColors.textMuted,
+              ),
+            ),
+            const SizedBox(width: 6),
+            Expanded(
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                itemCount: _emptySuggestions.length,
+                separatorBuilder: (_, _) => const SizedBox(width: 6),
+                itemBuilder: (context, index) {
+                  final item = _emptySuggestions[index];
+                  final isPrimary = index == 0;
+                  return HoverBuilder(
+                    cursor: SystemMouseCursors.click,
+                    builder: (context, hovered) => GestureDetector(
+                      onTapDown: (_) {},
+                      onTap: () => _acceptSuggestion(item),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 3,
+                        ),
+                        decoration: BoxDecoration(
+                          color: hovered
+                              ? AppColors.accent.withValues(
+                                  alpha: dark ? 0.16 : 0.11,
+                                )
+                              : isPrimary
+                              ? AppColors.accent.withValues(
+                                  alpha: dark ? 0.09 : 0.06,
+                                )
+                              : AppColors.textFaint.withValues(
+                                  alpha: dark ? 0.12 : 0.08,
+                                ),
+                          borderRadius: BorderRadius.circular(999),
+                          border: Border.all(
+                            color: hovered || isPrimary
+                                ? AppColors.accent.withValues(
+                                    alpha: hovered ? 0.35 : 0.20,
+                                  )
+                                : AppColors.border,
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            ConstrainedBox(
+                              constraints: const BoxConstraints(maxWidth: 260),
+                              child: Text(
+                                item,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  fontSize: 11.5,
+                                  fontWeight: isPrimary
+                                      ? FontWeight.w500
+                                      : FontWeight.w400,
+                                  color: hovered || isPrimary
+                                      ? AppColors.text
+                                      : AppColors.textMuted,
+                                ),
+                              ),
+                            ),
+                            if (isPrimary) ...[
+                              const SizedBox(width: 5),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 4,
+                                  vertical: 0.5,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: AppColors.accent.withValues(
+                                    alpha: dark ? 0.22 : 0.14,
+                                  ),
+                                  borderRadius: BorderRadius.circular(3.5),
+                                ),
+                                child: Text(
+                                  'Tab',
+                                  style: TextStyle(
+                                    fontSize: 9.5,
+                                    fontWeight: FontWeight.w600,
+                                    color: AppColors.accent,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
           ],
         ),
       ),
@@ -2301,4 +2785,5 @@ typedef _ShownOfText = ({
   Map<int, ImageAttachment> pool,
   bool canSend,
   bool polishable,
+  String? inlinePrediction,
 });
