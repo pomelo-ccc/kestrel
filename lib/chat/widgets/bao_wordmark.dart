@@ -29,14 +29,14 @@ class _WordmarkPainter extends CustomPainter {
   final Color color;
   final double cell;
 
-  /// The mark: Byte's 8 × 6 pulse wings, a dot to its cells.
+  /// The mark: Byte's 4 asymmetric wave bars (S4-P1 rhythm), a dot to its cells.
   static const _mark = [
-    '#......#',
-    '###..###',
-    '.######.',
-    '..####..',
-    '.#.##.#.',
-    '...##...',
+    '..#....',
+    '..#...#',
+    '..#...#',
+    '#.#.#.#',
+    '#.#.#.#',
+    '..#.#.#',
   ];
 
   /// 5 × 5 capitals, sitting on the mark's bottom row; set wide, a small
