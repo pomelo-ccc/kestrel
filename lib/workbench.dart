@@ -4868,28 +4868,10 @@ class _WorkbenchState extends State<Workbench> implements WindowDelegate {
         if (under.isNotEmpty) _coveredButton(thread, under),
       ],
     ];
-    final tools = [
-      if (paneTools && !inPane) ...[
-        if (windowTools) ...[
-          const SizedBox(width: 2),
-          PinWindowButton(pinned: _pinned, onChanged: _setPinned),
-          const SizedBox(width: 8),
-        ],
-        OpenInEditorButton(
-          workspace: _workspace,
-          project: thread.project,
-          agent: thread,
-        ),
-      ],
-      if (trailingToggle && !inPane) ...[
-        const SizedBox(width: 6),
-        _showSidebarButton(),
-      ],
-    ];
-    // The conversation's own, on its card along its top, after its title;
-    // the side panel at the left, before it, the side panel's nearest the
-    // edge, over its rail.
+    // The conversation's own toggles: placed in the top title bar when
+    // alone on macOS, or on the pane's card header when split.
     final atStart = !embedded && _sidePanel.atLeft;
+    final ownInTitleBar = !inPane && !header;
     final own = [
       if (cardTools) ...[
         // Only once it was talked in elsewhere: nothing new to read before.
@@ -4917,6 +4899,29 @@ class _WorkbenchState extends State<Workbench> implements WindowDelegate {
             size: 22,
           ),
         ),
+      ],
+    ];
+    final cardOwn = ownInTitleBar ? const <Widget>[] : own;
+    final tools = [
+      if (ownInTitleBar && own.isNotEmpty) ...[
+        ...own,
+        const SizedBox(width: 2),
+      ],
+      if (paneTools && !inPane) ...[
+        if (windowTools) ...[
+          const SizedBox(width: 2),
+          PinWindowButton(pinned: _pinned, onChanged: _setPinned),
+          const SizedBox(width: 4),
+        ],
+        OpenInEditorButton(
+          workspace: _workspace,
+          project: thread.project,
+          agent: thread,
+        ),
+      ],
+      if (trailingToggle && !inPane) ...[
+        const SizedBox(width: 6),
+        _showSidebarButton(),
       ],
     ];
     final draggable = !embedded && !place.alone && _agentThread == null;
@@ -4972,12 +4977,12 @@ class _WorkbenchState extends State<Workbench> implements WindowDelegate {
             : KeepPaneFocus(
                 child: Row(mainAxisSize: MainAxisSize.min, children: closing),
               ),
-        cardTrailing: own.isEmpty
+        cardTrailing: cardOwn.isEmpty
             ? null
             : KeepPaneFocus(
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
-                  children: atStart ? own.reversed.toList() : own,
+                  children: atStart ? cardOwn.reversed.toList() : cardOwn,
                 ),
               ),
         cardButtonsAtStart: atStart,

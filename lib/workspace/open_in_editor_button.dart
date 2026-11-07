@@ -1,5 +1,3 @@
-import 'dart:math' as math;
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -13,7 +11,6 @@ import '../sidebar/sidebar_menu.dart';
 import '../theme/app_theme.dart';
 import '../theme/codicons.dart';
 import '../theme/workbench_theme.dart' show themeColors;
-import 'back_to_chat_button.dart';
 import 'editor_launcher.dart';
 import 'workspace.dart';
 
@@ -87,156 +84,49 @@ class OpenInEditorButton extends StatelessWidget {
         ),
       ],
       builder: (context, menu) {
-        final dark = themeColors.dark;
-        final foreground = dark
-            ? const Color(0xFFE5E4DF)
-            : const Color(0xFF2D2C2A);
-        final borderColor = dark
-            ? const Color(0xFF363532)
-            : const Color(0xFFE2E1DC);
-        final width = titleBarSwitchWidth(context);
-        return Container(
-          height: 22,
-          constraints: BoxConstraints(minWidth: width),
-          decoration: BoxDecoration(
-            color: dark ? const Color(0xFF252523) : const Color(0xFFFFFFFF),
-            borderRadius: BorderRadius.circular(6),
-            border: Border.all(color: borderColor),
-            boxShadow: dark
-                ? null
-                : const [
-                    BoxShadow(
-                      color: Color(0x06000000),
-                      blurRadius: 2,
-                      offset: Offset(0, 1),
-                    ),
-                  ],
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              ConstrainedBox(
-                // The label's part fills what the chevron leaves.
-                constraints: BoxConstraints(
-                  minWidth: math.max(0, width - 2 - openInEditorChevronWidth),
-                ),
-                child: _Segment(
-                  semanticsLabel: open,
-                  // The Fast Ide's with the keys of Open in Fast Ide, which
-                  // does the same; an app's has none.
-                  tooltip: editor == Editor.fastIde
-                      ? ChatKeys.titleWithKey(
-                          open,
-                          ChatCommandIds.openIde,
-                          ChatKeys.chatLayout,
-                        )
-                      : open,
-                  onTap: () => _open(editor),
-                  padding: const EdgeInsets.only(left: 8, right: 6),
-                  borderRadius: const BorderRadius.horizontal(
-                    left: Radius.circular(5),
+        final tooltip = editor == Editor.fastIde
+            ? ChatKeys.titleWithKey(
+                open,
+                ChatCommandIds.openIde,
+                ChatKeys.chatLayout,
+              )
+            : open;
+        return IdeHover(
+          message: tooltip,
+          excludeFromSemantics: true,
+          child: Semantics(
+            button: true,
+            label: open,
+            excludeSemantics: true,
+            child: HoverBuilder(
+              cursor: SystemMouseCursors.click,
+              builder: (context, hovered) => GestureDetector(
+                onTap: () => _open(editor),
+                onSecondaryTap: menu.open,
+                onLongPress: menu.open,
+                child: Container(
+                  width: 22,
+                  height: 22,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: menu.isOpen || hovered
+                        ? themeColors['toolbar.hoverBackground']
+                        : Colors.transparent,
+                    borderRadius: BorderRadius.circular(5),
                   ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        editor.icon,
-                        size: 13.5,
-                        color: AppColors.textMuted,
-                      ),
-                      const SizedBox(width: 5),
-                      Text(
-                        editor.localizedPlatformLabel(context.l10n),
-                        style: TextStyle(
-                          color: foreground,
-                          fontSize: 11.5,
-                          fontWeight: FontWeight.w500,
-                          height: 1.2,
-                        ),
-                      ),
-                    ],
+                  child: Icon(
+                    editor.icon,
+                    size: 14,
+                    color: menu.isOpen || hovered
+                        ? AppColors.text
+                        : AppColors.textMuted,
                   ),
                 ),
               ),
-              // As IdeButton's split button has it.
-              Container(
-                width: 1,
-                height: 12,
-                color: borderColor,
-              ),
-              _Segment(
-                semanticsLabel: context.l10n.workspaceChooseEditor,
-                active: menu.isOpen,
-                onTap: menu.open,
-                padding: const EdgeInsets.only(left: 3, right: 4),
-                borderRadius: const BorderRadius.horizontal(
-                  right: Radius.circular(5),
-                ),
-                // As IdeButton's split button has it.
-                child: Icon(
-                  Codicons.chevronDown,
-                  size: 12.5,
-                  color: AppColors.textMuted,
-                ),
-              ),
-            ],
+            ),
           ),
         );
       },
-    );
-  }
-}
-
-class _Segment extends StatelessWidget {
-  const _Segment({
-    required this.semanticsLabel,
-    required this.onTap,
-    required this.padding,
-    required this.borderRadius,
-    required this.child,
-    this.tooltip,
-    this.active = false,
-  });
-
-  final String semanticsLabel;
-
-  /// Its hover's text: [semanticsLabel] by default.
-  final String? tooltip;
-  final VoidCallback onTap;
-  final EdgeInsets padding;
-  final BorderRadius borderRadius;
-  final Widget child;
-  final bool active;
-
-  @override
-  Widget build(BuildContext context) {
-    final dark = themeColors.dark;
-    final hoverBg = dark
-        ? const Color(0xFF302F2C)
-        : const Color(0xFFF2F1EC);
-    return IdeHover(
-      message: tooltip ?? semanticsLabel,
-      excludeFromSemantics: true,
-      child: Semantics(
-        button: true,
-        label: semanticsLabel,
-        excludeSemantics: true,
-        child: HoverBuilder(
-          cursor: SystemMouseCursors.click,
-          builder: (context, hovered) => GestureDetector(
-            onTap: onTap,
-            child: Container(
-              padding: padding,
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                color: active || hovered ? hoverBg : Colors.transparent,
-                borderRadius: borderRadius,
-              ),
-              child: child,
-            ),
-          ),
-        ),
-      ),
     );
   }
 }

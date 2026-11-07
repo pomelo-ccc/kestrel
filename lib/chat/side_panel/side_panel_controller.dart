@@ -252,6 +252,18 @@ class AgentSidePanel extends ChangeNotifier {
   bool get shown => _shown;
   bool _shown = false;
 
+  /// Whether the side panel is expanded to fill the full available width.
+  bool get maximized => _maximized;
+  bool _maximized = false;
+
+  set maximized(bool value) {
+    if (value == _maximized) return;
+    _maximized = value;
+    notifyListeners();
+  }
+
+  void toggleMaximized() => maximized = !_maximized;
+
   double get width => _width;
   double _width = defaultWidth;
 

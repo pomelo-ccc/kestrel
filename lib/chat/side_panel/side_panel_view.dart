@@ -71,7 +71,6 @@ import 'side_panel_controller.dart';
 import '../../theme/svg_icons.dart';
 import '../../remote/remote_location.dart';
 import '../../remote/ports_view.dart';
-import 'chat_layout_picker.dart';
 
 /// [child] (the conversations) and, at its right (its left, as [panel] is
 /// [AgentSidePanel.atLeft]) while [panel] shows, the side panel [builder]
@@ -246,8 +245,13 @@ class _AgentSidePanelAreaState extends State<AgentSidePanelArea> {
         );
 
   /// How wide it shows in [room]: as wide as it was made, as far as there
-  /// is room for.
-  double _shownWidth(double room) => math.min(_panel.width, _most(room));
+  /// is room for; or filling [room] when maximized.
+  double _shownWidth(double room) => _panel.maximized
+      ? math.max(
+          AgentSidePanel.minWidth,
+          room - AgentSidePanelArea.sashWidth,
+        )
+      : math.min(_panel.width, _most(room));
 
   @override
   Widget build(BuildContext context) => ListenableBuilder(
@@ -458,6 +462,7 @@ class _AgentSidePanelAreaState extends State<AgentSidePanelArea> {
         if (start == null) return;
         final room = context.size?.width ?? double.infinity;
         final moved = details.globalPosition.dx - start.x;
+        if (_panel.maximized) _panel.maximized = false;
         // No wider than it shows: past that the sash waits, and follows
         // again once the pointer is back.
         _panel.width = math.min(
@@ -1761,30 +1766,27 @@ class _SectionBar extends StatelessWidget {
               ],
               const SizedBox(width: _SectionTab.spacing),
               const Spacer(),
-              // Where it, the sidebar and the conversations are.
               Center(
-                child: Builder(
-                  builder: (context) => IdeActionButton(
-                    key: const ValueKey('side-panel-layout'),
-                    icon: Codicons.layout,
-                    tooltip: l10n.chatLayout,
-                    onPressed: () {
-                      final box = context.findRenderObject()! as RenderBox;
-                      unawaited(
-                        showChatLayoutPicker(
-                          context,
-                          anchor: box.localToGlobal(Offset.zero) & box.size,
-                          panel: panel,
-                        ),
-                      );
-                    },
-                  ),
+                child: IdeActionButton(
+                  key: const ValueKey('side-panel-maximize'),
+                  icon: panel.maximized
+                      ? Codicons.screenNormal
+                      : Codicons.screenFull,
+                  tooltip: Localizations.localeOf(context).languageCode == 'zh'
+                      ? (panel.maximized ? '还原大小' : '放到最大')
+                      : (panel.maximized
+                            ? 'Restore Panel Size'
+                            : 'Maximize Panel'),
+                  onPressed: panel.toggleMaximized,
                 ),
               ),
               const SizedBox(width: 2),
               Center(
                 child: IdeActionButton(
-                  icon: Codicons.close,
+                  key: const ValueKey('side-panel-collapse'),
+                  icon: panel.atLeft
+                      ? Codicons.layoutSidebarLeft
+                      : Codicons.layoutSidebarRight,
                   tooltip: KeybindingService.instance.titleWithKeybinding(
                     l10n.sidePanelHide,
                     ChatCommandIds.toggleSidePanel,
