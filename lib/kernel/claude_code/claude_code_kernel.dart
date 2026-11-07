@@ -1900,7 +1900,9 @@ class ClaudeCodeKernel
           emit(InteractionResolved(nextSeq, id));
         }
       case 'system' when message['subtype'] == 'init':
-        _sessionId = message['session_id'] as String? ?? _sessionId;
+        if (message['session_id'] case final String id when id.isNotEmpty) {
+          _sessionId = id;
+        }
         _reportedModel = message['model'] as String?;
         _sendsNow = (message['capabilities'] as List? ?? const []).contains(
           'interrupt_send_now_v1',

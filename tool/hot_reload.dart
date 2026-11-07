@@ -82,7 +82,7 @@ Future<void> main(List<String> args) async {
         'jsonrpc': '2.0',
         'id': id,
         'method': method,
-        if (params != null) 'params': params,
+        'params': ?params,
       }),
     );
     return c.future;
