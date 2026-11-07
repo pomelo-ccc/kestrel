@@ -18,7 +18,7 @@ import 'settings_widgets.dart';
 class AboutSettingsPage extends StatelessWidget {
   const AboutSettingsPage({super.key});
 
-  static final website = Uri.parse('https://kestrel.dev');
+  static final website = Uri.parse('https://baocode.dev');
   static final issues = StarPrompt.repository.replace(
     path: '${StarPrompt.repository.path}/issues',
   );

@@ -22,6 +22,7 @@ import '../ide/ide_back_button.dart';
 import '../ide/ide_modern_ui.dart' show IdeModernUI;
 import '../sidebar/sidebar.dart' show SidebarIconButton;
 import '../theme/workbench_theme.dart' show themeColors;
+import '../workspace/islands.dart' show Islands;
 import 'pages/settings_widgets.dart' show SettingsColors;
 import '../theme/svg_icons.dart';
 
@@ -774,9 +775,7 @@ class SettingsDialogState extends State<SettingsDialog> {
               controller: controller,
               padding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
               children: [
-                for (final (i, sections) in groups.indexed) ...[
-                  // Groups apart, as Cursor's: by room, not headings.
-                  if (i > 0) const SizedBox(height: 14),
+                for (final sections in groups)
                   for (final section in sections)
                     _NavItem(
                       icon: icon(section),
@@ -787,7 +786,6 @@ class SettingsDialogState extends State<SettingsDialog> {
                         _closeDrawer();
                       },
                     ),
-                ],
               ],
             ),
           ),
@@ -830,39 +828,59 @@ class _NavItemState extends State<_NavItem> {
         child: GestureDetector(
           behavior: HitTestBehavior.opaque,
           onTap: widget.onTap,
-          child: Container(
-            height: 30,
-            margin: const EdgeInsets.only(bottom: 1),
-            padding: const EdgeInsets.symmetric(horizontal: 10),
-            decoration: BoxDecoration(
-              color: selected || _hover ? SettingsColors.hover : null,
-              borderRadius: BorderRadius.circular(6),
-            ),
-            child: Row(
-              children: [
-                AppIcon(
-                  widget.icon,
-                  size: 15,
-                  color: selected
-                      ? SettingsColors.textPrimary
-                      : SettingsColors.iconTertiary,
+          child: Stack(
+            children: [
+              Container(
+                height: 30,
+                margin: const EdgeInsets.only(bottom: 1),
+                padding: const EdgeInsets.symmetric(horizontal: 10),
+                decoration: BoxDecoration(
+                  color: selected || _hover ? SettingsColors.hover : null,
+                  borderRadius: BorderRadius.circular(Islands.rowRadius),
                 ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    widget.label,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
+                child: Row(
+                  children: [
+                    AppIcon(
+                      widget.icon,
+                      size: 15,
                       color: selected
                           ? SettingsColors.textPrimary
-                          : SettingsColors.textSecondary,
-                      fontSize: 13,
+                          : SettingsColors.iconTertiary,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        widget.label,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: selected
+                              ? SettingsColors.textPrimary
+                              : SettingsColors.textSecondary,
+                          fontSize: 13,
+                          fontWeight: selected
+                              ? FontWeight.w600
+                              : FontWeight.normal,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              if (selected)
+                Positioned(
+                  left: 2.5,
+                  top: 6,
+                  bottom: 7,
+                  width: 2.5,
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      color: AppColors.claude.withValues(alpha: 0.85),
+                      borderRadius: BorderRadius.circular(1.5),
                     ),
                   ),
                 ),
-              ],
-            ),
+            ],
           ),
         ),
       ),
