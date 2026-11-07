@@ -1060,7 +1060,7 @@ class _SidebarState extends State<Sidebar>
           if (!WindowControls.drawsHeader) _buildTopBar(),
           if (widget.onSearch case final search?)
             Padding(
-              padding: const EdgeInsets.fromLTRB(10, 4, 10, 6),
+              padding: const EdgeInsets.fromLTRB(8, 2, 8, 5),
               child: _SearchBox(
                 label: context.l10n.sidebarSearch,
                 hover: ChatKeys.titleWithKey(
@@ -2690,7 +2690,7 @@ class _SidebarState extends State<Sidebar>
   }
 }
 
-/// The top search box (`[ 🔍 搜索          [⌘] [K] ]`) in `dsh-claude-style`.
+/// The top search box (`[ 🔍 搜索          ⌘K ]`) in the left sidebar.
 class _SearchBox extends StatelessWidget {
   const _SearchBox({
     required this.label,
@@ -2713,33 +2713,30 @@ class _SearchBox extends StatelessWidget {
         builder: (context, hovered) => GestureDetector(
           behavior: HitTestBehavior.opaque,
           onTap: onTap,
-          child: Container(
-            height: 32,
-            padding: const EdgeInsets.only(left: 10, right: 6),
+          child: AnimatedContainer(
+            duration: WbMotion.durationFast,
+            curve: WbMotion.standard,
+            height: 29,
+            padding: const EdgeInsets.only(left: 9, right: 6),
             decoration: BoxDecoration(
               color: dark
-                  ? (hovered ? const Color(0xFF262624) : const Color(0xFF1F1F1D))
-                  : const Color(0xFFFFFFFF),
-              borderRadius: BorderRadius.circular(9),
+                  ? (hovered
+                        ? const Color(0xFF282725)
+                        : const Color(0xFF21201E))
+                  : (hovered
+                        ? const Color(0xFFE9E6DE)
+                        : const Color(0xFFEEECE5)),
+              borderRadius: BorderRadius.circular(Islands.rowRadius),
               border: Border.all(
                 color: dark
                     ? (hovered
                           ? const Color(0xFF3E3D3A)
-                          : const Color(0xFF333230))
+                          : const Color(0xFF302F2D))
                     : (hovered
-                          ? const Color(0xFFD2D0C8)
-                          : const Color(0xFFE2E0D8)),
-                width: 1,
+                          ? const Color(0xFFD4D1C8)
+                          : const Color(0xFFE0DDD4)),
+                width: 0.75,
               ),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(
-                    alpha: dark ? 0.18 : (hovered ? 0.05 : 0.03),
-                  ),
-                  blurRadius: hovered ? 6 : 3,
-                  offset: const Offset(0, 1),
-                ),
-              ],
             ),
             child: ExcludeSemantics(
               child: Row(
@@ -2747,24 +2744,29 @@ class _SearchBox extends StatelessWidget {
                 children: [
                   Icon(
                     Codicons.search,
-                    size: 14,
-                    color: AppColors.textFaint,
+                    size: 13.5,
+                    color: hovered ? AppColors.textMuted : AppColors.textFaint,
                   ),
-                  const SizedBox(width: 8),
+                  const SizedBox(width: 7),
                   Expanded(
                     child: Text(
                       label,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
-                        color: AppColors.textFaint,
-                        fontSize: 13,
+                        color: hovered
+                            ? AppColors.textMuted
+                            : AppColors.textFaint,
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w400,
                       ),
                     ),
                   ),
-                  _SearchKeycap(ideUsesMacKeys ? '⌘' : 'Ctrl'),
                   const SizedBox(width: 4),
-                  const _SearchKeycap('K'),
+                  _SearchKeycap(
+                    ideUsesMacKeys ? '⌘K' : 'Ctrl K',
+                    hovered: hovered,
+                  ),
                 ],
               ),
             ),
@@ -2784,32 +2786,35 @@ class _SearchBox extends StatelessWidget {
 }
 
 class _SearchKeycap extends StatelessWidget {
-  const _SearchKeycap(this.label);
+  const _SearchKeycap(this.label, {this.hovered = false});
 
   final String label;
+  final bool hovered;
 
   @override
   Widget build(BuildContext context) {
     final dark = themeColors.dark;
     return Container(
-      height: 20,
-      constraints: const BoxConstraints(minWidth: 20, maxHeight: 20),
-      padding: const EdgeInsets.symmetric(horizontal: 4),
+      height: 18,
+      padding: const EdgeInsets.symmetric(horizontal: 5),
       alignment: Alignment.center,
       decoration: BoxDecoration(
-        color: dark ? const Color(0xFF282826) : const Color(0xFFFAF9F5),
-        borderRadius: BorderRadius.circular(5),
+        color: dark
+            ? const Color(0xFF2B2A28)
+            : const Color(0xFFF8F7F3).withValues(alpha: hovered ? 0.95 : 0.8),
+        borderRadius: BorderRadius.circular(4.5),
         border: Border.all(
-          color: dark ? const Color(0xFF3A3937) : const Color(0xFFE2E1DC),
-          width: 1,
+          color: dark ? const Color(0xFF3B3A37) : const Color(0xFFDCD9D0),
+          width: 0.6,
         ),
       ),
       child: Text(
         label,
         style: TextStyle(
-          color: AppColors.textMuted,
-          fontSize: 11,
+          color: hovered ? AppColors.textMuted : AppColors.textFaint,
+          fontSize: 10.5,
           height: 1.0,
+          letterSpacing: 0.3,
           fontWeight: FontWeight.w500,
         ),
       ),

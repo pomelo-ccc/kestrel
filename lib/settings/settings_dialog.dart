@@ -732,7 +732,7 @@ class SettingsDialogState extends State<SettingsDialog> {
         Padding(
           padding: const EdgeInsets.fromLTRB(8, 6, 8, 10),
           child: SizedBox(
-            height: 28,
+            height: 29,
             child: TextField(
               controller: _search,
               style: TextStyle(
@@ -749,8 +749,8 @@ class SettingsDialogState extends State<SettingsDialog> {
                   fontSize: 12.5,
                 ),
                 prefixIcon: Icon(
-                  Icons.search_rounded,
-                  size: 15,
+                  Codicons.search,
+                  size: 13.5,
                   color: SettingsColors.iconTertiary,
                 ),
                 prefixIconConstraints: const BoxConstraints(minWidth: 30),
@@ -758,12 +758,18 @@ class SettingsDialogState extends State<SettingsDialog> {
                 filled: true,
                 fillColor: SettingsColors.hover,
                 enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(6),
-                  borderSide: BorderSide(color: SettingsColors.stroke),
+                  borderRadius: BorderRadius.circular(Islands.rowRadius),
+                  borderSide: BorderSide(
+                    color: SettingsColors.stroke,
+                    width: 0.75,
+                  ),
                 ),
                 focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(6),
-                  borderSide: BorderSide(color: colors['focusBorder']),
+                  borderRadius: BorderRadius.circular(Islands.rowRadius),
+                  borderSide: BorderSide(
+                    color: colors['focusBorder'],
+                    width: 1,
+                  ),
                 ),
               ),
             ),
