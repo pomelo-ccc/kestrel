@@ -42,6 +42,7 @@ import '../theme/workbench_theme.dart'
 import '../update/update_service.dart';
 import '../workspace/chat_drag.dart';
 import '../workspace/editor_launcher.dart';
+import '../workspace/islands.dart';
 import '../workspace/title_bar_double_click.dart';
 import '../workspace/window_controls.dart';
 import '../workspace/workspace.dart';
@@ -1059,80 +1060,118 @@ class _SidebarState extends State<Sidebar>
       _ => null,
     };
     final isZh = Localizations.localeOf(context).languageCode == 'zh';
+    final islands = Islands.on(context);
+    final dark = themeColors.dark;
+    final cardBg = dark
+        ? const Color(0xFF1E1D1A)
+        : const Color(0xFFF6F3EC);
     return ListenableBuilder(
       listenable: _workspace,
-      builder: (context, _) => Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          // The toggle lives in the window's header on Windows (see
-          // window_header/), which is where this row would have been.
-          if (!WindowControls.drawsHeader) _buildTopBar(),
-          if (widget.onSearch case final search?)
-            Padding(
-              padding: const EdgeInsets.fromLTRB(14, 2, 14, 10),
-              child: _SearchBox(
-                label: context.l10n.sidebarSearch,
-                hover: ChatKeys.titleWithKey(
-                  context.l10n.cmdChatSearch,
-                  ChatCommandIds.search,
-                  ChatKeys.chatLayout,
+      builder: (context, _) {
+        final body = Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            if (widget.onSearch case final search?)
+              Padding(
+                padding: EdgeInsets.fromLTRB(
+                  islands ? 10 : 14,
+                  islands ? 10 : 2,
+                  islands ? 10 : 14,
+                  10,
                 ),
-                onTap: search,
+                child: _SearchBox(
+                  label: context.l10n.sidebarSearch,
+                  hover: ChatKeys.titleWithKey(
+                    context.l10n.cmdChatSearch,
+                    ChatCommandIds.search,
+                    ChatKeys.chatLayout,
+                  ),
+                  onTap: search,
+                ),
               ),
-            ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(10, 0, 10, 2),
-            // A new chat picks its folder over its input (see
-            // NewChatFolderBar): a folder first only without any.
-            child: _NewAgentButton(
-              onTap: switch (_workspace.sidebarHost) {
-                final host? when _workspace.sidebarProjectsOn(host).isEmpty =>
-                  () => widget.onOpenFolderOn?.call(host),
-                null when _workspace.sidebarProjectsHere.isEmpty =>
-                  widget.onOpenFolder ?? () {},
-                _ => _create,
-              },
-            ),
-          ),
-          if (widget.onCustomize case final customize?)
-            _NavRow(
-              icon: Codicons.sparkle,
-              label: isZh ? '插件' : context.l10n.sidebarCustomize,
-              semanticsLabel: context.l10n.sidebarCustomize,
-              selected: widget.customizing,
-              onTap: customize,
-            ),
-          if (widget.onStash case final stash?)
-            switch (widget.stashes) {
-              final stashes? => ListenableBuilder(
-                listenable: stashes.changes,
-                builder: (context, _) {
-                  final news = stashes.news();
-                  final total = stashes.count();
-                  return _NavRow(
-                    icon: Codicons.note,
-                    label: context.l10n.stashTitle,
-                    selected: widget.stashing,
-                    badge: news > 0 ? news : total,
-                    badgeHover: news > 0
-                        ? context.l10n.stashNewsSidebar(news)
-                        : null,
-                    onTap: stash,
-                  );
+            Padding(
+              padding: EdgeInsets.fromLTRB(
+                islands ? 6 : 10,
+                0,
+                islands ? 6 : 10,
+                2,
+              ),
+              // A new chat picks its folder over its input (see
+              // NewChatFolderBar): a folder first only without any.
+              child: _NewAgentButton(
+                onTap: switch (_workspace.sidebarHost) {
+                  final host? when _workspace.sidebarProjectsOn(host).isEmpty =>
+                    () => widget.onOpenFolderOn?.call(host),
+                  null when _workspace.sidebarProjectsHere.isEmpty =>
+                    widget.onOpenFolder ?? () {},
+                  _ => _create,
                 },
               ),
-              null => _NavRow(
-                icon: Codicons.note,
-                label: context.l10n.stashTitle,
-                selected: widget.stashing,
-                onTap: stash,
+            ),
+            if (widget.onCustomize case final customize?)
+              _NavRow(
+                icon: Codicons.sparkle,
+                label: isZh ? '插件' : context.l10n.sidebarCustomize,
+                semanticsLabel: context.l10n.sidebarCustomize,
+                selected: widget.customizing,
+                onTap: customize,
               ),
-            },
-          _buildGroupingBar(openProject),
-          Expanded(child: _buildList()),
-          _buildFooter(),
-        ],
-      ),
+            if (widget.onStash case final stash?)
+              switch (widget.stashes) {
+                final stashes? => ListenableBuilder(
+                  listenable: stashes.changes,
+                  builder: (context, _) {
+                    final news = stashes.news();
+                    final total = stashes.count();
+                    return _NavRow(
+                      icon: Codicons.note,
+                      label: context.l10n.stashTitle,
+                      selected: widget.stashing,
+                      badge: news > 0 ? news : total,
+                      badgeHover: news > 0
+                          ? context.l10n.stashNewsSidebar(news)
+                          : null,
+                      onTap: stash,
+                    );
+                  },
+                ),
+                null => _NavRow(
+                  icon: Codicons.note,
+                  label: context.l10n.stashTitle,
+                  selected: widget.stashing,
+                  onTap: stash,
+                ),
+              },
+            _buildGroupingBar(openProject),
+            Expanded(child: _buildList()),
+            _buildFooter(),
+          ],
+        );
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // The toggle lives in the window's header on Windows (see
+            // window_header/), which is where this row would have been.
+            if (!WindowControls.drawsHeader) _buildTopBar(),
+            Expanded(
+              child: islands
+                  ? Padding(
+                      padding: EdgeInsets.fromLTRB(
+                        Islands.gap,
+                        WindowControls.drawsHeader ? Islands.gap : 0,
+                        Islands.gap,
+                        Islands.gap,
+                      ),
+                      child: Island(
+                        color: cardBg,
+                        child: body,
+                      ),
+                    )
+                  : body,
+            ),
+          ],
+        );
+      },
     );
   }
 
@@ -1179,11 +1218,17 @@ class _SidebarState extends State<Sidebar>
       );
     }
     final dark = themeColors.dark;
+    final islands = Islands.on(context);
     final isZh = Localizations.localeOf(context).languageCode == 'zh';
     final activeLabel = isZh ? '进行中' : context.l10n.sidebarAgents;
     final archivedLabel = isZh ? '已归档' : 'History';
     return Padding(
-      padding: const EdgeInsets.fromLTRB(14, 10, 12, 8),
+      padding: EdgeInsets.fromLTRB(
+        islands ? 10 : 14,
+        10,
+        islands ? 8 : 12,
+        8,
+      ),
       child: Row(
         children: [
           if (_workspace.sshHosts.isNotEmpty)
@@ -1207,7 +1252,9 @@ class _SidebarState extends State<Sidebar>
                       color: dark
                           ? const Color(0xFF272421)
                           : const Color(0x8CDFD7CB),
-                      borderRadius: BorderRadius.circular(10),
+                      borderRadius: BorderRadius.circular(
+                Islands.on(context) ? Islands.rowRadius : 4,
+              ),
                       border: Border.all(
                         color: dark
                             ? const Color(0x0DFFFFFF)
@@ -2543,7 +2590,9 @@ class _SidebarState extends State<Sidebar>
           ),
         Container(
           height: 44,
-          padding: const EdgeInsets.symmetric(horizontal: 12),
+          padding: EdgeInsets.symmetric(
+            horizontal: Islands.on(context) ? 8 : 12,
+          ),
           decoration: BoxDecoration(
             color: dark
                 ? const Color(0x33000000)
@@ -2630,7 +2679,10 @@ class _SidebarState extends State<Sidebar>
                           ],
                         ),
                       ),
-                      const SizedBox(width: 6),
+                      const Flexible(
+                        flex: 0,
+                        child: SizedBox(width: 6),
+                      ),
                       Flexible(
                         child: ExcludeSemantics(
                           child: Text(
@@ -2660,6 +2712,20 @@ class _SidebarState extends State<Sidebar>
         ] else
           const Spacer(),
         if (settings != null) const Spacer(),
+        if (count > 0)
+          SizedBox(
+            width: 1,
+            height: _footerRowHeight,
+            child: OverflowBox(
+              maxWidth: 160,
+              maxHeight: _footerRowHeight,
+              child: Opacity(
+                opacity: 0,
+                alwaysIncludeSemantics: true,
+                child: _buildArchivedToggle(count),
+              ),
+            ),
+          ),
         if (update != null) ...[update, const SizedBox(width: 6)],
         HoverBuilder(
           cursor: SystemMouseCursors.click,
@@ -2726,20 +2792,6 @@ class _SidebarState extends State<Sidebar>
             ),
           ),
         ),
-        if (count > 0)
-          SizedBox(
-            width: 1,
-            height: _footerRowHeight,
-            child: OverflowBox(
-              maxWidth: 160,
-              maxHeight: _footerRowHeight,
-              child: Opacity(
-                opacity: 0,
-                alwaysIncludeSemantics: true,
-                child: _buildArchivedToggle(count),
-              ),
-            ),
-          ),
       ],
     );
   }
@@ -3245,12 +3297,13 @@ class _NavRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final dark = themeColors.dark;
+    final islands = Islands.on(context);
     final row = Semantics(
       button: true,
       selected: selected,
       label: semanticsLabel ?? label,
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(10, 0, 10, 2),
+        padding: EdgeInsets.fromLTRB(islands ? 6 : 10, 0, islands ? 6 : 10, 2),
         child: HoverBuilder(
           cursor: SystemMouseCursors.click,
           builder: (context, hovered) {
@@ -3458,6 +3511,7 @@ class _GroupHeader extends StatelessWidget {
   Widget _build(BuildContext context, SidebarMenuState? menu) {
     final project = group.project;
     final dark = themeColors.dark;
+    final islands = Islands.on(context);
     final header = HoverBuilder(
       cursor: onToggle == null ? MouseCursor.defer : SystemMouseCursors.click,
       builder: (context, hovered) {
@@ -3474,7 +3528,12 @@ class _GroupHeader extends StatelessWidget {
               : (details) => menu.open(details.globalPosition),
           child: Container(
             height: Sidebar.rowHeight,
-            margin: const EdgeInsets.fromLTRB(8, 4, 8, 0),
+            margin: EdgeInsets.fromLTRB(
+              islands ? 5 : 8,
+              4,
+              islands ? 5 : 8,
+              0,
+            ),
             padding: const EdgeInsets.only(left: 8, right: 4),
             decoration: BoxDecoration(
               color: highlighted
@@ -3546,7 +3605,7 @@ class _GroupHeader extends StatelessWidget {
                 if (icon != null) Opacity(opacity: 0, child: icon!),
                 if (collapsed && !light && group.threads.isNotEmpty)
                   Padding(
-                    padding: const EdgeInsets.only(right: 6),
+                    padding: EdgeInsets.only(right: islands ? 2 : 6),
                     child: Text(
                       '${group.threads.length}',
                       style: TextStyle(
@@ -4283,56 +4342,74 @@ class _ThreadRow extends StatelessWidget {
               : hovered
               ? (dark ? _SidebarPalette.p100 : _SidebarPalette.p900)
               : (dark ? _SidebarPalette.p300 : _SidebarPalette.p800);
-          return DecoratedBox(
-            decoration: BoxDecoration(
-              color: selected
-                  ? (dark
-                        ? const Color(0xFF2B2824)
-                        : const Color(0xF2E5DFD5))
-                  : hovered
-                  ? (dark
-                        ? const Color(0x0DFFFFFF)
-                        : const Color(0xBFEBE5DC))
-                  : Colors.transparent,
-              borderRadius: BorderRadius.circular(10),
-              boxShadow: selected && !dark
-                  ? const [
-                      BoxShadow(
-                        color: Color(0x0F2C2723),
-                        blurRadius: 2,
-                        offset: Offset(0, 1),
-                      ),
-                    ]
-                  : null,
+          return TweenAnimationBuilder<Decoration>(
+            duration: WbMotion.durationFast,
+            curve: WbMotion.standard,
+            tween: DecorationTween(
+              end: BoxDecoration(
+                color: selected
+                    ? (dark
+                          ? const Color(0xFF2B2824)
+                          : const Color(0xF2E5DFD5))
+                    : hovered
+                    ? (dark
+                          ? const Color(0x0DFFFFFF)
+                          : const Color(0xBFEBE5DC))
+                    : Colors.transparent,
+                borderRadius: BorderRadius.circular(
+                  Islands.on(context) ? Islands.rowRadius : 4,
+                ),
+                boxShadow: selected && !dark
+                    ? const [
+                        BoxShadow(
+                          color: Color(0x0F2C2723),
+                          blurRadius: 2,
+                          offset: Offset(0, 1),
+                        ),
+                      ]
+                    : null,
+              ),
+            ),
+            builder: (context, decoration, child) => DecoratedBox(
+              decoration: decoration,
+              child: child,
             ),
             child: Stack(
               fit: StackFit.expand,
               children: [
-                if (selected)
-                  Positioned(
-                    left: 0,
-                    top: 6,
-                    bottom: 6,
-                    width: 3.5,
-                    child: DecoratedBox(
-                      decoration: const BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                          colors: [Color(0xFFE87A5A), Color(0xFFD95B38)],
-                        ),
-                        borderRadius: BorderRadius.horizontal(
-                          right: Radius.circular(999),
-                        ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Color(0x8CD96543),
-                            blurRadius: 10,
+                AnimatedPositioned(
+                  duration: WbMotion.durationCollapse,
+                  curve: WbMotion.decelerate,
+                  left: 0,
+                  top: selected ? 6 : 11,
+                  bottom: selected ? 6 : 11,
+                  width: 3.5,
+                  child: IgnorePointer(
+                    child: AnimatedOpacity(
+                      duration: WbMotion.durationFast,
+                      curve: WbMotion.standard,
+                      opacity: selected ? 1 : 0,
+                      child: const DecoratedBox(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            colors: [Color(0xFFE87A5A), Color(0xFFD95B38)],
                           ),
-                        ],
+                          borderRadius: BorderRadius.horizontal(
+                            right: Radius.circular(999),
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Color(0x8CD96543),
+                              blurRadius: 10,
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ),
+                ),
                 Padding(
                   // An aside under the one it was asked beside.
                   padding: EdgeInsets.only(

@@ -26,6 +26,7 @@ import '../stash/stash_actions.dart';
 import '../stash/stash_store.dart';
 import '../theme/app_theme.dart';
 import '../theme/codicons.dart';
+import '../theme/wb_motion.dart';
 import '../theme/workbench_theme.dart' show themeColors;
 import '../workspace/editor_launcher.dart';
 import '../workspace/agent_title.dart' show askedTitles;
@@ -361,6 +362,50 @@ class _ChatScreenState extends State<ChatScreen>
   bool get _starting => widget.start != null && _session.itemCount == 0;
   late bool _wasStarting = _starting;
 
+  static ChatSession? _lastShownSession;
+  static bool? _lastShownStarting;
+
+  late final AnimationController _sessionEntrance = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 165),
+    value: 1,
+  );
+  late final Animation<double> _sessionEntranceCurve = CurvedAnimation(
+    parent: _sessionEntrance,
+    curve: WbMotion.decelerate,
+  );
+  bool _waitingForHistoryReveal = false;
+  bool _composerMoved = false;
+
+  void _checkHistoryReveal() {
+    if (!_waitingForHistoryReveal) return;
+    if (!_session.loadingHistory || _session.itemCount > 0) {
+      _waitingForHistoryReveal = false;
+      _session.removeListener(_checkHistoryReveal);
+      if (mounted) _sessionEntrance.forward(from: 0);
+    }
+  }
+
+  Widget _wrapSessionEntrance(Widget child) {
+    if (MediaQuery.disableAnimationsOf(context)) return child;
+    return AnimatedBuilder(
+      animation: _sessionEntranceCurve,
+      child: child,
+      builder: (context, child) {
+        final t = _sessionEntranceCurve.value;
+        if (t >= 1) return child!;
+        final opacity = (0.22 + 0.78 * t).clamp(0.0, 1.0);
+        return Opacity(
+          opacity: opacity,
+          child: Transform.translate(
+            offset: Offset(0, (1 - t) * 4),
+            child: child,
+          ),
+        );
+      },
+    );
+  }
+
   /// Lays the screen out anew as the first message moves the composer down
   /// (the rest of the session's changes are the builders' below).
   void _checkStarting() {
@@ -518,6 +563,25 @@ class _ChatScreenState extends State<ChatScreen>
   void initState() {
     super.initState();
     _session.attach();
+    final switched =
+        !widget.embedded &&
+        _lastShownSession != null &&
+        !identical(_lastShownSession, _session);
+    if (!widget.embedded) {
+      _composerMoved =
+          switched &&
+          _lastShownStarting != null &&
+          _lastShownStarting != _starting;
+      _lastShownSession = _session;
+      _lastShownStarting = _starting;
+    }
+    if (_session.loadingHistory && _session.itemCount == 0) {
+      _waitingForHistoryReveal = true;
+      _sessionEntrance.value = 0;
+      _session.addListener(_checkHistoryReveal);
+    } else if (switched) {
+      _sessionEntrance.forward(from: 0);
+    }
     _session.addListener(_checkStarting);
     _planShown = _session.plan?.seq;
     _session.addListener(_followPlan);
@@ -536,11 +600,16 @@ class _ChatScreenState extends State<ChatScreen>
   void didUpdateWidget(ChatScreen oldWidget) {
     super.didUpdateWidget(oldWidget);
     _wasStarting = _starting;
+    if (!widget.embedded) _lastShownStarting = _starting;
   }
 
   @override
   void dispose() {
     _backMinimapRoom.dispose();
+    if (_waitingForHistoryReveal) {
+      _session.removeListener(_checkHistoryReveal);
+    }
+    _sessionEntrance.dispose();
     _session.removeListener(_checkStarting);
     _session.removeListener(_followPlan);
     _session.removeListener(_welcomeToModels);
@@ -752,7 +821,7 @@ class _ChatScreenState extends State<ChatScreen>
         );
       }
     }
-    return Align(
+    final aligned = Align(
       alignment: Alignment.centerLeft,
       child: switch (widget.subtitle) {
         _ when !_renaming && widget.titleTabs != null => widget.titleTabs!,
@@ -773,6 +842,19 @@ class _ChatScreenState extends State<ChatScreen>
           ),
         ),
         _ => title,
+      },
+    );
+    if (MediaQuery.disableAnimationsOf(context)) return aligned;
+    return AnimatedBuilder(
+      animation: _sessionEntranceCurve,
+      child: aligned,
+      builder: (context, child) {
+        final t = _sessionEntranceCurve.value;
+        if (t >= 1) return child!;
+        return Opacity(
+          opacity: (0.35 + 0.65 * t).clamp(0.0, 1.0),
+          child: child,
+        );
       },
     );
   }
@@ -1446,54 +1528,81 @@ class _ChatScreenState extends State<ChatScreen>
               child: Stack(
                 fit: StackFit.expand,
                 children: [
-                  _withBack(
-                    ChatHistoryView(
-                      key: _historyKey,
-                      feed: _session,
-                      // Under its card's title, or a subagent's header.
-                      underTitle:
-                          widget.back != null ||
-                          (_titled && _island != null),
-                      maxContentWidth: _maxContentWidth,
-                      minimap: _minimap,
-                      minimapRoom: widget.back == null
-                          ? null
-                          : _backMinimapRoom,
-                      onOpenAgent: _openAgent,
-                      onSetGoal: _setGoal,
-                      onFindClosed: () => _composerKey.currentState?.focus(),
-                      after: switch (widget.asideAt) {
-                        final asideAt? => (index) => switch (_session.itemIdAt(
-                          index,
-                        )) {
-                          final id? => asideAt(id),
-                          null => null,
-                        },
-                        null => null,
-                      },
-                    ),
-                  ),
-                  // The start hint, before the first message; or the studio
-                  // centerpiece emblem when starting a fresh conversation.
-                  ListenableBuilder(
-                    listenable: _session,
-                    builder: (context, _) => switch (widget.startHint) {
-                      _ when _session.itemCount != 0 => const SizedBox.shrink(),
-                      final build? when _starting => Align(
-                        alignment: Alignment.bottomCenter,
-                        child: SingleChildScrollView(
-                          // No minimap yet: nothing to scroll.
-                          child: _ConversationColumn(
-                            maxWidth: _maxContentWidth,
-                            minimap: false,
-                            child: build(context, const SizedBox.shrink()),
+                  Positioned.fill(
+                    child: _wrapSessionEntrance(
+                      Stack(
+                        fit: StackFit.expand,
+                        children: [
+                          _withBack(
+                            ChatHistoryView(
+                              key: _historyKey,
+                              feed: _session,
+                              // Under its card's title, or a subagent's header.
+                              underTitle:
+                                  widget.back != null ||
+                                  (_titled && _island != null),
+                              maxContentWidth: _maxContentWidth,
+                              minimap: _minimap,
+                              minimapRoom: widget.back == null
+                                  ? null
+                                  : _backMinimapRoom,
+                              onOpenAgent: _openAgent,
+                              onSetGoal: _setGoal,
+                              onFindClosed: () =>
+                                  _composerKey.currentState?.focus(),
+                              after: switch (widget.asideAt) {
+                                final asideAt? =>
+                                  (index) => switch (_session.itemIdAt(
+                                    index,
+                                  )) {
+                                    final id? => asideAt(id),
+                                    null => null,
+                                  },
+                                null => null,
+                              },
+                            ),
                           ),
-                        ),
+                          // The start hint, before the first message; or the studio
+                          // centerpiece emblem when starting a fresh conversation.
+                          ListenableBuilder(
+                            listenable: _session,
+                            builder: (context, _) => switch (widget.startHint) {
+                              _ when _session.itemCount != 0 =>
+                                const SizedBox.shrink(),
+                              final build? when _starting => Align(
+                                alignment: Alignment.bottomCenter,
+                                child: SingleChildScrollView(
+                                  // No minimap yet: nothing to scroll.
+                                  child: _ConversationColumn(
+                                    maxWidth: _maxContentWidth,
+                                    minimap: false,
+                                    child: build(
+                                      context,
+                                      const SizedBox.shrink(),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              null when _starting && !_session.loadingHistory =>
+                                const _StudioWelcomeEmblem(),
+                              _ => const SizedBox.shrink(),
+                            },
+                          ),
+                          Positioned(
+                            left: 8,
+                            top: 42,
+                            child: ChatMiniTocRail(
+                              feed: _session,
+                              onJumpToTurn: (index) =>
+                                  ChatHistoryView.scrollToIndex(
+                                    _historyKey,
+                                    index,
+                                  ),
+                            ),
+                          ),
+                        ],
                       ),
-                      null when _starting && !_session.loadingHistory =>
-                        const _StudioWelcomeEmblem(),
-                      _ => const SizedBox.shrink(),
-                    },
+                    ),
                   ),
                   // An earlier conversation still being read (from a
                   // remote host it may take a while).
@@ -1503,15 +1612,6 @@ class _ChatScreenState extends State<ChatScreen>
                         _session.loadingHistory && _session.itemCount == 0
                         ? const _HistoryLoading()
                         : const SizedBox.shrink(),
-                  ),
-                  Positioned(
-                    left: 8,
-                    top: 42,
-                    child: ChatMiniTocRail(
-                      feed: _session,
-                      onJumpToTurn: (index) =>
-                          ChatHistoryView.scrollToIndex(_historyKey, index),
-                    ),
                   ),
                 ],
               ),
@@ -1527,81 +1627,85 @@ class _ChatScreenState extends State<ChatScreen>
           ],
         ),
       ),
-      ListenableBuilder(
-        listenable: _session,
-        // In the middle as the history's text is, laid out (not built)
-        // for the width: a pane being resized does not build the
-        // composer anew. The minimap stays beside the history, over
-        // it: no room left for it here.
-        builder: (context, _) => _ConversationColumn(
-          maxWidth: _maxContentWidth,
-          minimap: false,
-          // On a card, as far from its sides as from its foot; the row
-          // under it (the IDE's) closer.
-          inset: _onCard ? Islands.inset : null,
-          bottom: !_onCard
-              ? 12
-              : _footOnCard
-              ? 0
-              : _footer == 0 &&
-                    widget.below != null &&
-                    !IslandFootHosted.of(context)
-              ? 4
-              : Islands.inset,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              _PanelSlot(
-                child: HealthBanner.shows(_session.health)
-                    ? HealthBanner(
-                        health: _session.health,
-                        kernelName: _session.kernel.label,
-                        onRetry: _session.restart,
-                        onSetUpModel: () =>
-                            unawaited(showModelWelcome(context)),
-                      )
-                    : null,
-              ),
-              // A remote project's host out of reach: said once, by the
-              // banner above when the agent failed on it.
-              if (!HealthBanner.shows(_session.health))
-                SshHostBanner(location: _session.kernelContext.cwd),
-              // Claude Code being downloaded for this machine, or put on
-              // a remote project's host.
-              ClaudeInstallBanner(location: _session.kernelContext.cwd),
-              // Reset credits of the model's ChatGPT accounts about to
-              // expire: a plan to use them.
-              ResetCreditsHint(model: _session.models?.selected.id),
-              _PanelSlot(
-                child: switch (_session.pendingInteraction) {
-                  final request? => InteractionPanel(
-                    key: ObjectKey(request),
-                    request: request,
-                    onAnswer: _answer,
-                  ),
-                  null => null,
-                },
-              ),
-              if (widget.start case final start? when _starting)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 8),
-                  child: start,
-                ),
-              // A subagent's conversation takes no messages.
-              _BottomSwitcher(
-                child: _agentShown == null
-                    ? _buildDock()
-                    : const SizedBox.shrink(key: ValueKey('none')),
-              ),
-            ],
-          ),
-        ),
-      ),
+      if (_composerMoved)
+        _wrapSessionEntrance(_buildComposerSection())
+      else
+        _buildComposerSection(),
       // As much room under it as over it.
       if (_wasStarting) const Spacer(),
     ];
   }
+
+  Widget _buildComposerSection() => ListenableBuilder(
+    listenable: _session,
+    // In the middle as the history's text is, laid out (not built)
+    // for the width: a pane being resized does not build the
+    // composer anew. The minimap stays beside the history, over
+    // it: no room left for it here.
+    builder: (context, _) => _ConversationColumn(
+      maxWidth: _maxContentWidth,
+      minimap: false,
+      // On a card, as far from its sides as from its foot; the row
+      // under it (the IDE's) closer.
+      inset: _onCard ? Islands.inset : null,
+      bottom: !_onCard
+          ? 12
+          : _footOnCard
+          ? 0
+          : _footer == 0 &&
+                widget.below != null &&
+                !IslandFootHosted.of(context)
+          ? 4
+          : Islands.inset,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _PanelSlot(
+            child: HealthBanner.shows(_session.health)
+                ? HealthBanner(
+                    health: _session.health,
+                    kernelName: _session.kernel.label,
+                    onRetry: _session.restart,
+                    onSetUpModel: () => unawaited(showModelWelcome(context)),
+                  )
+                : null,
+          ),
+          // A remote project's host out of reach: said once, by the
+          // banner above when the agent failed on it.
+          if (!HealthBanner.shows(_session.health))
+            SshHostBanner(location: _session.kernelContext.cwd),
+          // Claude Code being downloaded for this machine, or put on
+          // a remote project's host.
+          ClaudeInstallBanner(location: _session.kernelContext.cwd),
+          // Reset credits of the model's ChatGPT accounts about to
+          // expire: a plan to use them.
+          ResetCreditsHint(model: _session.models?.selected.id),
+          _PanelSlot(
+            child: switch (_session.pendingInteraction) {
+              final request? => InteractionPanel(
+                key: ObjectKey(request),
+                request: request,
+                onAnswer: _answer,
+              ),
+              null => null,
+            },
+          ),
+          if (widget.start case final start? when _starting)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: start,
+            ),
+          // A subagent's conversation takes no messages.
+          _BottomSwitcher(
+            child: _agentShown == null
+                ? _buildDock()
+                : const SizedBox.shrink(key: ValueKey('none')),
+          ),
+        ],
+      ),
+    ),
+  );
 
   /// The subagent [layer], [index] in: the way here, and its conversation.
   /// Whether the history keeps the minimap's room, for the way back over
