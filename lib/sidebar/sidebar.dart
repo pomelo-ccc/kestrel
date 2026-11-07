@@ -1106,14 +1106,20 @@ class _SidebarState extends State<Sidebar>
             switch (widget.stashes) {
               final stashes? => ListenableBuilder(
                 listenable: stashes.changes,
-                builder: (context, _) => _NavRow(
-                  icon: Codicons.note,
-                  label: context.l10n.stashTitle,
-                  selected: widget.stashing,
-                  badge: stashes.news(),
-                  badgeHover: context.l10n.stashNewsSidebar(stashes.news()),
-                  onTap: stash,
-                ),
+                builder: (context, _) {
+                  final news = stashes.news();
+                  final total = stashes.count();
+                  return _NavRow(
+                    icon: Codicons.note,
+                    label: context.l10n.stashTitle,
+                    selected: widget.stashing,
+                    badge: news > 0 ? news : total,
+                    badgeHover: news > 0
+                        ? context.l10n.stashNewsSidebar(news)
+                        : null,
+                    onTap: stash,
+                  );
+                },
               ),
               null => _NavRow(
                 icon: Codicons.note,
@@ -2095,16 +2101,18 @@ class _SidebarState extends State<Sidebar>
     _Group group, {
     bool aside = false,
   }) {
+    final sessionKey = thread.id ?? 'thread:${identityHashCode(thread)}';
     return _ThreadRow(
       thread: thread,
       status: _statusOf(thread),
       model: () => _modelOf(thread),
       height: _rowHeight,
-      stashes: switch ((widget.stashes, thread.id)) {
-        (final stashes?, final session?) => stashes.of(session),
-        _ => const [],
-      },
+      stashes: widget.stashes?.of(sessionKey) ?? const [],
       onOpenStash: widget.stashes?.open,
+      onSaveStash: switch (widget.stashes?.save) {
+        final save? => () => save(thread),
+        null => null,
+      },
       pulls: switch ((widget.stashes, thread.id)) {
         (final stashes?, final session?) => stashes.pulls(session),
         _ => const [],
@@ -4056,6 +4064,7 @@ class _ThreadRow extends StatelessWidget {
     required this.height,
     this.stashes = const [],
     this.onOpenStash,
+    this.onSaveStash,
     this.pulls = const [],
     this.onOpenPull,
     required this.selected,
@@ -4096,6 +4105,7 @@ class _ThreadRow extends StatelessWidget {
   /// The stashes it carries out: a tag on it, opened by [onOpenStash].
   final List<SidebarStash> stashes;
   final ValueChanged<int>? onOpenStash;
+  final VoidCallback? onSaveStash;
 
   /// The pull requests it opened (or worked on), by their stash: a tag
   /// on it, opened by [onOpenPull].
@@ -4173,7 +4183,14 @@ class _ThreadRow extends StatelessWidget {
         ),
       ];
     }
+    final isZh = l10n.localeName.startsWith('zh');
     return [
+      if (onSaveStash case final save?)
+        SidebarMenuItem(
+          isZh ? '暂存到 Stash' : 'Save to Stash',
+          icon: Icons.bookmark_add_outlined,
+          onSelected: save,
+        ),
       if (onOpenStash case final open?)
         for (final stash in stashes)
           SidebarMenuItem(
@@ -4585,6 +4602,15 @@ class _ThreadRow extends StatelessWidget {
             Row(
               mainAxisSize: MainAxisSize.min,
               children: [
+                if (onSaveStash case final save?)
+                  SidebarIconButton(
+                    icon: Icons.bookmark_add_outlined,
+                    tooltip: l10n.localeName.startsWith('zh')
+                        ? '暂存到 Stash'
+                        : 'Save to Stash',
+                    size: 20,
+                    onTap: save,
+                  ),
                 if (!thread.archived && onDetach == null)
                   SidebarIconButton(
                     icon: thread.pinned
@@ -4653,19 +4679,25 @@ class SidebarStashes {
     required this.changes,
     required this.of,
     required this.open,
+    this.save,
     this.pulls = _none,
     this.openPull,
+    this.count = _noNews,
     this.news = _noNews,
   });
 
   final Listenable changes;
   final List<SidebarStash> Function(String session) of;
   final ValueChanged<int> open;
+  final ValueChanged<AgentThread>? save;
 
   /// The pull requests each conversation opened, by its session; opened
   /// (in the browser) by [openPull].
   final List<SidebarPull> Function(String session) pulls;
   final ValueChanged<String>? openPull;
+
+  /// Total number of non-blank stashes kept.
+  final int Function() count;
 
   /// How many stashes have news about the user not seen yet: on the
   /// Stash row.

@@ -21,8 +21,9 @@ import 'stash_note.dart';
 /// them, in their state, opened in the browser.
 SidebarStashes sidebarStashes(
   StashController controller,
-  ValueChanged<int> open,
-) => SidebarStashes(
+  ValueChanged<int> open, {
+  ValueChanged<AgentThread>? save,
+}) => SidebarStashes(
   changes: Listenable.merge([controller.store, ?controller.forge]),
   of: (session) => <SidebarStash>[
     for (final note in controller.threads.stashesOf(session))
@@ -33,8 +34,10 @@ SidebarStashes sidebarStashes(
       ),
   ],
   open: open,
+  save: save,
   pulls: (session) => _pullsOf(controller, session),
   openPull: (url) => unawaited(openExternal(url)),
+  count: () => controller.store.notes.where((note) => !note.isBlank).length,
   news: () => controller.forge == null
       ? 0
       : controller.store.notes

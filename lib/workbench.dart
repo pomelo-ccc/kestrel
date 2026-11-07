@@ -23,8 +23,16 @@ import 'channel/channel_gate.dart';
 import 'channel/channel_setup_welcome.dart';
 import 'chat/aside_layers.dart';
 import 'chat/chat_keys.dart';
-import 'chat/chat_models.dart' show FileChange, FileChangeKind;
+import 'chat/chat_models.dart'
+    show
+        AssistantTextItem,
+        FileChange,
+        FileChangeKind,
+        UserMessageItem,
+        oneLineExcerpt;
 import 'chat/chat_screen.dart';
+import 'chat/widgets/hover_builder.dart';
+import 'ide/ide_hover.dart';
 import 'chat/chat_session.dart' show ChatSession, ComposerMessage;
 import 'chat/composer/composer_files.dart' show CodeReference, ComposerFile;
 import 'chat/composer/composer_mock_data.dart' show Suggestion;
@@ -131,6 +139,8 @@ import 'remote/ssh_host.dart';
 import 'remote/ssh_password_dialog.dart';
 import 'remote/ssh_passwords.dart';
 import 'stash/stash_controller.dart';
+import 'stash/stash_host.dart' show StashCapture;
+import 'stash/stash_note.dart';
 import 'stash/stash_thread_view.dart' show sidebarStashes;
 import 'stash/stash_view.dart';
 import 'stash/stash_welcome.dart' show showStashWelcome;
@@ -843,6 +853,7 @@ class _WorkbenchState extends State<Workbench> implements WindowDelegate {
     _workspace.removeListener(_restoreSidePanel);
     _workspace.removeListener(_syncWorkspaceFolders);
     _givingWayTimer?.cancel();
+    _dismissStashToast();
     _sidePanel
       ..removeListener(_sidePanelChanged)
       ..dispose();
@@ -1330,6 +1341,185 @@ class _WorkbenchState extends State<Workbench> implements WindowDelegate {
       _customizing = false;
       _stashShown = id;
     });
+  }
+
+  OverlayEntry? _stashToastEntry;
+  Timer? _stashToastTimer;
+
+  /// Saves [thread]'s current context into Stash and links it to the session.
+  Future<void> _stashSession(AgentThread thread) async {
+    final stash = StashController.current;
+    if (!mounted || stash == null) return;
+    final l10n = context.l10n;
+    final isZh = Localizations.maybeLocaleOf(context)?.languageCode == 'zh';
+    final title = thread.localizedTitle(l10n);
+    final lines = <String>[];
+    if (thread.isOpen && thread.session.itemCount > 0) {
+      final count = thread.session.itemCount;
+      for (var i = 0; i < count; i++) {
+        switch (thread.session.itemAt(i)) {
+          case UserMessageItem(:final text) when text.trim().isNotEmpty:
+            lines.add('> **${isZh ? '提问' : 'Prompt'}**：${text.trim()}');
+          case AssistantTextItem(:final text) when text.trim().isNotEmpty:
+            lines.add(text.trim());
+          default:
+            break;
+        }
+      }
+      final changes = thread.session.fileChanges;
+      if (changes.isNotEmpty) {
+        lines.add(
+          '## ${isZh ? '变更文件' : 'Changed Files'}\n'
+          '${changes.map((c) => '- `${c.path}` (+${c.added} / -${c.removed})').join('\n')}',
+        );
+      }
+    }
+    final body = lines.isNotEmpty
+        ? lines.join('\n\n')
+        : isZh
+        ? '会话：$title\n项目：`${thread.project.name}`'
+        : 'Session: $title\nProject: `${thread.project.name}`';
+    final source = await stash.sourceOf(const StashCapture(inApp: true));
+    final note = await stash.store.create(
+      body: body,
+      project: thread.project.path,
+      source: source.copyWith(
+        project: thread.project.path,
+        thread: thread.id,
+      ),
+    );
+    final sessionKey = thread.id ?? 'thread:${identityHashCode(thread)}';
+    final said = thread.isOpen
+        ? switch (thread.session.lastReply) {
+            final reply? => oneLineExcerpt(reply, max: 240),
+            null => null,
+          }
+        : null;
+    note
+      ..title = title
+      ..status = StashStatus.implementing
+      ..threads.add(
+        StashThreadLink(
+          session: sessionKey,
+          project: thread.project.path,
+          title: title,
+          said: said,
+          at: DateTime.now(),
+        ),
+      );
+    await stash.store.save(note);
+    if (!mounted) return;
+    _showStashToast(
+      isZh
+          ? '当前会话上下文已保存至 Stash 暂存匣 (#${note.id})'
+          : 'Saved session context to Stash (#${note.id})',
+      stashId: note.id,
+      viewLabel: isZh ? '查看' : 'View',
+    );
+  }
+
+  void _dismissStashToast() {
+    _stashToastTimer?.cancel();
+    _stashToastTimer = null;
+    _stashToastEntry
+      ?..remove()
+      ..dispose();
+    _stashToastEntry = null;
+  }
+
+  void _showStashToast(
+    String message, {
+    required int stashId,
+    required String viewLabel,
+  }) {
+    _dismissStashToast();
+    final overlay = Overlay.maybeOf(context);
+    if (overlay == null) return;
+    final entry = OverlayEntry(
+      builder: (context) {
+        final dark = themeColors.dark;
+        return Positioned(
+          right: 20,
+          bottom: 20,
+          child: Material(
+            color: Colors.transparent,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+              decoration: BoxDecoration(
+                color: dark
+                    ? const Color(0xE6FAF8F5)
+                    : const Color(0xE61C1917),
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: const [
+                  BoxShadow(
+                    color: Color(0x33000000),
+                    blurRadius: 16,
+                    offset: Offset(0, 6),
+                  ),
+                ],
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 6,
+                    height: 6,
+                    decoration: const BoxDecoration(
+                      color: Color(0xFFD96543),
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    message,
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                      color: dark ? const Color(0xFF1C1917) : Colors.white,
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  MouseRegion(
+                    cursor: SystemMouseCursors.click,
+                    child: GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onTap: () {
+                        _dismissStashToast();
+                        _showStash(stashId);
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 7,
+                          vertical: 2,
+                        ),
+                        decoration: BoxDecoration(
+                          color: const Color(0x26D96543),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Text(
+                          viewLabel,
+                          style: const TextStyle(
+                            fontSize: 11.5,
+                            fontWeight: FontWeight.w600,
+                            color: Color(0xFFD96543),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+    _stashToastEntry = entry;
+    overlay.insert(entry);
+    _stashToastTimer = Timer(
+      const Duration(milliseconds: 2600),
+      _dismissStashToast,
+    );
   }
 
   bool _paletteOpen = false;
@@ -3306,7 +3496,11 @@ class _WorkbenchState extends State<Workbench> implements WindowDelegate {
       stashing: _stashing,
       // Opened on the Stash page, which an agent's window has not.
       stashes: switch (StashController.current) {
-        final stash? when agent == null => sidebarStashes(stash, _showStash),
+        final stash? when agent == null => sidebarStashes(
+          stash,
+          _showStash,
+          save: (thread) => unawaited(_stashSession(thread)),
+        ),
         _ => null,
       },
       drag: _drag,
@@ -4890,6 +5084,13 @@ class _WorkbenchState extends State<Workbench> implements WindowDelegate {
     final ownInTitleBar = !inPane && !header;
     final own = [
       if (cardTools) ...[
+        if (StashController.current != null && _agentThread == null)
+          Padding(
+            padding: const EdgeInsets.only(right: 4),
+            child: _StashSessionButton(
+              onTap: () => unawaited(_stashSession(thread)),
+            ),
+          ),
         // Only once it was talked in elsewhere: nothing new to read before.
         if (_reloadable(thread))
           Padding(
@@ -5743,6 +5944,77 @@ class _EmptyWorkspace extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+/// The "暂存到 Stash" pill button in the current session's header bar,
+/// matching the HTML prototype's `stashCurrentSession()` button.
+class _StashSessionButton extends StatelessWidget {
+  const _StashSessionButton({required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final isZh = Localizations.maybeLocaleOf(context)?.languageCode == 'zh';
+    final label = isZh ? '暂存到 Stash' : 'Save to Stash';
+    final dark = themeColors.dark;
+    return IdeHover(
+      message: label,
+      child: HoverBuilder(
+        cursor: SystemMouseCursors.click,
+        builder: (context, hovered) => GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: onTap,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 140),
+            height: 24,
+            padding: const EdgeInsets.symmetric(horizontal: 8.5),
+            decoration: BoxDecoration(
+              color: dark ? const Color(0xFF201E1C) : Colors.white,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(
+                color: hovered
+                    ? const Color(0x8CD96543)
+                    : (dark
+                          ? const Color(0x1AFFFFFF)
+                          : const Color(0xCCDFD7CB)),
+              ),
+              boxShadow: dark
+                  ? null
+                  : const [
+                      BoxShadow(
+                        color: Color(0x0A2C2723),
+                        blurRadius: 2,
+                        offset: Offset(0, 1),
+                      ),
+                    ],
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(
+                  Icons.bookmark_border_rounded,
+                  size: 13.5,
+                  color: Color(0xFFD96543),
+                ),
+                const SizedBox(width: 4.5),
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                    color: dark
+                        ? const Color(0xFFDFD7CB)
+                        : const Color(0xFF4A433B),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

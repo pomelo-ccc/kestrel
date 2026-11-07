@@ -73,7 +73,10 @@ class StashThreads {
   /// The conversation [link] is to, if it is listed.
   AgentThread? threadOf(StashThreadLink link) {
     for (final thread in workspace.threads) {
-      if (thread.id == link.session) return thread;
+      if (thread.id == link.session ||
+          'thread:${identityHashCode(thread)}' == link.session) {
+        return thread;
+      }
     }
     return null;
   }
