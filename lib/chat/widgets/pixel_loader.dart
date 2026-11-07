@@ -385,7 +385,7 @@ class _PixelAnimationState extends State<_PixelAnimation> {
   late final StepClock _clock = StepClock(_frameTime);
 
   Duration get _frameTime => Duration(
-    microseconds: (28 * 1000 / widget.speed).round().clamp(10000, 100000),
+    microseconds: (22 * 1000 / widget.speed).round().clamp(10000, 100000),
   );
 
   bool _still = false;
@@ -598,24 +598,26 @@ class ByteBarsPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
+    double snap(double v) => (v * 2).round() / 2;
+
     final side = size.shortestSide;
-    final phase = clock.ticks * 0.22;
+    final phase = clock.ticks * 0.085;
     final heights = heightsFor(style, phase, still: still);
 
-    final barW = (side * 0.15).clamp(1.6, 4.5);
-    final gap = (side * 0.085).clamp(1.0, 3.2);
+    final barW = snap((side * 0.145).clamp(1.5, 4.0));
+    final gap = snap((side * 0.085).clamp(1.0, 3.0));
     final totalW = barW * 4 + gap * 3;
-    final startX = (size.width - totalW) / 2;
-    final maxH = side * 0.88;
+    final startX = snap((size.width - totalW) / 2);
+    final maxH = side * 0.86;
     final centerY = size.height / 2;
     final symmetric =
         style == PixelLoaderStyle.checker || style == PixelLoaderStyle.breathe;
-    final baseBottom = centerY + maxH * 0.44;
+    final baseBottom = snap(centerY + maxH * 0.44);
 
-    const blueTop = Color(0xFF4F8FF7);
-    const blueBot = Color(0xFF2563EB);
-    const orangeTop = Color(0xFFFB923C);
-    const orangeBot = Color(0xFFEA580C);
+    const blueTop = Color(0xFF5A8DEE);
+    const blueBot = Color(0xFF396FD3);
+    const orangeTop = Color(0xFFF0833A);
+    const orangeBot = Color(0xFFD96226);
 
     for (var i = 0; i < 4; i++) {
       final h = (maxH * heights[i]).clamp(barW, maxH);
@@ -624,7 +626,7 @@ class ByteBarsPainter extends CustomPainter {
       if (symmetric) {
         topY = centerY - h / 2;
       } else {
-        final bottom = i == 1 ? baseBottom + maxH * 0.04 : baseBottom;
+        final bottom = i == 1 ? baseBottom + 0.5 : baseBottom;
         topY = (bottom - h).clamp(
           centerY - maxH * 0.50,
           bottom - barW,
@@ -634,6 +636,7 @@ class ByteBarsPainter extends CustomPainter {
       final rrect = RRect.fromRectAndRadius(rect, Radius.circular(barW / 2));
       final isHero = i == 1;
       final paint = Paint()
+        ..isAntiAlias = true
         ..shader = LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,

@@ -2112,35 +2112,39 @@ class _PolishButton extends StatelessWidget {
     final l10n = context.l10n;
     final colors = themeColors;
     final active = enabled && !busy;
-    final icon = Icon(
-      busy ? Codicons.loading : Codicons.sparkle,
-      size: 14,
-      color: enabled ? colors['icon.foreground'] : AppColors.textFaint,
-    );
     return IdeHover(
       message: busy
           ? l10n.composerPolishing
           : '${l10n.composerPolishHint} (⌘E · ⌘Z 撤销)',
       child: HoverBuilder(
         cursor: active ? SystemMouseCursors.click : SystemMouseCursors.basic,
-        builder: (context, hovered) => GestureDetector(
-          // Keeps the editor's focus.
-          onTapDown: (_) {},
-          onTap: active ? onTap : null,
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 120),
-            width: 23,
-            height: 22,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              color: active && hovered
-                  ? colors['toolbar.hoverBackground']
-                  : Colors.transparent,
-              borderRadius: BorderRadius.circular(5),
+        builder: (context, hovered) {
+          final icon = Icon(
+            busy ? Codicons.loading : Codicons.sparkle,
+            size: 13.5,
+            color: enabled
+                ? (hovered ? AppColors.text : AppColors.textMuted)
+                : AppColors.textFaint,
+          );
+          return GestureDetector(
+            // Keeps the editor's focus.
+            onTapDown: (_) {},
+            onTap: active ? onTap : null,
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 120),
+              width: 22,
+              height: 22,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: active && hovered
+                    ? colors['toolbar.hoverBackground']
+                    : Colors.transparent,
+                borderRadius: BorderRadius.circular(5),
+              ),
+              child: busy ? IdeSpinning(icon) : icon,
             ),
-            child: busy ? IdeSpinning(icon) : icon,
-          ),
-        ),
+          );
+        },
       ),
     );
   }
@@ -2155,7 +2159,7 @@ class _ScreenshotButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = themeColors;
     return IdeHover(
-      message: '框选截图并插入提问 (全局快捷键 ⌃⇧A)',
+      message: '框选截图并插入提问 (⌃⇧A)',
       child: HoverBuilder(
         cursor: SystemMouseCursors.click,
         builder: (context, hovered) => GestureDetector(
@@ -2163,7 +2167,7 @@ class _ScreenshotButton extends StatelessWidget {
           onTap: onTap,
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 120),
-            width: 23,
+            width: 22,
             height: 22,
             alignment: Alignment.center,
             decoration: BoxDecoration(
@@ -2174,8 +2178,8 @@ class _ScreenshotButton extends StatelessWidget {
             ),
             child: Icon(
               Codicons.deviceCamera,
-              size: 14,
-              color: colors['icon.foreground'],
+              size: 13.5,
+              color: hovered ? AppColors.text : AppColors.textMuted,
             ),
           ),
         ),

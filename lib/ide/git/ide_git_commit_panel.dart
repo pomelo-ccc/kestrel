@@ -2717,7 +2717,7 @@ class IdeGitCommitPanelState extends State<IdeGitCommitPanel>
                 toggles: [
                   if (widget.commitMessage != null) ...[
                     IdeActionButton(
-                      icon: Codicons.sparkle,
+                      icon: Codicons.zap,
                       tooltip: 'AI 生成并提交',
                       size: 20,
                       onPressed: () => unawaited(_generateAndCommit()),
@@ -2753,16 +2753,6 @@ class IdeGitCommitPanelState extends State<IdeGitCommitPanel>
                   _generateButton(context, labeled: true),
                   priority: 0,
                   compact: _generateButton(context, labeled: false),
-                ),
-                const GiveWay(SizedBox(width: 8)),
-                GiveWay(
-                  _generateAndCommitButton(context, busy: busy, labeled: true),
-                  priority: 1,
-                  compact: _generateAndCommitButton(
-                    context,
-                    busy: busy,
-                    labeled: false,
-                  ),
                 ),
                 const GiveWay(SizedBox(width: 8)),
               ],
@@ -2822,29 +2812,6 @@ class IdeGitCommitPanelState extends State<IdeGitCommitPanel>
       onPressed: () => unawaited(_generateMessage()),
     );
     return labeled ? button : IdeHover(message: label, child: button);
-  }
-
-  Widget _generateAndCommitButton(
-    BuildContext context, {
-    required bool busy,
-    required bool labeled,
-  }) {
-    final generating = _session.generating != null;
-    const label = 'AI 生成并提交';
-    final button = IdeButton(
-      icon: Codicons.sparkle,
-      label: labeled ? label : '',
-      secondary: true,
-      padding: _buttonPad,
-      radius: _radius,
-      onPressed: busy || generating ? null : () => unawaited(_generateAndCommit()),
-    );
-    return labeled
-        ? IdeHover(
-            message: '一键调用 AI 生成 Commit Message 并直接提交已勾选变更',
-            child: button,
-          )
-        : IdeHover(message: label, child: button);
   }
 }
 

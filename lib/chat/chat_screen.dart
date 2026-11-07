@@ -26,6 +26,7 @@ import '../stash/stash_actions.dart';
 import '../stash/stash_store.dart';
 import '../theme/app_theme.dart';
 import '../theme/codicons.dart';
+import '../theme/workbench_theme.dart' show themeColors;
 import '../workspace/editor_launcher.dart';
 import '../workspace/agent_title.dart' show askedTitles;
 import '../workspace/islands.dart';
@@ -2171,6 +2172,7 @@ class _SpeedAndTokenBadgeState extends State<_SpeedAndTokenBadge> {
         ?SessionReplaySetting.changes,
       ]),
       builder: (context, _) {
+        final colors = themeColors;
         final streaming = widget.session.isStreaming;
         final speed = _tracker.tokensPerSec;
         final used = widget.session.context?.used ?? 0;
@@ -2181,168 +2183,159 @@ class _SpeedAndTokenBadgeState extends State<_SpeedAndTokenBadge> {
             widget.session.itemCount > 0 && SessionReplaySetting.current();
         final String? label;
         if (streaming && speed > 0) {
-          label = '⚡ ${speed.toStringAsFixed(1)} tok/s';
+          label = '${speed.toStringAsFixed(1)} tok/s';
         } else if (speed > 0) {
           label =
-              '⚡ ${speed.toStringAsFixed(0)} tok/s · 今日 ${_formatTokens(todayTotal)}';
+              '${speed.toStringAsFixed(0)} tok/s · 今日 ${_formatTokens(todayTotal)}';
         } else if (todayTotal > 0) {
-          label = '📊 今日 ${_formatTokens(todayTotal)} tok';
+          label = '今日 ${_formatTokens(todayTotal)}';
         } else {
           label = null;
         }
         return Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            if (label case final String labelText)
-              Padding(
-                padding: const EdgeInsets.only(right: 4),
-                child: IdeHover(
-                  message: _buildTooltip(),
-                  child: HoverBuilder(
-                    cursor: SystemMouseCursors.click,
-                    builder: (context, hovered) => GestureDetector(
+            if (label case final String labelText) ...[
+              IdeHover(
+                message: _buildTooltip(),
+                child: HoverBuilder(
+                  cursor: SystemMouseCursors.click,
+                  builder: (context, hovered) {
+                    final fg = streaming
+                        ? AppColors.accent
+                        : (hovered ? AppColors.text : AppColors.textFaint);
+                    return GestureDetector(
                       onTap: () => unawaited(
                         ProviderHealthMonitor.instance.pingAll(force: true),
                       ),
                       child: AnimatedContainer(
                         duration: const Duration(milliseconds: 120),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 6,
-                          vertical: 2,
-                        ),
+                        height: 22,
+                        padding: const EdgeInsets.symmetric(horizontal: 6),
+                        alignment: Alignment.center,
                         decoration: BoxDecoration(
-                          color: hovered ? AppColors.hover : Colors.transparent,
+                          color: hovered
+                              ? colors['toolbar.hoverBackground']
+                              : Colors.transparent,
                           borderRadius: BorderRadius.circular(5),
                         ),
-                        child: Text(
-                          labelText,
-                          style: TextStyle(
-                            color: streaming
-                                ? AppColors.accent
-                                : (hovered
-                                      ? AppColors.text
-                                      : AppColors.textMuted),
-                            fontSize: 11.5,
-                            fontWeight: streaming
-                                ? FontWeight.w600
-                                : FontWeight.w400,
-                            fontFeatures: const [
-                              FontFeature.tabularFigures(),
-                            ],
-                          ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              streaming ? Codicons.zap : Codicons.pulse,
+                              size: 12,
+                              color: fg,
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              labelText,
+                              maxLines: 1,
+                              style: TextStyle(
+                                color: fg,
+                                fontSize: 12,
+                                fontWeight: streaming
+                                    ? FontWeight.w500
+                                    : FontWeight.w400,
+                                fontFeatures: const [
+                                  FontFeature.tabularFigures(),
+                                ],
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                    ),
+                    );
+                  },
+                ),
+              ),
+              const SizedBox(width: 2),
+            ],
+            if (hasItems) ...[
+              _StatusBarIconButton(
+                icon: Codicons.playCircle,
+                tooltip: '会话时间轴回放',
+                onTap: () => unawaited(
+                  showSessionReplayDialog(
+                    context,
+                    feed: widget.session,
+                    onScrollToIndex: widget.onJumpToTurn,
                   ),
                 ),
               ),
-            if (hasItems)
-              Padding(
-                padding: const EdgeInsets.only(right: 4),
-                child: IdeHover(
-                  message: '🎞️ 会话沉浸式时间轴回放（Session Replay）',
-                  child: HoverBuilder(
-                    cursor: SystemMouseCursors.click,
-                    builder: (context, hovered) => GestureDetector(
-                      onTap: () => unawaited(
-                        showSessionReplayDialog(
-                          context,
-                          feed: widget.session,
-                          onScrollToIndex: widget.onJumpToTurn,
-                        ),
-                      ),
-                      child: AnimatedContainer(
-                        duration: const Duration(milliseconds: 120),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 5,
-                          vertical: 2,
-                        ),
-                        decoration: BoxDecoration(
-                          color: hovered ? AppColors.hover : Colors.transparent,
-                          borderRadius: BorderRadius.circular(5),
-                        ),
-                        child: Icon(
-                          Codicons.playCircle,
-                          size: 13,
-                          color: hovered ? AppColors.accent : AppColors.textFaint,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            Padding(
-              padding: const EdgeInsets.only(right: 4),
-              child: IdeHover(
-                message: pipOn
-                    ? '🪟 已开启右上角画中画盯盘小窗（点击关闭）'
-                    : '🪟 开启右上角画中画迷你盯盘小窗（跨桌面置顶）',
-                child: HoverBuilder(
-                  cursor: SystemMouseCursors.click,
-                  builder: (context, hovered) => GestureDetector(
-                    onTap: () => NotchDropzone.pipEnabled.value = !pipOn,
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 120),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 5,
-                        vertical: 2,
-                      ),
-                      decoration: BoxDecoration(
-                        color: pipOn
-                            ? AppColors.accent.withValues(alpha: 0.14)
-                            : (hovered ? AppColors.hover : Colors.transparent),
-                        borderRadius: BorderRadius.circular(5),
-                      ),
-                      child: Icon(
-                        Codicons.multipleWindows,
-                        size: 13,
-                        color: pipOn
-                            ? AppColors.accent
-                            : (hovered ? AppColors.text : AppColors.textFaint),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
+              const SizedBox(width: 2),
+            ],
+            _StatusBarIconButton(
+              icon: Codicons.multipleWindows,
+              active: pipOn,
+              tooltip: pipOn
+                  ? '已开启右上角画中画小窗（点击关闭）'
+                  : '开启右上角画中画盯盘小窗',
+              onTap: () => NotchDropzone.pipEnabled.value = !pipOn,
             ),
-            Padding(
-              padding: const EdgeInsets.only(right: 6),
-              child: IdeHover(
-                message: voiceOn
-                    ? '已开启任务完成 AI 语音播报（点击关闭）'
-                    : '点击开启任务完成 AI 一句话语音播报',
-                child: HoverBuilder(
-                  cursor: SystemMouseCursors.click,
-                  builder: (context, hovered) => GestureDetector(
-                    onTap: () =>
-                        AttentionVoiceSetting.enabled.value = !voiceOn,
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 120),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 5,
-                        vertical: 2,
-                      ),
-                      decoration: BoxDecoration(
-                        color: voiceOn
-                            ? AppColors.accent.withValues(alpha: 0.14)
-                            : (hovered ? AppColors.hover : Colors.transparent),
-                        borderRadius: BorderRadius.circular(5),
-                      ),
-                      child: Icon(
-                        voiceOn ? Codicons.unmute : Codicons.mute,
-                        size: 13,
-                        color: voiceOn
-                            ? AppColors.accent
-                            : (hovered ? AppColors.text : AppColors.textFaint),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
+            const SizedBox(width: 2),
+            _StatusBarIconButton(
+              icon: voiceOn ? Codicons.unmute : Codicons.mute,
+              active: voiceOn,
+              tooltip: voiceOn
+                  ? '已开启任务完成语音播报（点击关闭）'
+                  : '开启任务完成语音播报',
+              onTap: () => AttentionVoiceSetting.enabled.value = !voiceOn,
             ),
+            const SizedBox(width: 2),
           ],
         );
       },
+    );
+  }
+}
+
+class _StatusBarIconButton extends StatelessWidget {
+  const _StatusBarIconButton({
+    required this.icon,
+    required this.tooltip,
+    required this.onTap,
+    this.active = false,
+  });
+
+  final IconData icon;
+  final String tooltip;
+  final VoidCallback onTap;
+  final bool active;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = themeColors;
+    return IdeHover(
+      message: tooltip,
+      child: HoverBuilder(
+        cursor: SystemMouseCursors.click,
+        builder: (context, hovered) => GestureDetector(
+          onTap: onTap,
+          behavior: HitTestBehavior.opaque,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 120),
+            width: 22,
+            height: 22,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: active
+                  ? AppColors.accent.withValues(alpha: 0.14)
+                  : hovered
+                  ? colors['toolbar.hoverBackground']
+                  : Colors.transparent,
+              borderRadius: BorderRadius.circular(5),
+            ),
+            child: Icon(
+              icon,
+              size: 13,
+              color: active
+                  ? AppColors.accent
+                  : (hovered ? AppColors.text : AppColors.textFaint),
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

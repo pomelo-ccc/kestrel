@@ -286,7 +286,7 @@ class _PinCardRow extends StatelessWidget {
           ),
         ),
         IdeHover(
-          message: '🧠 记入项目记忆 (写入 CLAUDE.md)',
+          message: '记入项目记忆 (写入 CLAUDE.md)',
           child: HoverBuilder(
             cursor: SystemMouseCursors.click,
             builder: (context, hovered) => GestureDetector(
@@ -449,7 +449,7 @@ class _ChatMiniTocRailState extends State<ChatMiniTocRail> {
                             ),
                             const Spacer(),
                             IdeHover(
-                              message: '🎞️ 沉浸式时间轴回放（Session Replay）',
+                              message: '会话时间轴回放',
                               child: HoverBuilder(
                                 cursor: SystemMouseCursors.click,
                                 builder: (context, repHover) => GestureDetector(
@@ -472,7 +472,7 @@ class _ChatMiniTocRailState extends State<ChatMiniTocRail> {
                             ),
                             const SizedBox(width: 8),
                             IdeHover(
-                              message: '📤 导出完整会话 Markdown (.md)',
+                              message: '导出完整会话 Markdown (.md)',
                               child: HoverBuilder(
                                 cursor: SystemMouseCursors.click,
                                 builder: (context, expHover) => GestureDetector(
@@ -494,8 +494,8 @@ class _ChatMiniTocRailState extends State<ChatMiniTocRail> {
                                     )?.notify(
                                       IdeSeverity.info,
                                       path != null
-                                          ? '📤 已复制并导出完整会话至：$path'
-                                          : '📤 已复制完整会话 Markdown 笔记',
+                                          ? '已复制并导出完整会话至：$path'
+                                          : '已复制完整会话 Markdown 笔记',
                                     );
                                   },
                                   child: Icon(

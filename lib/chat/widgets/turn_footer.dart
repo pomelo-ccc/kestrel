@@ -9,6 +9,7 @@ import '../../ide/ide_hover.dart';
 import '../../l10n/l10n.dart';
 import '../../theme/app_theme.dart';
 import '../../theme/codicons.dart';
+import '../../theme/workbench_theme.dart' show themeColors;
 import '../chat_feed.dart';
 import '../chat_models.dart';
 import '../chat_session.dart';
@@ -141,6 +142,29 @@ class _TurnFooterState extends State<TurnFooter> {
       final summary = widget.summary;
       final feed = widget.feed;
       final session = feed is ChatSession ? feed : null;
+      final actions = <Widget>[
+        if (answer != null) _CopyButton(text: answer),
+        if (answer != null && widget.onTogglePin != null)
+          _PinButton(
+            pinned: widget.pinned,
+            onTap: widget.onTogglePin!,
+          ),
+        if (answer != null && summary != null)
+          ProjectMemoryButton(
+            answer: answer,
+            promptText: summary.promptText,
+            projectRoot: session?.root,
+          ),
+        if (summary != null && feed != null)
+          ExportTurnButton(summary: summary, feed: feed),
+        if (answer != null &&
+            summary != null &&
+            summary.promptText.trim().isNotEmpty)
+          ModelPkButton(
+            onPickChallenger: (c) => setState(() => _challenger = c),
+          ),
+      ];
+      final stats = _stats(l10n);
       return SelectionContainer.disabled(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -151,27 +175,23 @@ class _TurnFooterState extends State<TurnFooter> {
             Padding(
               padding: const EdgeInsets.only(top: 6),
               child: TurnFooter._line([
-                if (answer != null) _CopyButton(text: answer),
-                if (answer != null && widget.onTogglePin != null)
-                  _PinButton(
-                    pinned: widget.pinned,
-                    onTap: widget.onTogglePin!,
+                if (actions.isNotEmpty)
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      for (var i = 0; i < actions.length; i++) ...[
+                        if (i > 0) const SizedBox(width: 2),
+                        actions[i],
+                      ],
+                    ],
                   ),
-                if (answer != null && summary != null)
-                  ProjectMemoryButton(
-                    answer: answer,
-                    promptText: summary.promptText,
-                    projectRoot: session?.root,
+                if (actions.isNotEmpty && stats.isNotEmpty)
+                  Container(
+                    width: 1,
+                    height: 11,
+                    color: AppColors.partBorder,
                   ),
-                if (summary != null && feed != null)
-                  ExportTurnButton(summary: summary, feed: feed),
-                if (answer != null &&
-                    summary != null &&
-                    summary.promptText.trim().isNotEmpty)
-                  ModelPkButton(
-                    onPickChallenger: (c) => setState(() => _challenger = c),
-                  ),
-                ..._stats(l10n),
+                ...stats,
               ]),
             ),
             if (_challenger != null && answer != null && summary != null)
@@ -396,6 +416,7 @@ class _CopyButtonState extends State<_CopyButton> {
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
+    final colors = themeColors;
     return IdeHover(
       message: _copied ? l10n.turnCopied : l10n.turnCopy,
       child: HoverBuilder(
@@ -403,11 +424,16 @@ class _CopyButtonState extends State<_CopyButton> {
         builder: (context, hovered) => GestureDetector(
           onTap: _copy,
           behavior: HitTestBehavior.opaque,
-          child: Container(
-            padding: const EdgeInsets.all(3),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 120),
+            width: 22,
+            height: 22,
+            alignment: Alignment.center,
             decoration: BoxDecoration(
-              color: hovered ? AppColors.hover : null,
-              borderRadius: BorderRadius.circular(4),
+              color: hovered
+                  ? colors['toolbar.hoverBackground']
+                  : Colors.transparent,
+              borderRadius: BorderRadius.circular(5),
             ),
             child: SvgPicture.asset(
               _copied ? _checkIcon : _copyIcon,
@@ -434,6 +460,7 @@ class _PinButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final accent = AppColors.accent;
+    final colors = themeColors;
     return IdeHover(
       message: pinned ? '取消置顶结论' : '置顶本轮关键结论',
       child: HoverBuilder(
@@ -441,13 +468,18 @@ class _PinButton extends StatelessWidget {
         builder: (context, hovered) => GestureDetector(
           onTap: onTap,
           behavior: HitTestBehavior.opaque,
-          child: Container(
-            padding: const EdgeInsets.all(3),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 120),
+            width: 22,
+            height: 22,
+            alignment: Alignment.center,
             decoration: BoxDecoration(
-              color: hovered
-                  ? AppColors.hover
-                  : (pinned ? accent.withValues(alpha: 0.14) : null),
-              borderRadius: BorderRadius.circular(4),
+              color: pinned
+                  ? accent.withValues(alpha: 0.14)
+                  : hovered
+                  ? colors['toolbar.hoverBackground']
+                  : Colors.transparent,
+              borderRadius: BorderRadius.circular(5),
             ),
             child: Icon(
               pinned ? Codicons.pinned : Codicons.pin,

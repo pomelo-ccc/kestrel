@@ -42,7 +42,7 @@ class _ThinkingSparkState extends State<ThinkingSpark> {
   bool _still = false;
 
   Duration get _frameTime => Duration(
-    microseconds: (28 * 1000 / PixelLoaderRole.agent.speed.value)
+    microseconds: (22 * 1000 / PixelLoaderRole.agent.speed.value)
         .round()
         .clamp(10000, 100000),
   );

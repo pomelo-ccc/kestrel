@@ -15,6 +15,7 @@ import '../../models/model_providers.dart';
 import '../../models/provider_health.dart';
 import '../../theme/app_theme.dart';
 import '../../theme/codicons.dart';
+import '../../theme/workbench_theme.dart' show themeColors;
 import '../chat_feed.dart';
 import '../chat_models.dart';
 import '../chat_session.dart';
@@ -55,11 +56,8 @@ class TurnSummaryData {
   int get totalRemoved =>
       editedFiles.fold(0, (sum, item) => sum + item.removed);
 
-  /// Whether this turn has enough activity to show the Turn Summary Card.
-  bool get hasNotableActivity =>
-      editedFiles.isNotEmpty ||
-      commandsRun > 0 ||
-      (worked != null && worked!.inSeconds >= 15);
+  /// Whether this turn modified files and should show the changed-files strip.
+  bool get hasNotableActivity => editedFiles.isNotEmpty;
 
   static TurnSummaryData collect(
     ChatFeed feed, {
@@ -132,77 +130,22 @@ class TurnSummaryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (!summary.hasNotableActivity) return const SizedBox.shrink();
-    final accent = AppColors.accent;
     final files = summary.editedFiles;
-    final worked = summary.worked;
+    if (files.isEmpty) return const SizedBox.shrink();
     return Padding(
-      padding: const EdgeInsets.only(top: 8, bottom: 2),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
-        decoration: BoxDecoration(
-          color: AppColors.bubbleFill.withValues(alpha: 0.65),
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(
-            color: AppColors.partBorder.withValues(alpha: 0.85),
+      padding: const EdgeInsets.only(top: 6, bottom: 2),
+      child: Wrap(
+        spacing: 6,
+        runSpacing: 5,
+        crossAxisAlignment: WrapCrossAlignment.center,
+        children: [
+          _BadgeChip(
+            icon: Codicons.diff,
+            text:
+                '变更 ${files.length} 个文件 (+${summary.totalAdded} / -${summary.totalRemoved})',
           ),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Wrap(
-              spacing: 10,
-              runSpacing: 4,
-              crossAxisAlignment: WrapCrossAlignment.center,
-              children: [
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Codicons.checkAll, size: 13, color: accent),
-                    const SizedBox(width: 5),
-                    Text(
-                      '本轮执行摘要',
-                      style: TextStyle(
-                        color: AppColors.text,
-                        fontSize: 11.5,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
-                ),
-                if (worked != null)
-                  _BadgeChip(
-                    icon: Codicons.watch,
-                    text: '耗时 ${AgentStep.formatDuration(worked)}',
-                  ),
-                if (files.isNotEmpty)
-                  _BadgeChip(
-                    icon: Codicons.diff,
-                    text:
-                        '修改 ${files.length} 个文件 (+${summary.totalAdded} / -${summary.totalRemoved})',
-                  ),
-                if (summary.commandsRun > 0)
-                  _BadgeChip(
-                    icon: Codicons.terminal,
-                    text: summary.commandsFailed > 0
-                        ? '执行 ${summary.commandsRun} 条命令 (${summary.commandsFailed} 失败)'
-                        : '执行 ${summary.commandsRun} 条命令',
-                  ),
-              ],
-            ),
-            if (files.isNotEmpty) ...[
-              const SizedBox(height: 6),
-              Wrap(
-                spacing: 6,
-                runSpacing: 5,
-                children: [
-                  for (final file in files) _EditedFilePill(file: file),
-                ],
-              ),
-            ],
-          ],
-        ),
+          for (final file in files) _EditedFilePill(file: file),
+        ],
       ),
     );
   }
@@ -327,8 +270,9 @@ class ProjectMemoryButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = themeColors;
     return IdeHover(
-      message: '🧠 记入项目记忆胶囊 (写入 CLAUDE.md 永久生效)',
+      message: '记入项目记忆 (写入 CLAUDE.md)',
       child: HoverBuilder(
         cursor: SystemMouseCursors.click,
         builder: (context, hovered) => GestureDetector(
@@ -342,11 +286,16 @@ class ProjectMemoryButton extends StatelessWidget {
             ),
           ),
           behavior: HitTestBehavior.opaque,
-          child: Container(
-            padding: const EdgeInsets.all(3),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 120),
+            width: 22,
+            height: 22,
+            alignment: Alignment.center,
             decoration: BoxDecoration(
-              color: hovered ? AppColors.hover : null,
-              borderRadius: BorderRadius.circular(4),
+              color: hovered
+                  ? colors['toolbar.hoverBackground']
+                  : Colors.transparent,
+              borderRadius: BorderRadius.circular(5),
             ),
             child: Icon(
               Codicons.book,
@@ -544,7 +493,7 @@ class _MemoryCapsuleDialogState extends State<_MemoryCapsuleDialog> {
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      '🧠 写入项目记忆胶囊 (CLAUDE.md)',
+                      '写入项目记忆 (CLAUDE.md)',
                       style: TextStyle(
                         color: AppColors.text,
                         fontSize: 14,
@@ -728,10 +677,11 @@ class _ExportTurnButtonState extends State<ExportTurnButton> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = themeColors;
     return IdeHover(
       message: _exported
-          ? '✅ 已导出 Markdown 笔记'
-          : '📤 导出本轮精美 Markdown（按住 Shift 点击导出整场会话 .md 文件）',
+          ? '已导出 Markdown 笔记'
+          : '导出本轮 Markdown（按住 Shift 点击导出整场会话 .md 文件）',
       child: HoverBuilder(
         cursor: SystemMouseCursors.click,
         builder: (context, hovered) => GestureDetector(
@@ -739,11 +689,16 @@ class _ExportTurnButtonState extends State<ExportTurnButton> {
             _export(fullSession: HardwareKeyboard.instance.isShiftPressed),
           ),
           behavior: HitTestBehavior.opaque,
-          child: Container(
-            padding: const EdgeInsets.all(3),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 120),
+            width: 22,
+            height: 22,
+            alignment: Alignment.center,
             decoration: BoxDecoration(
-              color: hovered ? AppColors.hover : null,
-              borderRadius: BorderRadius.circular(4),
+              color: hovered
+                  ? colors['toolbar.hoverBackground']
+                  : Colors.transparent,
+              borderRadius: BorderRadius.circular(5),
             ),
             child: Icon(
               _exported ? Codicons.check : Codicons.markdown,
@@ -913,7 +868,7 @@ class ModelPkButton extends StatelessWidget {
         final label = m.label?.trim().isNotEmpty == true ? m.label! : m.id;
         entries.add(
           IdeMenuAction(
-            '⚔️ ${provider.name} · $label$pingBadge',
+            '${provider.name} · $label$pingBadge',
             onSelected: () => onPickChallenger((
               providerName: provider.name,
               modelId: fullId,
@@ -927,7 +882,7 @@ class ModelPkButton extends StatelessWidget {
     if (entries.isEmpty) {
       entries.add(
         IdeMenuAction(
-          '⚔️ Claude Haiku (默认对照)',
+          'Claude Haiku (默认对照)',
           onSelected: () => onPickChallenger((
             providerName: 'Claude',
             modelId: 'haiku',
@@ -942,18 +897,24 @@ class ModelPkButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = themeColors;
     return IdeHover(
-      message: '⚔️ 换个模型同题对比 PK（并排盲测对比速度与回答质量）',
+      message: '同题模型对比（并排对比速度与回答质量）',
       child: HoverBuilder(
         cursor: SystemMouseCursors.click,
         builder: (context, hovered) => GestureDetector(
           onTap: () => unawaited(_openPicker(context)),
           behavior: HitTestBehavior.opaque,
-          child: Container(
-            padding: const EdgeInsets.all(3),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 120),
+            width: 22,
+            height: 22,
+            alignment: Alignment.center,
             decoration: BoxDecoration(
-              color: hovered ? AppColors.hover : null,
-              borderRadius: BorderRadius.circular(4),
+              color: hovered
+                  ? colors['toolbar.hoverBackground']
+                  : Colors.transparent,
+              borderRadius: BorderRadius.circular(5),
             ),
             child: Icon(
               Codicons.arrowSwap,
@@ -1079,7 +1040,7 @@ class _ModelPkComparisonCardState extends State<ModelPkComparisonCard> {
                 const SizedBox(width: 6),
                 Expanded(
                   child: Text(
-                    '⚔️ 同题模型并排 PK：当前回答 vs ${c.providerName} · ${c.modelLabel}',
+                    '同题模型对比：当前回答 vs ${c.providerName} · ${c.modelLabel}',
                     style: TextStyle(
                       color: AppColors.text,
                       fontSize: 12,
@@ -1124,7 +1085,7 @@ class _ModelPkComparisonCardState extends State<ModelPkComparisonCard> {
                 children: [
                   Expanded(
                     child: _PkColumnBox(
-                      title: '🅰️ 原模型回答 (${widget.originalAnswer.length} 字)',
+                      title: '当前模型回答 (${widget.originalAnswer.length} 字)',
                       body: widget.originalAnswer,
                     ),
                   ),
@@ -1132,11 +1093,11 @@ class _ModelPkComparisonCardState extends State<ModelPkComparisonCard> {
                   Expanded(
                     child: _PkColumnBox(
                       title:
-                          '🅱️ ${c.providerName} · ${c.modelLabel}${_duration != null ? ' (${(_duration!.inMilliseconds / 1000).toStringAsFixed(1)}s)' : ''}',
+                          '${c.providerName} · ${c.modelLabel}${_duration != null ? ' (${(_duration!.inMilliseconds / 1000).toStringAsFixed(1)}s)' : ''}',
                       body: _loading
                           ? '正在请求 ${c.providerName} · ${c.modelLabel} 同题作答…'
                           : (_error != null
-                                ? '❌ 请求失败：$_error'
+                                ? '请求失败：$_error'
                                 : (_challengerAnswer ?? '')),
                       loading: _loading,
                       highlighted: true,
