@@ -326,7 +326,7 @@ class AntigravityTransport implements ClaudeCodeTransport {
         });
       case 'interrupt':
         _interrupted = true;
-        unawaited(_stopProcess());
+        unawaited(_stopProcess(notifyActiveTurn: true));
         respondSuccess();
       case 'cancel_async_message':
         respondSuccess(const {'cancelled': true});
@@ -411,14 +411,14 @@ class AntigravityTransport implements ClaudeCodeTransport {
     return args;
   }
 
-  Future<Process> _ensureProcess() async {
+  Future<({Process process, bool reused})> _ensureProcess() async {
     if (_process != null &&
         _spawnedModel == _model &&
         _spawnedModeFlag == _effectiveModeFlag &&
         _spawnedEffort == _effort) {
-      return _process!;
+      return (process: _process!, reused: true);
     }
-    await _stopProcess();
+    await _stopProcess(notifyActiveTurn: false);
 
     final args = _buildArguments();
     final process = await Process.start(
@@ -461,10 +461,10 @@ class AntigravityTransport implements ClaudeCodeTransport {
       }),
     );
 
-    return process;
+    return (process: process, reused: false);
   }
 
-  Future<void> _stopProcess() async {
+  Future<void> _stopProcess({bool notifyActiveTurn = false}) async {
     final proc = _process;
     _process = null;
     final outSub = _stdoutSub;
@@ -480,7 +480,9 @@ class AntigravityTransport implements ClaudeCodeTransport {
     }
     await outSub?.cancel();
     await errSub?.cancel();
-    _activeTurn?.handleProcessExit(-1);
+    if (notifyActiveTurn) {
+      _activeTurn?.handleProcessExit(-1);
+    }
   }
 
   Future<void> _runUserTurn(Map<String, Object?> userMessage) async {
@@ -555,16 +557,35 @@ class AntigravityTransport implements ClaudeCodeTransport {
       'message': {'role': 'user', 'content': prompt},
     });
 
-    try {
-      var process = await _ensureProcess();
+    Future<bool> runOnce(_ActiveTurn active) async {
+      _activeTurn = active;
+      var (:process, :reused) = await _ensureProcess();
+      active.reusedProcess = reused;
       try {
         process.stdin.writeln(payload);
+        await process.stdin.flush();
       } on Object {
         // Stale or closed stdin pipe on reused process; respawn once.
-        await _stopProcess();
-        _activeTurn = turn;
-        process = await _ensureProcess();
+        await _stopProcess(notifyActiveTurn: false);
+        active.reusedProcess = false;
+        _activeTurn = active;
+        (:process, :reused) = await _ensureProcess();
         process.stdin.writeln(payload);
+        await process.stdin.flush();
+      }
+      await active.done.future;
+      return active.needsFreshRetry;
+    }
+
+    try {
+      final retry = await runOnce(turn);
+      if (retry && !_interrupted && !_closed) {
+        final freshTurn = _ActiveTurn(
+          transport: this,
+          turnId: turnId,
+          onConversationBound: turn.onConversationBound,
+        );
+        await runOnce(freshTurn);
       }
     } on ProcessException catch (error) {
       _activeTurn = null;
@@ -596,10 +617,7 @@ class AntigravityTransport implements ClaudeCodeTransport {
       return;
     }
 
-    await turn.done.future;
-    if (identical(_activeTurn, turn)) {
-      _activeTurn = null;
-    }
+    _activeTurn = null;
 
     _emit({
       'type': 'system',
@@ -920,7 +938,7 @@ class AntigravityTransport implements ClaudeCodeTransport {
     _closed = true;
     _interrupted = true;
     _live.remove(this);
-    unawaited(_stopProcess());
+    unawaited(_stopProcess(notifyActiveTurn: true));
     if (!_messages.isClosed) {
       _messages
         ..add(ClaudeExit.message(0, '', executable: executable))
@@ -948,6 +966,9 @@ class _ActiveTurn {
 
   final List<String> stderrLines = [];
   bool gotResult = false;
+  bool receivedAnyEvent = false;
+  bool reusedProcess = false;
+  bool needsFreshRetry = false;
   bool streamedAnyResponse = false;
   String? lastToolError;
 
@@ -1267,6 +1288,7 @@ class _ActiveTurn {
     }
     if (decoded is! Map) return;
     final event = decoded.cast<String, Object?>();
+    receivedAnyEvent = true;
     switch (event['event']) {
       case 'init':
         if (event['conversation_id'] case final String convId
@@ -1356,6 +1378,11 @@ class _ActiveTurn {
 
   void handleProcessExit(int exitCode) {
     if (done.isCompleted) return;
+    if (reusedProcess && !receivedAnyEvent && !transport._interrupted) {
+      needsFreshRetry = true;
+      done.complete();
+      return;
+    }
     for (final idx in [...stepMessageStarted.keys]) {
       finishStepMessage(idx);
     }
