@@ -68,6 +68,7 @@ import 'widgets/inline_rename_field.dart';
 import 'widgets/pixel_loader.dart';
 import 'widgets/plan_start.dart';
 import 'widgets/session_replay_player.dart';
+import 'widgets/turn_footer.dart' show SessionReplaySetting;
 
 /// Layout, top to bottom:
 /// - history + live turn: a virtual list that yields height;
@@ -1250,53 +1251,81 @@ class _ChatScreenState extends State<ChatScreen>
       backgroundColor: island == null && !IslandSurface.on(context)
           ? null
           : Colors.transparent,
-      body: Column(
+      body: Stack(
         children: [
-          // The row the window's header leaves it (macOS draws a title bar
-          // of its own over it; see AppMetrics): its title there, but on a
-          // card, which has it along its top. Under Windows' header, none
-          // over a card.
-          if (titled &&
-              (island == null ||
-                  !WindowControls.drawsHeader && widget.rowOverCard))
-            _buildTitleBar(title: island == null),
-          // Its card even with no row under it (the terminal's then).
-          if (island == null && footer == 0)
-            ...conversation
-          else ...[
-            Expanded(
-              child: island == null
-                  ? Column(children: conversation)
-                  : Island(
-                      color: island,
-                      borderColor: widget.islandBorder,
-                      child: Column(
-                        children: [
-                          if (titled) _buildCardHeader(),
-                          ...conversation,
-                        ],
+          Column(
+            children: [
+              // The row the window's header leaves it (macOS draws a title bar
+              // of its own over it; see AppMetrics): its title there, but on a
+              // card, which has it along its top. Under Windows' header, none
+              // over a card.
+              if (titled &&
+                  (island == null ||
+                      !WindowControls.drawsHeader && widget.rowOverCard))
+                _buildTitleBar(title: island == null),
+              // Its card even with no row under it (the terminal's then).
+              if (island == null && footer == 0)
+                ...conversation
+              else ...[
+                Expanded(
+                  child: island == null
+                      ? Column(children: conversation)
+                      : Island(
+                          color: island,
+                          borderColor: widget.islandBorder,
+                          child: Column(
+                            children: [
+                              if (titled) _buildCardHeader(),
+                              ...conversation,
+                            ],
+                          ),
+                        ),
+                ),
+                if (footer > 0)
+                  // Under the card, at the composer's width: the row there with
+                  // nothing in it too, the card's foot where the side panel's is.
+                  // What the place it is in has after it (the IDE's status
+                  // bar's right items) is told how wide it is.
+                  SizedBox(
+                    height: footer,
+                    child: _ConversationColumn(
+                      maxWidth: _maxContentWidth,
+                      minimap: false,
+                      inset: Islands.inset,
+                      bottom: 0,
+                      child: Align(
+                        alignment: Alignment.centerLeft,
+                        child: IslandFootTrailing.leading(
+                          context,
+                          _buildFoot(),
+                        ),
                       ),
                     ),
-            ),
-            if (footer > 0)
-              // Under the card, at the composer's width: the row there with
-              // nothing in it too, the card's foot where the side panel's is.
-              // What the place it is in has after it (the IDE's status
-              // bar's right items) is told how wide it is.
-              SizedBox(
-                height: footer,
-                child: _ConversationColumn(
-                  maxWidth: _maxContentWidth,
-                  minimap: false,
-                  inset: Islands.inset,
-                  bottom: 0,
-                  child: Align(
-                    alignment: Alignment.centerLeft,
-                    child: IslandFootTrailing.leading(context, _buildFoot()),
+                  ),
+              ],
+            ],
+          ),
+          if (_contextPanelOpen && _agentShown == null)
+            if (_session.context case final usage?)
+              Positioned(
+                right: 12,
+                bottom: footer > 0
+                    ? footer + 6
+                    : (_footOnCard ? Islands.belowHeight + 6 : 56),
+                child: TapRegion(
+                  groupId: ContextMeter.tapRegionGroupId,
+                  onTapOutside: (_) {
+                    if (_contextPanelOpen) _toggleContextPanel();
+                  },
+                  child: ContextUsagePanel(
+                    usage: usage,
+                    stats: _session.stats,
+                    session: _session,
+                    popover: true,
+                    onClose: _toggleContextPanel,
                   ),
                 ),
               ),
-          ],
         ],
       ),
     );
@@ -1659,16 +1688,6 @@ class _ChatScreenState extends State<ChatScreen>
               onDismiss: _session.dismissGoal,
             ),
             null => null,
-          },
-        ),
-        _PanelSlot(
-          child: switch (_session.context) {
-            final usage? when _contextPanelOpen => ContextUsagePanel(
-              usage: usage,
-              stats: _session.stats,
-              onClose: _toggleContextPanel,
-            ),
-            _ => null,
           },
         ),
         // Last over the composer: what is sent next.
@@ -2149,6 +2168,7 @@ class _SpeedAndTokenBadgeState extends State<_SpeedAndTokenBadge> {
         ProviderHealthMonitor.instance,
         AttentionVoiceSetting.enabled,
         NotchDropzone.pipEnabled,
+        ?SessionReplaySetting.changes,
       ]),
       builder: (context, _) {
         final streaming = widget.session.isStreaming;
@@ -2157,7 +2177,8 @@ class _SpeedAndTokenBadgeState extends State<_SpeedAndTokenBadge> {
         final todayTotal = SessionSpeedTracker.todayEstimatedTokens + used;
         final voiceOn = AttentionVoiceSetting.enabled.value;
         final pipOn = NotchDropzone.pipEnabled.value;
-        final hasItems = widget.session.itemCount > 0;
+        final hasItems =
+            widget.session.itemCount > 0 && SessionReplaySetting.current();
         final String? label;
         if (streaming && speed > 0) {
           label = '⚡ ${speed.toStringAsFixed(1)} tok/s';

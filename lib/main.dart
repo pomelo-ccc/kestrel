@@ -26,7 +26,8 @@ import 'chat/user_message_style.dart';
 import 'chat/widgets/chat_minimap.dart';
 import 'chat/widgets/pixel_loader.dart';
 import 'chat/resume_after_reset.dart';
-import 'chat/widgets/turn_footer.dart' show LiveTurnStatsSetting;
+import 'chat/widgets/turn_footer.dart'
+    show LiveTurnStatsSetting, SessionReplaySetting;
 import 'customize/customization_store.dart';
 import 'diagnostics/app_event_watch.dart';
 import 'diagnostics/crash_reports.dart';
@@ -490,6 +491,11 @@ void followSettingsFiles(SettingsFiles files) {
     files.settings[LiveTurnStatsSetting.settingKey],
   );
   LiveTurnStatsSetting.changes = files.settings;
+  // Session Replay button in the bottom status bar, shown or not as it changes.
+  SessionReplaySetting.current = () => SessionReplaySetting.enabled(
+    files.settings[SessionReplaySetting.settingKey],
+  );
+  SessionReplaySetting.changes = files.settings;
   // An agent stopped at the usage limit: whether it goes on once it
   // resets, set in the model picker.
   ResumeAfterResetSetting.current = () => ResumeAfterResetSetting.enabled(

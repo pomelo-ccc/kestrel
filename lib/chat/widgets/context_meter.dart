@@ -36,6 +36,9 @@ class ContextMeter extends StatelessWidget {
   /// How full the context is when the label warns.
   static const warnAt = 0.8;
 
+  /// Shared TapRegion group ID between [ContextMeter] and [ContextUsagePanel].
+  static const tapRegionGroupId = 'context-usage-popover';
+
   /// [tokens] short: `1.2M`, `100K`, `12.5K`, `800`.
   static String format(int tokens) {
     String short(double value) => value >= 100 || value == value.roundToDouble()
@@ -65,49 +68,54 @@ class ContextMeter extends StatelessWidget {
         ),
       ),
     );
-    return IdeHover(
-      message: tooltip,
-      child: HoverBuilder(
-        cursor: SystemMouseCursors.click,
-        builder: (context, hovered) => GestureDetector(
-          onTap: onTap,
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 120),
-            width: labeled ? null : 23,
-            height: 22,
-            padding: labeled
-                ? const EdgeInsets.symmetric(horizontal: 6)
-                : EdgeInsets.zero,
-            // The ring keeps its square: the box is taller than it.
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              color: active
-                  ? colors['toolbar.activeBackground']
-                  : hovered
-                  ? colors['toolbar.hoverBackground']
-                  : Colors.transparent,
-              borderRadius: BorderRadius.circular(5),
-            ),
-            child: labeled
-                ? Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      ring,
-                      const SizedBox(width: 5),
-                      Text(
-                        usage.window == 0
-                            ? format(usage.used)
-                            : '${format(usage.used)} / ${format(usage.window)}',
-                        maxLines: 1,
-                        style: TextStyle(
-                          color: warn ? AppColors.caution : AppColors.textFaint,
-                          fontSize: 12,
-                          fontFeatures: const [FontFeature.tabularFigures()],
+    return TapRegion(
+      groupId: tapRegionGroupId,
+      child: IdeHover(
+        message: tooltip,
+        child: HoverBuilder(
+          cursor: SystemMouseCursors.click,
+          builder: (context, hovered) => GestureDetector(
+            onTap: onTap,
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 120),
+              width: labeled ? null : 23,
+              height: 22,
+              padding: labeled
+                  ? const EdgeInsets.symmetric(horizontal: 6)
+                  : EdgeInsets.zero,
+              // The ring keeps its square: the box is taller than it.
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: active
+                    ? colors['toolbar.activeBackground']
+                    : hovered
+                    ? colors['toolbar.hoverBackground']
+                    : Colors.transparent,
+                borderRadius: BorderRadius.circular(5),
+              ),
+              child: labeled
+                  ? Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        ring,
+                        const SizedBox(width: 5),
+                        Text(
+                          usage.window == 0
+                              ? format(usage.used)
+                              : '${format(usage.used)} / ${format(usage.window)}',
+                          maxLines: 1,
+                          style: TextStyle(
+                            color: warn
+                                ? AppColors.caution
+                                : AppColors.textFaint,
+                            fontSize: 12,
+                            fontFeatures: const [FontFeature.tabularFigures()],
+                          ),
                         ),
-                      ),
-                    ],
-                  )
-                : ring,
+                      ],
+                    )
+                  : ring,
+            ),
           ),
         ),
       ),

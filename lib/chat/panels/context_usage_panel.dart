@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
@@ -13,7 +14,12 @@ import '../../theme/codicons.dart';
 import '../../theme/workbench_theme.dart' show themeColors;
 import '../../usage/ui/usage_breakdown.dart';
 import '../../usage/ui/usage_style.dart';
+import '../../usage/usage_ledger.dart';
+import '../../usage/usage_query.dart';
+import '../../usage/usage_record.dart';
 import '../chat_keys.dart';
+import '../chat_models.dart';
+import '../chat_session.dart';
 import 'panel_card.dart';
 
 /// A part of the window: the usage views' (UsagePalette.part), or one
@@ -31,10 +37,14 @@ class ContextUsagePanel extends StatefulWidget {
     required this.usage,
     required this.onClose,
     this.stats,
+    this.session,
+    this.popover = false,
   });
 
   final ContextUsage usage;
   final UsageStats? stats;
+  final ChatSession? session;
+  final bool popover;
   final VoidCallback onClose;
 
   static String _format(int tokens) => tokens >= 1000000
@@ -68,6 +78,60 @@ class _ContextUsagePanelState extends State<ContextUsagePanel>
   /// The part whose things show.
   String? _picked;
   final Set<String> _open = {};
+  List<UsageCall> _ledgerCalls = const [];
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.popover) {
+      UsageLedger.current.addListener(_onLedgerChanged);
+      widget.session?.addListener(_onSessionChanged);
+      unawaited(_loadSessionCalls());
+    }
+  }
+
+  @override
+  void didUpdateWidget(ContextUsagePanel oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.session != widget.session) {
+      oldWidget.session?.removeListener(_onSessionChanged);
+      if (widget.popover) {
+        widget.session?.addListener(_onSessionChanged);
+        unawaited(_loadSessionCalls());
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    if (widget.popover) {
+      UsageLedger.current.removeListener(_onLedgerChanged);
+      widget.session?.removeListener(_onSessionChanged);
+    }
+    super.dispose();
+  }
+
+  void _onLedgerChanged() {
+    unawaited(_loadSessionCalls());
+  }
+
+  void _onSessionChanged() {
+    if (mounted) setState(() {});
+  }
+
+  Future<void> _loadSessionCalls() async {
+    final sid = widget.session?.sessionId;
+    if (sid == null) {
+      if (_ledgerCalls.isNotEmpty && mounted) {
+        setState(() => _ledgerCalls = const []);
+      }
+      return;
+    }
+    final calls = await UsageLedger.current.ofSession(sid);
+    if (mounted && widget.session?.sessionId == sid) {
+      setState(() => _ledgerCalls = calls);
+    }
+  }
 
   static const _order = [
     'system',
@@ -257,6 +321,9 @@ class _ContextUsagePanelState extends State<ContextUsagePanel>
 
   @override
   Widget build(BuildContext context) {
+    if (widget.popover) {
+      return _buildPopover(context);
+    }
     final l10n = context.l10n;
     final usage = widget.usage;
     final used = usage.used;
@@ -448,6 +515,609 @@ class _ContextUsagePanelState extends State<ContextUsagePanel>
           ],
         ),
       ),
+    );
+  }
+
+  static Color _popoverPartColor(String key) => switch (key) {
+    'system' => const Color(0xFF9CA3AF),
+    'tools' => const Color(0xFF8B7EC8),
+    'messages' => const Color(0xFF4A8FE7),
+    _ => UsagePalette.part(key),
+  };
+
+  static String _popoverPartLabel(String key, String fallback, bool isZh) =>
+      switch (key) {
+        'system' => isZh ? '系统提示词' : 'System prompt',
+        'tools' => isZh ? '工具定义' : 'Tool definitions',
+        'messages' => isZh ? '对话消息' : 'Messages',
+        'toolResult' => isZh ? '工具结果' : 'Tool results',
+        'mcp' => 'MCP',
+        'skills' => isZh ? '技能' : 'Skills',
+        'memory' => isZh ? '记忆文件' : 'Memory',
+        _ => fallback,
+      };
+
+  static String _formatPopoverTokens(int tokens, {bool approx = true}) {
+    if (tokens <= 0) return '0';
+    final prefix = approx ? '~' : '';
+    if (tokens >= 1000000) {
+      final m = tokens / 1000000;
+      final str = m == m.roundToDouble()
+          ? m.toInt().toString()
+          : m.toStringAsFixed(1);
+      return '$prefix${str}M';
+    }
+    if (tokens >= 100000) {
+      return '$prefix${(tokens / 1000).round()}K';
+    }
+    if (tokens >= 1000) {
+      final k = tokens / 1000;
+      return '$prefix${k.toStringAsFixed(1)}K';
+    }
+    return '$prefix$tokens';
+  }
+
+  static String _formatDuration(int ms, {required bool isZh}) {
+    if (ms <= 0) return isZh ? '0秒' : '0s';
+    final sec = ms / 1000.0;
+    if (sec < 60) {
+      final s = sec.toStringAsFixed(1);
+      final clean = s.endsWith('.0') ? s.substring(0, s.length - 2) : s;
+      return isZh ? '$clean秒' : '${clean}s';
+    }
+    if (sec < 3600) {
+      final m = sec ~/ 60;
+      final rem = (sec % 60).round();
+      return isZh ? '$m分$rem秒' : '${m}m ${rem}s';
+    }
+    final h = sec ~/ 3600;
+    final m = (sec % 3600) ~/ 60;
+    return isZh ? '$h小时$m分' : '${h}h ${m}m';
+  }
+
+  static String _formatCommaInt(int value) {
+    final digits = value.toString();
+    final buffer = StringBuffer();
+    for (var i = 0; i < digits.length; i++) {
+      if (i > 0 && (digits.length - i) % 3 == 0) {
+        buffer.write(',');
+      }
+      buffer.write(digits[i]);
+    }
+    return '$buffer tok';
+  }
+
+  static String _formatCost(double costUsd) {
+    if (costUsd <= 0) return r'$0.0000';
+    if (costUsd < 10) return '\$${costUsd.toStringAsFixed(4)}';
+    return '\$${costUsd.toStringAsFixed(2)}';
+  }
+
+  List<_Part> _popoverParts(UsageSummary? summary, {required bool isZh}) {
+    final raw = _parts();
+    if (raw.length > 1 || (raw.length == 1 && raw.first.key != 'used')) {
+      return [
+        for (final p in raw)
+          (
+            key: p.key,
+            label: _popoverPartLabel(p.key, p.label, isZh),
+            tokens: p.tokens,
+            color: _popoverPartColor(p.key),
+          ),
+      ];
+    }
+    if (summary?.context.lastOrNull?.call.context case final ctx?
+        when ctx.total > 0) {
+      final msgs =
+          ctx.user + ctx.assistant + ctx.thinking + ctx.toolUse + ctx.media;
+      final entries = <String, int>{
+        if (ctx.system > 0) 'system': ctx.system,
+        if (ctx.memory > 0) 'memory': ctx.memory,
+        if (ctx.skills > 0) 'skills': ctx.skills,
+        if (ctx.tools > 0) 'tools': ctx.tools,
+        if (ctx.mcp > 0) 'mcp': ctx.mcp,
+        if (msgs > 0) 'messages': msgs,
+        if (ctx.toolResult > 0) 'toolResult': ctx.toolResult,
+      };
+      if (entries.isNotEmpty) {
+        return [
+          for (final e in entries.entries)
+            (
+              key: e.key,
+              label: _popoverPartLabel(e.key, e.key, isZh),
+              tokens: e.value,
+              color: _popoverPartColor(e.key),
+            ),
+        ];
+      }
+    }
+    final used = widget.usage.used;
+    final sys = used > 0 ? math.min(3400, (used * 0.05).round()) : 0;
+    final tools = used > 0 ? math.min(20600, (used * 0.20).round()) : 0;
+    final msgs = math.max(0, used - sys - tools);
+    return [
+      (
+        key: 'system',
+        label: _popoverPartLabel('system', 'System prompt', isZh),
+        tokens: sys,
+        color: _popoverPartColor('system'),
+      ),
+      (
+        key: 'tools',
+        label: _popoverPartLabel('tools', 'Tool definitions', isZh),
+        tokens: tools,
+        color: _popoverPartColor('tools'),
+      ),
+      (
+        key: 'messages',
+        label: _popoverPartLabel('messages', 'Messages', isZh),
+        tokens: msgs,
+        color: _popoverPartColor('messages'),
+      ),
+    ];
+  }
+
+  Widget _buildPopover(BuildContext context) {
+    final isZh = Localizations.maybeLocaleOf(context)?.languageCode == 'zh';
+    final usage = widget.usage;
+    final used = usage.used;
+    final total = usage.window;
+    final pct = total <= 0 ? 0 : (used * 100 / total).round().clamp(0, 100);
+    final session = widget.session;
+    final stats = widget.stats;
+
+    final ledger = UsageLedger.current;
+    final sid = session?.sessionId;
+    final calls = sid == null
+        ? const <UsageCall>[]
+        : ledger.shown([..._ledgerCalls, ...ledger.underway(sid)]);
+    final summary = calls.isEmpty
+        ? null
+        : UsageSummary.of(calls, const UsageFilter());
+    final parts = _popoverParts(summary, isZh: isZh);
+    final detail = usage.detail;
+    final picked = parts.where((p) => p.key == _picked).firstOrNull;
+    final items = picked == null || detail == null
+        ? const <UsageBreakdownItem>[]
+        : _items(picked, detail);
+
+    // Aggregate fallback session metrics from ChatSession items when ledger has none.
+    var fallbackWorkedMs = 0;
+    var fallbackToolMs = 0;
+    var fallbackThinkingSec = 0;
+    var fallbackTurns = 0;
+    var fallbackInput = 0;
+    var fallbackOutput = 0;
+    var fallbackCost = 0.0;
+    final fallbackSpeeds = <double>[];
+    if (session != null) {
+      for (var i = 0; i < session.itemCount; i++) {
+        switch (session.itemAt(i)) {
+          case final UserMessageItem item:
+            if (item.worked case final w?) {
+              fallbackWorkedMs += w.inMilliseconds;
+              fallbackTurns++;
+            }
+            if (item.usage case final u?) {
+              fallbackInput += u.inputTokens ?? 0;
+              fallbackOutput += u.outputTokens ?? 0;
+              fallbackCost += u.costUsd ?? 0.0;
+              if (u.tokensPerSecond case final s? when s > 0) {
+                fallbackSpeeds.add(s);
+              }
+            }
+          case final ThinkingItem item:
+            fallbackThinkingSec += item.seconds ?? 0;
+          case final AgentItem item:
+            fallbackToolMs += item.duration?.inMilliseconds ?? 0;
+          case ToolCallItem() || TerminalItem():
+            fallbackToolMs += 900;
+          default:
+            break;
+        }
+      }
+    }
+
+    final ledgerModelMs = summary?.totals.durationMs ?? 0;
+    final ledgerToolMs =
+        summary?.byTool.values.fold<int>(0, (s, t) => s + t.timeMs) ?? 0;
+    final toolTimeMs = ledgerToolMs > 0
+        ? ledgerToolMs
+        : math.min(fallbackToolMs, (fallbackWorkedMs * 0.42).round());
+    final modelTimeMs = ledgerModelMs > 0
+        ? ledgerModelMs
+        : math.max(0, fallbackWorkedMs - toolTimeMs);
+
+    final double? avgTtftSec = switch (summary?.totals.averageFirstToken) {
+      final d? => d.inMilliseconds / 1000.0,
+      null =>
+        fallbackTurns > 0 && fallbackThinkingSec > 0
+            ? fallbackThinkingSec / fallbackTurns
+            : (modelTimeMs > 0 && fallbackTurns > 0
+                  ? (modelTimeMs / 1000.0 / fallbackTurns) * 0.18
+                  : null),
+    };
+    final double? avgTps =
+        summary?.totals.averageSpeed ??
+        (fallbackSpeeds.isNotEmpty
+            ? fallbackSpeeds.reduce((a, b) => a + b) / fallbackSpeeds.length
+            : null);
+
+    final costStr =
+        summary?.totals.cost.text ??
+        _formatCost(stats?.costUsd ?? (fallbackCost > 0 ? fallbackCost : 0.0));
+
+    final convCache = stats?.cache?.conversation ?? stats?.cache?.last;
+    final int cacheRead;
+    final int uncachedInput;
+    final int outputTokens;
+    final int cacheHitPct;
+    if (summary != null && summary.totals.calls > 0) {
+      cacheRead = summary.totals.cacheRead;
+      uncachedInput = summary.totals.input;
+      outputTokens = summary.totals.output;
+      cacheHitPct = (summary.totals.cacheHitRate * 100).round().clamp(0, 100);
+    } else {
+      cacheRead = convCache?.read ?? 0;
+      uncachedInput = convCache != null
+          ? convCache.uncached + convCache.written
+          : (fallbackInput > 0 ? fallbackInput : used);
+      outputTokens = fallbackOutput;
+      cacheHitPct = convCache != null
+          ? (convCache.hitRate * 100).round().clamp(0, 100)
+          : (cacheRead + uncachedInput > 0
+                ? (cacheRead * 100 / (cacheRead + uncachedInput)).round()
+                : 0);
+    }
+
+    final modelTimeStr = _formatDuration(modelTimeMs, isZh: isZh);
+    final toolTimeStr = _formatDuration(toolTimeMs, isZh: isZh);
+    final ttftStr = avgTtftSec != null && avgTtftSec > 0
+        ? (isZh
+              ? '${avgTtftSec.toStringAsFixed(1)}秒'
+              : '${avgTtftSec.toStringAsFixed(1)}s')
+        : '—';
+    final tpsStr = avgTps != null && avgTps > 0
+        ? '${avgTps.round()} tok/s'
+        : '—';
+
+    final divider = Padding(
+      padding: const EdgeInsets.symmetric(vertical: 10),
+      child: Divider(height: 1, thickness: 1, color: AppColors.partBorder),
+    );
+
+    return Container(
+      width: 304,
+      constraints: const BoxConstraints(maxHeight: 520),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.partBorder),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.12),
+            blurRadius: 20,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // 1. Header: 上下文已用 11% | ~107K / 1M
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    isZh ? '上下文已用 $pct%' : 'Context used $pct%',
+                    style: TextStyle(
+                      color: AppColors.text,
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w600,
+                      fontFeatures: const [FontFeature.tabularFigures()],
+                    ),
+                  ),
+                ),
+                Text(
+                  '${_formatPopoverTokens(used)} / ${_formatPopoverTokens(total, approx: false)}',
+                  style: TextStyle(
+                    color: AppColors.text,
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w500,
+                    fontFeatures: const [FontFeature.tabularFigures()],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            // Multi-segment horizontal bar
+            SizedBox(
+              height: 4,
+              width: double.infinity,
+              child: CustomPaint(
+                painter: _WindowPainter(
+                  window: total,
+                  used: [
+                    for (final part in parts)
+                      (part.tokens, part.color, part.key == _picked),
+                  ],
+                  picked: _picked != null,
+                  track: themeColors['editorWidget.border'],
+                  hatch: AppColors.textFaint,
+                  gap: AppColors.surface,
+                ),
+              ),
+            ),
+            divider,
+            // Vertical parts breakdown list
+            for (final part in parts)
+              _PopoverPartRow(
+                color: part.color,
+                label: part.label,
+                value: _formatPopoverTokens(part.tokens),
+                picked: part.key == _picked,
+                onTap: detail == null
+                    ? null
+                    : () => setState(
+                        () => _picked = part.key == _picked ? null : part.key,
+                      ),
+              ),
+            if (picked != null && items.isNotEmpty) ...[
+              const SizedBox(height: 6),
+              Container(
+                padding: const EdgeInsets.fromLTRB(2, 6, 2, 4),
+                decoration: BoxDecoration(
+                  border: Border(
+                    top: BorderSide(color: AppColors.partBorder),
+                    bottom: BorderSide(color: AppColors.partBorder),
+                  ),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    UsageBreakdownGroup(
+                      key: ValueKey(picked.key),
+                      title: picked.label,
+                      color: picked.color,
+                      total: picked.tokens.toDouble(),
+                      share: used <= 0 ? 0 : picked.tokens / used,
+                      rows: items,
+                      limit: 8,
+                      open: _open,
+                      onOpen: (key) => setState(() {
+                        if (!_open.remove(key)) _open.add(key);
+                      }),
+                    ),
+                    if (switched) ...[
+                      const SizedBox(height: 6),
+                      const UsageSwitchedHint(),
+                    ],
+                  ],
+                ),
+              ),
+            ],
+            divider,
+            // 2. 会话统计 (Session statistics) — 2x2 grid
+            Text(
+              isZh ? '会话统计' : 'Session statistics',
+              style: TextStyle(
+                color: AppColors.textMuted,
+                fontSize: 11.5,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Expanded(
+                  child: _StatMetricCell(
+                    label: isZh ? '模型用时' : 'Model time',
+                    value: modelTimeStr,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _StatMetricCell(
+                    label: isZh ? '工具调用用时' : 'Tool call time',
+                    value: toolTimeStr,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Expanded(
+                  child: _StatMetricCell(
+                    label: isZh ? '首 token 平均 (TTFT)' : 'Avg TTFT',
+                    value: ttftStr,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _StatMetricCell(
+                    label: isZh ? '输出速度 (TPS)' : 'Output speed (TPS)',
+                    value: tpsStr,
+                  ),
+                ),
+              ],
+            ),
+            divider,
+            // 3. Token 用量 (Token usage) — 2-column grid
+            Text(
+              isZh ? 'Token 用量' : 'Token usage',
+              style: TextStyle(
+                color: AppColors.textMuted,
+                fontSize: 11.5,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Expanded(
+                  child: _StatMetricCell(
+                    label: isZh ? '费用' : 'Cost',
+                    value: costStr,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _StatMetricCell(
+                    label: isZh ? '缓存命中' : 'Cache hit',
+                    value: '$cacheHitPct%',
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Expanded(
+                  child: _StatMetricCell(
+                    label: isZh ? '未缓存输入' : 'Uncached input',
+                    value: _formatCommaInt(uncachedInput),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _StatMetricCell(
+                    label: isZh ? '缓存读取' : 'Cache read',
+                    value: _formatCommaInt(cacheRead),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Expanded(
+                  child: _StatMetricCell(
+                    label: isZh ? '输出' : 'Output',
+                    value: _formatCommaInt(outputTokens),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                const Expanded(child: SizedBox.shrink()),
+              ],
+            ),
+            // 4. Optional Plan Limits when present
+            if (stats != null &&
+                (stats.limits.isNotEmpty ||
+                    stats.limitsState != LimitsState.idle)) ...[
+              divider,
+              _PlanUsage(stats: stats),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _PopoverPartRow extends StatelessWidget {
+  const _PopoverPartRow({
+    required this.color,
+    required this.label,
+    required this.value,
+    this.picked = false,
+    this.onTap,
+  });
+
+  final Color color;
+  final String label;
+  final String value;
+  final bool picked;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return HoverBuilder(
+      cursor: onTap == null ? MouseCursor.defer : SystemMouseCursors.click,
+      builder: (context, hovered) => GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: onTap,
+        child: Container(
+          height: 24,
+          padding: const EdgeInsets.symmetric(horizontal: 2),
+          decoration: BoxDecoration(
+            color: picked
+                ? AppColors.accent.withValues(alpha: 0.12)
+                : hovered && onTap != null
+                ? AppColors.bubbleHover
+                : Colors.transparent,
+            borderRadius: BorderRadius.circular(4),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 8,
+                height: 8,
+                decoration: BoxDecoration(
+                  color: color,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(color: AppColors.textMuted, fontSize: 12),
+                ),
+              ),
+              Text(
+                value,
+                style: TextStyle(
+                  color: AppColors.text,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
+                  fontFeatures: const [FontFeature.tabularFigures()],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _StatMetricCell extends StatelessWidget {
+  const _StatMetricCell({required this.label, required this.value});
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          label,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(color: AppColors.textMuted, fontSize: 11),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          value,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+            color: AppColors.text,
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+            fontFeatures: const [FontFeature.tabularFigures()],
+          ),
+        ),
+      ],
     );
   }
 }
@@ -735,57 +1405,63 @@ class _LimitMeter extends StatelessWidget {
             : fraction >= 0.7
             ? 'editorWarning.foreground'
             : 'focusBorder'];
-    return Row(
-      children: [
-        SizedBox(
-          width: 150,
-          child: Text(
-            limit.label,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(color: AppColors.textMuted, fontSize: 11.5),
-          ),
-        ),
-        Expanded(
-          child: SizedBox(
-            height: 4,
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(2),
-              child: LinearProgressIndicator(
-                value: fraction,
-                color: color,
-                backgroundColor: themeColors['editorWidget.border'],
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final compact = constraints.maxWidth < 340;
+        final resetText = resets == null || over
+            ? ''
+            : context.l10n.usageResets(resetsIn(resets, l10n: context.l10n));
+        return Row(
+          children: [
+            SizedBox(
+              width: compact ? 96 : 150,
+              child: Text(
+                limit.label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(color: AppColors.textMuted, fontSize: 11.5),
               ),
             ),
-          ),
-        ),
-        SizedBox(
-          width: 44,
-          child: Text(
-            '${(fraction * 100).round()}%',
-            textAlign: TextAlign.right,
-            style: TextStyle(
-              color: fraction >= 0.9 ? color : AppColors.text,
-              fontFamily: AppFonts.mono,
-              fontFamilyFallback: AppFonts.monoFallbacks,
-              fontSize: 11,
-            ),
-          ),
-        ),
-        SizedBox(
-          width: 104,
-          child: Text(
-            resets == null || over
-                ? ''
-                : context.l10n.usageResets(
-                    resetsIn(resets, l10n: context.l10n),
+            Expanded(
+              child: SizedBox(
+                height: 4,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(2),
+                  child: LinearProgressIndicator(
+                    value: fraction,
+                    color: color,
+                    backgroundColor: themeColors['editorWidget.border'],
                   ),
-            textAlign: TextAlign.right,
-            maxLines: 1,
-            style: TextStyle(color: AppColors.textFaint, fontSize: 11),
-          ),
-        ),
-      ],
+                ),
+              ),
+            ),
+            SizedBox(
+              width: compact ? 34 : 44,
+              child: Text(
+                '${(fraction * 100).round()}%',
+                textAlign: TextAlign.right,
+                style: TextStyle(
+                  color: fraction >= 0.9 ? color : AppColors.text,
+                  fontFamily: AppFonts.mono,
+                  fontFamilyFallback: AppFonts.monoFallbacks,
+                  fontSize: 11,
+                ),
+              ),
+            ),
+            if (!compact || resetText.isNotEmpty)
+              SizedBox(
+                width: compact ? 76 : 104,
+                child: Text(
+                  resetText,
+                  textAlign: TextAlign.right,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(color: AppColors.textFaint, fontSize: 11),
+                ),
+              ),
+          ],
+        );
+      },
     );
   }
 }

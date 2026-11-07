@@ -41,6 +41,23 @@ abstract final class LiveTurnStatsSetting {
   static Listenable? changes;
 }
 
+/// Whether the bottom status bar shows the Session Replay button
+/// (`chat.sessionReplay`), on unless set to false.
+abstract final class SessionReplaySetting {
+  static const settingKey = 'chat.sessionReplay';
+
+  /// Written when off; on, the setting is left out.
+  static const off = false;
+
+  /// On unless set to false.
+  static bool enabled(Object? setting) => setting != false;
+
+  /// The setting as it is now, and what tells it changed; main() points
+  /// them at settings.json.
+  static bool Function() current = () => true;
+  static Listenable? changes;
+}
+
 /// Under a finished turn: a button to copy its answer, then, faint, how
 /// long the turn took, how fast the model wrote, what it cost and the
 /// tokens it used, as far as known. Out of the history's selection.

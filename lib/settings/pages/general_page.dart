@@ -13,7 +13,8 @@ import '../../kernel/claude_code/claude_path_setting.dart';
 import '../../kernel/commit_attribution.dart';
 import '../../kernel/prompt_suggestions.dart';
 import '../../chat/composer/composer_polish.dart' show ComposerPolishSetting;
-import '../../chat/widgets/turn_footer.dart' show LiveTurnStatsSetting;
+import '../../chat/widgets/turn_footer.dart'
+    show LiveTurnStatsSetting, SessionReplaySetting;
 import '../../kernel/queued_messages.dart';
 import '../../l10n/l10n.dart';
 import '../../platform/app_platform.dart';
@@ -384,6 +385,22 @@ class GeneralSettingsPage extends StatelessWidget {
                   onChanged: (on) => _write(
                     LiveTurnStatsSetting.settingKey,
                     on ? null : LiveTurnStatsSetting.off,
+                  ),
+                ),
+                SettingsSwitchRow(
+                  label: Localizations.localeOf(context).languageCode == 'zh'
+                      ? '显示会话时间轴回放'
+                      : 'Show Session Replay',
+                  description:
+                      Localizations.localeOf(context).languageCode == 'zh'
+                      ? '在底部状态栏显示会话沉浸式时间轴回放（Session Replay）入口'
+                      : 'Show the Session Replay button in the bottom status bar',
+                  value: SessionReplaySetting.enabled(
+                    settings?[SessionReplaySetting.settingKey],
+                  ),
+                  onChanged: (on) => _write(
+                    SessionReplaySetting.settingKey,
+                    on ? null : SessionReplaySetting.off,
                   ),
                 ),
               ],
