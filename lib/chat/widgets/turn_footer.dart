@@ -250,7 +250,8 @@ class _TurnFooterState extends State<TurnFooter> {
 
 /// The turn under way's figures, changing as it goes, all as wide and
 /// rolling: the line keeps still. The speed to two decimals; the time
-/// counted on each second.
+/// counted with a 10fps sub-second chronograph, radar dial, and live stage
+/// telemetry.
 class _LiveStats extends StatefulWidget {
   const _LiveStats({required this.output, this.since});
 
@@ -262,6 +263,7 @@ class _LiveStats extends StatefulWidget {
 }
 
 class _LiveStatsState extends State<_LiveStats> {
+  static const _tickMs = 100;
   Timer? _ticker;
 
   @override
@@ -276,14 +278,16 @@ class _LiveStatsState extends State<_LiveStats> {
     if (widget.since != oldWidget.since) _follow();
   }
 
-  /// Rebuilt as each second of the turn's comes.
+  /// Rebuilt every 100ms (decisecond) so the chronograph dial, `.0`–`.9`
+  /// sub-second counter, and pulse wave animate fluidly while whole seconds
+  /// roll on exact 1-second boundaries.
   void _follow() {
     _ticker?.cancel();
     _ticker = null;
     final since = widget.since;
     if (since == null) return;
-    final past = DateTime.now().difference(since).inMilliseconds % 1000;
-    _ticker = Timer(Duration(milliseconds: 1000 - past), () {
+    final past = DateTime.now().difference(since).inMilliseconds % _tickMs;
+    _ticker = Timer(Duration(milliseconds: _tickMs - past), () {
       if (!mounted) return;
       setState(() {});
       _follow();
@@ -303,16 +307,16 @@ class _LiveStatsState extends State<_LiveStats> {
     final speed = output.tokensPerSecond;
     final since = widget.since;
     final tokens = output.tokens;
+    final elapsed = since != null
+        ? _nonNegative(DateTime.now().difference(since))
+        : Duration.zero;
     return TurnFooter._line([
       if (since != null)
-        _Stat(
-          icon: _clockIcon,
-          text: AgentStep.formatDuration(
-            _nonNegative(DateTime.now().difference(since)),
-            l10n: l10n,
-          ),
+        _LiveChronoStat(
+          elapsed: elapsed,
+          text: AgentStep.formatDuration(elapsed, l10n: l10n),
           hint: l10n.turnDurationHint,
-          live: true,
+          isZh: l10n.localeName.startsWith('zh'),
         ),
       if (speed != null)
         _Stat(
@@ -333,6 +337,364 @@ class _LiveStatsState extends State<_LiveStats> {
 
   static Duration _nonNegative(Duration time) =>
       time.isNegative ? Duration.zero : time;
+}
+
+/// Interactive-feeling live chronograph widget for an active turn:
+/// 1. Sweeping radar chronograph dial (`_LiveChronoDialPainter`)
+/// 2. Odometer whole-second counter (`RollingText`) + `.0`–`.9` decisecond badge
+/// 3. 8-bar quantum telemetry wave + evolving stage commentary + mini progress bar
+class _LiveChronoStat extends StatelessWidget {
+  const _LiveChronoStat({
+    required this.elapsed,
+    required this.text,
+    required this.hint,
+    required this.isZh,
+  });
+
+  final Duration elapsed;
+  final String text;
+  final String hint;
+  final bool isZh;
+
+  static ({String label, double progress, Color accent}) _stageInfo(
+    int elapsedMs,
+    bool isZh,
+  ) {
+    final sec = elapsedMs / 1000.0;
+    if (sec < 2.0) {
+      return (
+        label: isZh ? '⚡ 极速响应' : '⚡ Instant spark',
+        progress: (sec / 2.0).clamp(0.0, 1.0),
+        accent: const Color(0xFFD96543),
+      );
+    } else if (sec < 5.0) {
+      return (
+        label: isZh ? '🧠 神经元点火' : '🧠 Synapses firing',
+        progress: ((sec - 2.0) / 3.0).clamp(0.0, 1.0),
+        accent: const Color(0xFFD96543),
+      );
+    } else if (sec < 9.0) {
+      return (
+        label: isZh ? '🔍 检索上下文' : '🔍 Scanning context',
+        progress: ((sec - 5.0) / 4.0).clamp(0.0, 1.0),
+        accent: const Color(0xFF2860E8),
+      );
+    } else if (sec < 15.0) {
+      return (
+        label: isZh ? '⚙️ 推演逻辑链' : '⚙️ Chaining logic',
+        progress: ((sec - 9.0) / 6.0).clamp(0.0, 1.0),
+        accent: const Color(0xFF2860E8),
+      );
+    } else if (sec < 22.0) {
+      return (
+        label: isZh ? '✨ 灵感编织中' : '✨ Weaving answer',
+        progress: ((sec - 15.0) / 7.0).clamp(0.0, 1.0),
+        accent: const Color(0xFFD96543),
+      );
+    } else if (sec < 32.0) {
+      return (
+        label: isZh ? '☕ 深度思考中' : '☕ Deep thinking',
+        progress: ((sec - 22.0) / 10.0).clamp(0.0, 1.0),
+        accent: const Color(0xFFD97706),
+      );
+    } else if (sec < 45.0) {
+      return (
+        label: isZh ? '🔥 算力全开' : '🔥 Full throttle',
+        progress: ((sec - 32.0) / 13.0).clamp(0.0, 1.0),
+        accent: const Color(0xFFDC2626),
+      );
+    } else if (sec < 60.0) {
+      return (
+        label: isZh ? '🧭 梳理脉络' : '🧭 Mapping structure',
+        progress: ((sec - 45.0) / 15.0).clamp(0.0, 1.0),
+        accent: const Color(0xFF2860E8),
+      );
+    } else {
+      final cycle = ((sec - 60.0) % 20.0) / 20.0;
+      return (
+        label: isZh ? '🏔️ 潜心长考' : '🏔️ Deep contemplation',
+        progress: cycle.clamp(0.0, 1.0),
+        accent: const Color(0xFF7C3AED),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = themeColors.dark;
+    final elapsedMs = elapsed.inMilliseconds;
+    final decisecond = (elapsedMs ~/ 100) % 10;
+    final stage = _stageInfo(elapsedMs, isZh);
+    final primaryColor = isDark
+        ? const Color(0xFFECE6DC)
+        : const Color(0xFF3E3831);
+
+    return IdeHover(
+      message: hint,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // 1. Precision radar chronograph dial (keeps hidden SvgPicture at
+          // left: 0 so layout alignment tests remain 100% compatible).
+          SizedBox(
+            width: 14,
+            height: 14,
+            child: Stack(
+              alignment: Alignment.centerLeft,
+              children: [
+                Opacity(
+                  opacity: 0,
+                  child: SvgPicture.asset(
+                    _clockIcon,
+                    width: 12,
+                    height: 12,
+                  ),
+                ),
+                CustomPaint(
+                  size: const Size(14, 14),
+                  painter: _LiveChronoDialPainter(
+                    elapsedMs: elapsedMs,
+                    accent: stage.accent,
+                    dark: isDark,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 5),
+          // 2. Odometer whole-second readout (RollingText).
+          RollingText(
+            text,
+            style: TextStyle(
+              color: primaryColor,
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              fontFeatures: const [FontFeature.tabularFigures()],
+            ),
+          ),
+          const SizedBox(width: 3),
+          // 3. High-frequency .0-.9 decisecond ticker pill.
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+            decoration: BoxDecoration(
+              color: stage.accent.withValues(alpha: isDark ? 0.18 : 0.11),
+              borderRadius: BorderRadius.circular(4),
+              border: Border.all(
+                color: stage.accent.withValues(alpha: isDark ? 0.32 : 0.22),
+                width: 0.7,
+              ),
+            ),
+            child: Text(
+              '.$decisecond',
+              style: TextStyle(
+                fontSize: 10,
+                fontWeight: FontWeight.w600,
+                height: 1.1,
+                color: stage.accent,
+                fontFeatures: const [FontFeature.tabularFigures()],
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          // 4. Live telemetry capsule: 8-bar quantum wave + stage badge + progress bar.
+          Container(
+            height: 20,
+            padding: const EdgeInsets.symmetric(horizontal: 7),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  stage.accent.withValues(alpha: isDark ? 0.15 : 0.08),
+                  const Color(0xFF2860E8).withValues(alpha: isDark ? 0.12 : 0.05),
+                ],
+              ),
+              borderRadius: BorderRadius.circular(999),
+              border: Border.all(
+                color: stage.accent.withValues(alpha: isDark ? 0.28 : 0.18),
+                width: 0.8,
+              ),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                CustomPaint(
+                  size: const Size(24, 10),
+                  painter: _LivePulseWavePainter(
+                    elapsedMs: elapsedMs,
+                    accent: stage.accent,
+                    dark: isDark,
+                  ),
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  stage.label,
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w500,
+                    color: isDark
+                        ? const Color(0xFFDAD2C6)
+                        : const Color(0xFF524A41),
+                    height: 1.1,
+                  ),
+                ),
+                const SizedBox(width: 6),
+                // Mini stage progress bar.
+                Container(
+                  width: 20,
+                  height: 3.5,
+                  decoration: BoxDecoration(
+                    color: (isDark ? Colors.white : Colors.black).withValues(
+                      alpha: 0.10,
+                    ),
+                    borderRadius: BorderRadius.circular(99),
+                  ),
+                  alignment: Alignment.centerLeft,
+                  child: FractionallySizedBox(
+                    widthFactor: stage.progress.clamp(0.12, 1.0),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: stage.accent,
+                        borderRadius: BorderRadius.circular(99),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Draws a miniature precision chronograph dial with cardinal ticks, a
+/// sweeping radar sector, and a rotating sweep hand.
+class _LiveChronoDialPainter extends CustomPainter {
+  const _LiveChronoDialPainter({
+    required this.elapsedMs,
+    required this.accent,
+    required this.dark,
+  });
+
+  final int elapsedMs;
+  final Color accent;
+  final bool dark;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = Offset(size.width / 2, size.height / 2);
+    final radius = size.width / 2 - 1.0;
+
+    // 1. Subtle outer dial ring.
+    final ringPaint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.2
+      ..color = accent.withValues(alpha: dark ? 0.48 : 0.38);
+    canvas.drawCircle(center, radius, ringPaint);
+
+    // 2. Sweeping radar sector (1 full revolution every 2 seconds).
+    final phase = (elapsedMs % 2000) / 2000.0;
+    final handAngle = -math.pi / 2 + phase * 2 * math.pi;
+    const sweepSpan = math.pi * 0.65;
+    final sectorPaint = Paint()
+      ..style = PaintingStyle.fill
+      ..color = accent.withValues(alpha: dark ? 0.24 : 0.16);
+    canvas.drawArc(
+      Rect.fromCircle(center: center, radius: radius - 0.8),
+      handAngle - sweepSpan,
+      sweepSpan,
+      true,
+      sectorPaint,
+    );
+
+    // 3. Four cardinal tick marks (12, 3, 6, 9 o'clock).
+    final tickPaint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.0
+      ..strokeCap = StrokeCap.round
+      ..color = accent.withValues(alpha: dark ? 0.65 : 0.50);
+    for (var i = 0; i < 4; i++) {
+      final a = -math.pi / 2 + i * (math.pi / 2);
+      final p1 = Offset(
+        center.dx + math.cos(a) * (radius - 1.8),
+        center.dy + math.sin(a) * (radius - 1.8),
+      );
+      final p2 = Offset(
+        center.dx + math.cos(a) * radius,
+        center.dy + math.sin(a) * radius,
+      );
+      canvas.drawLine(p1, p2, tickPaint);
+    }
+
+    // 4. Sweep hand + center jewel.
+    final tip = Offset(
+      center.dx + math.cos(handAngle) * (radius - 1.2),
+      center.dy + math.sin(handAngle) * (radius - 1.2),
+    );
+    final handPaint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.35
+      ..strokeCap = StrokeCap.round
+      ..color = accent;
+    canvas.drawLine(center, tip, handPaint);
+
+    canvas.drawCircle(center, 1.3, Paint()..color = accent);
+  }
+
+  @override
+  bool shouldRepaint(_LiveChronoDialPainter oldDelegate) =>
+      oldDelegate.elapsedMs != elapsedMs ||
+      oldDelegate.accent != accent ||
+      oldDelegate.dark != dark;
+}
+
+/// Draws a 6-bar equalizer/telemetry wave that ripples continuously as the
+/// timer ticks.
+class _LivePulseWavePainter extends CustomPainter {
+  const _LivePulseWavePainter({
+    required this.elapsedMs,
+    required this.accent,
+    required this.dark,
+  });
+
+  final int elapsedMs;
+  final Color accent;
+  final bool dark;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    const barCount = 6;
+    const barWidth = 2.2;
+    final totalBarsWidth = barCount * barWidth;
+    final gap = (size.width - totalBarsWidth) / (barCount - 1);
+    final t = elapsedMs / 160.0;
+
+    for (var i = 0; i < barCount; i++) {
+      final wave = (math.sin(t - i * 0.75) + 1.0) * 0.5;
+      final heightFactor = 0.28 + 0.72 * wave;
+      final barHeight = size.height * heightFactor;
+      final x = i * (barWidth + gap);
+      final y = (size.height - barHeight) / 2;
+
+      final color = Color.lerp(
+        accent,
+        const Color(0xFF2860E8),
+        i / (barCount - 1),
+      )!.withValues(alpha: 0.55 + 0.45 * wave);
+
+      final rrect = RRect.fromRectAndRadius(
+        Rect.fromLTWH(x, y, barWidth, barHeight),
+        const Radius.circular(99),
+      );
+      canvas.drawRRect(rrect, Paint()..color = color);
+    }
+  }
+
+  @override
+  bool shouldRepaint(_LivePulseWavePainter oldDelegate) =>
+      oldDelegate.elapsedMs != elapsedMs ||
+      oldDelegate.accent != accent ||
+      oldDelegate.dark != dark;
 }
 
 class _Stat extends StatelessWidget {
