@@ -2387,6 +2387,20 @@
       "label": "Bao Light",
       "uiTheme": "vs",
       "path": "themes/theme-bao/themes/bao-light-color-theme.json"
+    },
+    {
+      "extension": "theme-bao",
+      "id": "Claude Code Light",
+      "label": "Claude Code Light",
+      "uiTheme": "vs",
+      "path": "themes/theme-bao/themes/claude-code-light-color-theme.json"
+    },
+    {
+      "extension": "theme-bao",
+      "id": "Claude Code Dark",
+      "label": "Claude Code Dark",
+      "uiTheme": "vs-dark",
+      "path": "themes/theme-bao/themes/claude-code-dark-color-theme.json"
     }
   ]
 }

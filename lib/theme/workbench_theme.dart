@@ -111,13 +111,13 @@ abstract interface class ColorThemeStorage {
 /// palette (`#FAF9F5` / `#141413` / `#D97757` in light, `#191919` / `#FAF9F5` /
 /// `#D97757` in dark).
 abstract final class ThemePaletteOverrides {
-  static const defaultLightBackground = ui.Color(0xFFFAF9F5);
-  static const defaultLightForeground = ui.Color(0xFF141413);
-  static const defaultLightAccent = ui.Color(0xFFD97757);
+  static const defaultLightBackground = ui.Color(0xFFF6F3EB);
+  static const defaultLightForeground = ui.Color(0xFF282624);
+  static const defaultLightAccent = ui.Color(0xFFCF795A);
 
-  static const defaultDarkBackground = ui.Color(0xFF191919);
-  static const defaultDarkForeground = ui.Color(0xFFFAF9F5);
-  static const defaultDarkAccent = ui.Color(0xFFD97757);
+  static const defaultDarkBackground = ui.Color(0xFF1D1C1A);
+  static const defaultDarkForeground = ui.Color(0xFFE6E3DC);
+  static const defaultDarkAccent = ui.Color(0xFFD47F60);
 
   static final lightBackground = ValueNotifier<ui.Color?>(null);
   static final lightForeground = ValueNotifier<ui.Color?>(null);

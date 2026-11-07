@@ -93,12 +93,15 @@ class AppearanceSettingsPage extends StatelessWidget {
   /// picker lists them, each group the defaults first, then by label.
   List<List<IdeColorThemeEntry>> _groups() {
     final all = themes.colorThemes;
-    bool pinned(IdeColorThemeEntry theme) =>
-        theme.id == ThemeSettingDefaults.colorThemeDark ||
-        theme.id == ThemeSettingDefaults.colorThemeLight;
+    int pinRank(IdeColorThemeEntry theme) => switch (theme.id) {
+      ThemeSettingDefaults.colorThemeLight ||
+      ThemeSettingDefaults.colorThemeDark => 0,
+      'Claude Code Light' || 'Claude Code Dark' => 1,
+      _ => 2,
+    };
     List<IdeColorThemeEntry> sorted(bool Function(ColorScheme) type) =>
         all.where((theme) => type(theme.type)).toList()..sort((a, b) {
-          final pin = (pinned(a) ? 0 : 1) - (pinned(b) ? 0 : 1);
+          final pin = pinRank(a) - pinRank(b);
           return pin != 0 ? pin : ideLocaleCompare(a.label, b.label);
         });
     return [
@@ -943,7 +946,13 @@ class _ThemePaletteSection extends StatelessWidget {
   final List<IdeColorThemeEntry> entries;
   final ValueChanged<String> onSelectPreset;
 
-  String _presetLabel(String currentId) {
+  String _presetLabel(String currentId, String defaultId) {
+    if (currentId == defaultId) {
+      return dark ? 'Default Dark' : 'Default Light';
+    }
+    for (final entry in entries) {
+      if (entry.id == currentId) return entry.label;
+    }
     return dark ? 'Default Dark' : 'Default Light';
   }
 
@@ -983,7 +992,7 @@ class _ThemePaletteSection extends StatelessWidget {
     final defaultId = dark
         ? ThemeSettingDefaults.colorThemeDark
         : ThemeSettingDefaults.colorThemeLight;
-    final presetLabel = _presetLabel(themes.colorThemeId);
+    final presetLabel = _presetLabel(themes.colorThemeId, defaultId);
 
     return SettingsGroup(
       title: dark ? 'Dark Theme' : 'Light Theme',

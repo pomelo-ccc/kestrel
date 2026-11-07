@@ -130,13 +130,15 @@ IdeQuickPick ideColorThemePick(
     Iterable<IdeColorThemeEntry> list,
     String label,
   ) {
-    bool pinned(IdeColorThemeEntry theme) =>
-        theme.id == _defaultDark || theme.id == _defaultLight;
+    int pinRank(IdeColorThemeEntry theme) => switch (theme.id) {
+      _defaultDark || _defaultLight => 0,
+      'Claude Code Light' || 'Claude Code Dark' => 1,
+      _ => 2,
+    };
     final sorted = list.toList();
     ideStableSort(sorted, (t1, t2) {
-      final pin1 = pinned(t1);
-      final pin2 = pinned(t2);
-      if (pin1 != pin2) return pin1 ? -1 : 1;
+      final pin = pinRank(t1) - pinRank(t2);
+      if (pin != 0) return pin;
       return ideLocaleCompare(t1.label, t2.label);
     });
     return [
