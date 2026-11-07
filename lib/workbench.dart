@@ -63,6 +63,7 @@ import 'ide/ide_chat_title.dart';
 import 'ide/ide_color_theme_picker.dart';
 import 'ide/ide_commands.dart';
 import 'ide/ide_dialog.dart';
+import 'ide/ide_motion.dart';
 import 'ide/ide_menu.dart';
 import 'models/model_welcome.dart';
 import 'models/upstream_import.dart';
@@ -2982,67 +2983,83 @@ class _WorkbenchState extends State<Workbench> implements WindowDelegate {
   /// The sidebar docked beside [body] (by default the chat's panes).
   Widget _buildWide({Widget? body}) {
     // Built once for the widths a drag goes through (see [_width]).
-    final sidebar = _buildSidebar(onWindow: true);
-    final panes = body ?? _buildPanes(showToggle: !_sidebarDocked);
+    final sidebar = RepaintBoundary(child: _buildSidebar(onWindow: true));
+    final panes = RepaintBoundary(
+      child: body ?? _buildPanes(showToggle: !_sidebarDocked),
+    );
     final right = _sidebarAtRight;
     final row = ValueListenableBuilder(
       valueListenable: _width,
-      builder: (context, _, _) => Row(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        // At the window's right, the sidebar after the cards.
-        textDirection: right ? TextDirection.rtl : TextDirection.ltr,
-        children: [
-          AnimatedContainer(
-            duration: _dragging ? Duration.zero : _duration,
-            curve: Curves.easeOutCubic,
-            width: _sidebarDocked ? _shownWidth : 0,
-            child: ClipRect(
-              child: OverflowBox(
-                // Its edge by the cards seen first, as it comes in.
-                alignment: right ? Alignment.centerLeft : Alignment.centerRight,
-                minWidth: _shownWidth,
-                maxWidth: _shownWidth,
-                child: Directionality(
-                  textDirection: Directionality.of(context),
-                  child: sidebar,
-                ),
-              ),
-            ),
-          ),
-          // The cards a gap in from the window's edges; against the
-          // sidebar, not on a card of its own, with none (its scroll bar
-          // by their side). The handle over their edge, clear of the
-          // scroll bar.
-          Expanded(
-            child: Directionality(
-              textDirection: Directionality.of(context),
-              child: Stack(
-                fit: StackFit.expand,
-                children: [
-                  Positioned.fill(
-                    child: AnimatedPadding(
-                      duration: _dragging ? Duration.zero : _duration,
-                      curve: Curves.easeOutCubic,
-                      padding: EdgeInsets.only(
-                        left: right || _sidebarDocked ? 0 : Islands.gap,
-                        right: !right || _sidebarDocked ? 0 : Islands.gap,
+      builder: (context, _, _) => TweenAnimationBuilder<double>(
+        tween: Tween<double>(end: _sidebarDocked ? 1.0 : 0.0),
+        duration: _dragging ? Duration.zero : _duration,
+        curve: _sidebarDocked ? IdeMotion.expoOut : IdeMotion.easeOut,
+        builder: (context, t, _) {
+          final width = _shownWidth * t;
+          final gap = Islands.gap * (1.0 - t);
+          return Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            // At the window's right, the sidebar after the cards.
+            textDirection: right ? TextDirection.rtl : TextDirection.ltr,
+            children: [
+              SizedBox(
+                width: width,
+                child: ClipRect(
+                  child: OverflowBox(
+                    // Its edge by the cards seen first, as it comes in.
+                    alignment: right
+                        ? Alignment.centerLeft
+                        : Alignment.centerRight,
+                    minWidth: _shownWidth,
+                    maxWidth: _shownWidth,
+                    child: Opacity(
+                      opacity: (0.25 + 0.75 * t).clamp(0.0, 1.0),
+                      child: Directionality(
+                        textDirection: Directionality.of(context),
+                        child: sidebar,
                       ),
-                      child: _islandsInset(panes, left: right, right: !right),
                     ),
                   ),
-                  if (_sidebarDocked)
-                    Positioned(
-                      left: right ? null : 0,
-                      right: right ? 0 : null,
-                      top: 0,
-                      bottom: 0,
-                      child: _buildResizeHandle(island: true),
-                    ),
-                ],
+                ),
               ),
-            ),
-          ),
-        ],
+              // The cards a gap in from the window's edges; against the
+              // sidebar, not on a card of its own, with none (its scroll bar
+              // by their side). The handle over their edge, clear of the
+              // scroll bar.
+              Expanded(
+                child: Directionality(
+                  textDirection: Directionality.of(context),
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      Positioned.fill(
+                        child: Padding(
+                          padding: EdgeInsets.only(
+                            left: right ? 0 : gap,
+                            right: !right ? 0 : gap,
+                          ),
+                          child: _islandsInset(
+                            panes,
+                            left: right,
+                            right: !right,
+                          ),
+                        ),
+                      ),
+                      if (_sidebarDocked)
+                        Positioned(
+                          left: right ? null : 0,
+                          right: right ? 0 : null,
+                          top: 0,
+                          bottom: 0,
+                          child: _buildResizeHandle(island: true),
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          );
+        },
       ),
     );
     // One backdrop for the sidebar and the cards' gaps: two, meeting at a

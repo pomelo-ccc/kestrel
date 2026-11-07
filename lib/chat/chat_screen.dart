@@ -11,6 +11,7 @@ import '../base/mouse_navigation.dart';
 import '../channel/channel_setup.dart';
 import '../ide/ide_hover.dart';
 import '../ide/ide_menu.dart';
+import '../ide/ide_motion.dart';
 import '../ide/ide_spinning.dart';
 import '../kernel/kernel_types.dart';
 import '../keybindings/chat_keybindings.dart';
@@ -774,12 +775,18 @@ class _ChatScreenState extends State<ChatScreen>
     );
   }
 
+  Widget? _lastLeading;
+
   /// The row along the top, on the window's color: the traffic lights'
   /// (macOS draws a title bar of its own over it; see AppMetrics), with
   /// [ChatScreen.leading] and [ChatScreen.trailing]; the title too where
   /// it is not on a card ([title]), and [ChatScreen.cardTrailing] then.
   Widget _buildTitleBar({required bool title}) {
-    final inset = widget.titleBarInset ?? AppMetrics.trafficLightsWidth + 12;
+    final targetInset =
+        widget.titleBarInset ?? AppMetrics.trafficLightsWidth + 12;
+    if (widget.leading != null) {
+      _lastLeading = widget.leading;
+    }
     final buttons = [
       if (title) ...[?widget.cardLeading, ?widget.cardTrailing],
       ?widget.trailing,
@@ -791,23 +798,41 @@ class _ChatScreenState extends State<ChatScreen>
     };
     final bar = SizedBox(
       height: AppMetrics.titleBarHeight,
-      child: CustomMultiChildLayout(
-        delegate: _TitleBarLayout(inset: inset, end: widget.titleBarEnd),
-        children: [
-          if (widget.leading case final leading?)
-            LayoutId(id: _TitleBarSlot.leading, child: leading),
-          LayoutId(
-            id: _TitleBarSlot.title,
-            // The title at the bar's start, as the row macOS draws has it
-            // (Windows draws none of it: see window_header/).
-            child: title ? _buildTitle() : const SizedBox.shrink(),
-          ),
-          if (trailing != null)
-            LayoutId(
-              id: _TitleBarSlot.trailing,
-              child: TitleBarControls(child: trailing),
-            ),
-        ],
+      child: TweenAnimationBuilder<double>(
+        tween: Tween<double>(end: targetInset),
+        duration: const Duration(milliseconds: 200),
+        curve: IdeMotion.expoOut,
+        builder: (context, inset, _) {
+          final span = math.max(1.0, AppMetrics.trafficLightsWidth - 4.0);
+          final p = ((inset - 12.0) / span).clamp(0.0, 1.0);
+          final leading = widget.leading ?? (p > 0.02 ? _lastLeading : null);
+          return CustomMultiChildLayout(
+            delegate: _TitleBarLayout(inset: inset, end: widget.titleBarEnd),
+            children: [
+              if (leading != null)
+                LayoutId(
+                  id: _TitleBarSlot.leading,
+                  child: Opacity(
+                    opacity: widget.leading != null
+                        ? ((p - 0.25) / 0.75).clamp(0.0, 1.0)
+                        : p,
+                    child: leading,
+                  ),
+                ),
+              LayoutId(
+                id: _TitleBarSlot.title,
+                // The title at the bar's start, as the row macOS draws has it
+                // (Windows draws none of it: see window_header/).
+                child: title ? _buildTitle() : const SizedBox.shrink(),
+              ),
+              if (trailing != null)
+                LayoutId(
+                  id: _TitleBarSlot.trailing,
+                  child: TitleBarControls(child: trailing),
+                ),
+            ],
+          );
+        },
       ),
     );
     // Beside the title (a double click renames it) and the buttons, a
@@ -818,7 +843,9 @@ class _ChatScreenState extends State<ChatScreen>
       onDragStart: title && !_renaming ? widget.onTitleDragStart : null,
       // Beside the traffic lights it is the window's, panes side by side or
       // not: with the sidebar hidden, nothing else along the top is.
-      windowStart: inset >= AppMetrics.trafficLightsWidth ? inset : 0,
+      windowStart: targetInset >= AppMetrics.trafficLightsWidth
+          ? targetInset
+          : 0,
       child: bar,
     );
   }

@@ -54,7 +54,7 @@ Future<Workspace> _pumpApp(
 
 Future<void> _settle(WidgetTester tester) async {
   await tester.pump();
-  await tester.pump();
+  await tester.pump(const Duration(milliseconds: 250));
   await tester.pump();
 }
 
