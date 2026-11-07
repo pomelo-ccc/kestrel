@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import '../../base/smooth_scroll.dart';
 import '../../chat/chat_width.dart';
 import '../../chat/widgets/scroll_edge_fade.dart';
-import '../../ide/ide_motion.dart';
 import '../../ide/ide_step_slider.dart';
 import '../../ide/ide_switch.dart';
 import '../../theme/app_theme.dart';
@@ -312,15 +311,10 @@ class SettingsFolding extends StatelessWidget {
                 children: [
                   Row(
                     children: [
-                      AnimatedRotation(
-                        turns: open ? 0.25 : 0,
-                        duration: const Duration(milliseconds: 180),
-                        curve: IdeMotion.easeOut,
-                        child: Icon(
-                          Codicons.chevronRight,
-                          size: 13,
-                          color: SettingsColors.textSecondary,
-                        ),
+                      Icon(
+                        open ? Codicons.chevronDown : Codicons.chevronRight,
+                        size: 13,
+                        color: SettingsColors.textSecondary,
                       ),
                       const SizedBox(width: 4),
                       Text(title, style: SettingsText.heading),
@@ -337,23 +331,23 @@ class SettingsFolding extends StatelessWidget {
                       ],
                     ],
                   ),
-                  if (description case final description? when open)
-                    IdeReveal(
-                      child: Padding(
-                        padding: const EdgeInsets.only(left: 17, top: 2),
-                        child: Text(
-                          description,
-                          style: SettingsText.headingDescription,
-                        ),
+                  if (description case final description? when open) ...[
+                    const SizedBox(height: 2),
+                    Padding(
+                      padding: const EdgeInsets.only(left: 17),
+                      child: Text(
+                        description,
+                        style: SettingsText.headingDescription,
                       ),
                     ),
+                  ],
                 ],
               ),
             ),
           ),
         ),
       ),
-      if (open) IdeReveal(child: SettingsCard(children: children)),
+      if (open) SettingsCard(children: children),
     ],
   );
 }

@@ -5,7 +5,6 @@ import 'package:flutter/services.dart';
 import '../chat/chat_keys.dart';
 import '../ide/file_service.dart';
 import '../ide/ide_hover.dart';
-import '../ide/ide_motion.dart';
 import '../ide/ide_rows.dart';
 import '../ide/terminal/links/terminal_links.dart';
 import '../ide/terminal/terminal_hosts.dart';
@@ -325,16 +324,53 @@ class _ChatTerminalAreaState extends State<ChatTerminalArea> {
           _lastPanelHeight = rows.panel;
         }
         final fullHeight = panel ? rows.panel : _lastPanelHeight;
+        final terminalCard = service == null
+            ? null
+            : RepaintBoundary(
+                child: _ChatTerminalPanel(
+                  // The shared panel can move to another pane of the
+                  // same project without remounting its focused
+                  // terminal.
+                  key: GlobalObjectKey(service),
+                  terminals: _terminals,
+                  root: _root,
+                  service: service,
+                  tasks: widget.tasks,
+                  files: widget.files,
+                  onOpenLink: widget.onOpenLink,
+                ),
+              );
+        final belowRow = switch (widget.below) {
+          final below? => SizedBox(
+            height: Islands.belowHeight,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: Islands.inset),
+              child: Align(alignment: Alignment.centerLeft, child: below),
+            ),
+          ),
+          null => null,
+        };
+        Widget? chatHosted;
+        Widget? chatUnhosted;
+        Widget chatFor(bool hosted) => hosted
+            ? (chatHosted ??= IslandFootHosted(
+                hosted: true,
+                child: widget.child,
+              ))
+            : (chatUnhosted ??= IslandFootHosted(
+                hosted: false,
+                child: widget.child,
+              ));
         return TweenAnimationBuilder<double>(
           key: ValueKey(_root),
           tween: Tween<double>(end: panel ? 1.0 : 0.0),
           duration: _dragging
               ? Duration.zero
-              : Duration(milliseconds: panel ? 220 : 180),
-          curve: panel ? IdeMotion.expoOut : IdeMotion.easeOut,
+              : const Duration(milliseconds: 200),
+          curve: Curves.easeOutCubic,
           builder: (context, t, _) {
             final panelVisible =
-                (panel || t > 0.001) && service != null && fullHeight > 0;
+                (panel || t > 0.001) && terminalCard != null && fullHeight > 0;
             final animatedHeight = fullHeight * t;
             final animatedSash = ChatTerminalArea.sashHeight * t;
             // The conversations stay the first child, whether the panel shows
@@ -346,10 +382,7 @@ class _ChatTerminalAreaState extends State<ChatTerminalArea> {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     Expanded(
-                      child: IslandFootHosted(
-                        hosted: panelVisible && widget.below != null,
-                        child: widget.child,
-                      ),
+                      child: chatFor(panelVisible && widget.below != null),
                     ),
                     if (panelVisible) ...[
                       SizedBox(height: animatedSash),
@@ -360,39 +393,11 @@ class _ChatTerminalAreaState extends State<ChatTerminalArea> {
                             alignment: Alignment.topCenter,
                             minHeight: fullHeight,
                             maxHeight: fullHeight,
-                            child: Opacity(
-                              opacity: (0.2 + 0.8 * t).clamp(0.0, 1.0),
-                              child: RepaintBoundary(
-                                child: _ChatTerminalPanel(
-                                  // The shared panel can move to another pane of the
-                                  // same project without remounting its focused
-                                  // terminal.
-                                  key: GlobalObjectKey(service),
-                                  terminals: _terminals,
-                                  root: _root,
-                                  service: service,
-                                  tasks: widget.tasks,
-                                  files: widget.files,
-                                  onOpenLink: widget.onOpenLink,
-                                ),
-                              ),
-                            ),
+                            child: terminalCard,
                           ),
                         ),
                       ),
-                      if (widget.below case final below?)
-                        SizedBox(
-                          height: Islands.belowHeight,
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: Islands.inset,
-                            ),
-                            child: Align(
-                              alignment: Alignment.centerLeft,
-                              child: below,
-                            ),
-                          ),
-                        ),
+                      ?belowRow,
                     ],
                   ],
                 ),

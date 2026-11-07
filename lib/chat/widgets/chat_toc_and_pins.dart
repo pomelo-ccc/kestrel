@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../ide/ide_hover.dart';
-import '../../ide/ide_motion.dart';
 import '../../ide/ide_notifications.dart';
 import '../../theme/app_theme.dart';
 import '../../theme/codicons.dart';
@@ -160,79 +159,54 @@ class _PinnedConclusionsBarState extends State<PinnedConclusionsBar> {
                               else
                                 const Spacer(),
                               const SizedBox(width: 6),
-                              AnimatedRotation(
-                                turns: _expanded ? 0.5 : 0,
-                                duration: const Duration(milliseconds: 180),
-                                curve: IdeMotion.easeOut,
-                                child: Icon(
-                                  Codicons.chevronDown,
-                                  size: 14,
-                                  color: AppColors.textMuted,
-                                ),
+                              Icon(
+                                _expanded
+                                    ? Codicons.chevronUp
+                                    : Codicons.chevronDown,
+                                size: 14,
+                                color: AppColors.textMuted,
                               ),
                             ],
                           ),
                         ),
                       ),
                     ),
-                    IdeExpandable(
-                      expanded: _expanded,
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          Divider(height: 1, color: AppColors.partBorder),
-                          ConstrainedBox(
-                            constraints: const BoxConstraints(
-                              maxHeight: 220,
-                            ),
-                            child: SingleChildScrollView(
-                              padding: const EdgeInsets.fromLTRB(
-                                12,
-                                8,
-                                12,
-                                8,
-                              ),
-                              child: Column(
-                                crossAxisAlignment:
-                                    CrossAxisAlignment.stretch,
-                                children: [
-                                  for (
-                                    var i = 0;
-                                    i < pins.length;
-                                    i++
-                                  ) ...[
-                                    if (i > 0)
-                                      Padding(
-                                        padding:
-                                            const EdgeInsets.symmetric(
-                                              vertical: 6,
-                                            ),
-                                        child: Divider(
-                                          height: 1,
-                                          color: AppColors.partBorder,
-                                        ),
-                                      ),
-                                    _PinCardRow(
-                                      pin: pins[i],
-                                      onJump: () => widget.onJumpToTurn(
+                    if (_expanded) ...[
+                      Divider(height: 1, color: AppColors.partBorder),
+                      ConstrainedBox(
+                        constraints: const BoxConstraints(maxHeight: 220),
+                        child: SingleChildScrollView(
+                          padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              for (var i = 0; i < pins.length; i++) ...[
+                                if (i > 0)
+                                  Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 6,
+                                    ),
+                                    child: Divider(
+                                      height: 1,
+                                      color: AppColors.partBorder,
+                                    ),
+                                  ),
+                                _PinCardRow(
+                                  pin: pins[i],
+                                  onJump: () =>
+                                      widget.onJumpToTurn(pins[i].turnIndex),
+                                  onRemove: () => ChatPinsStore.instance
+                                      .removePin(
+                                        widget.feed,
                                         pins[i].turnIndex,
                                       ),
-                                      onRemove: () => ChatPinsStore
-                                          .instance
-                                          .removePin(
-                                            widget.feed,
-                                            pins[i].turnIndex,
-                                          ),
-                                    ),
-                                  ],
-                                ],
-                              ),
-                            ),
+                                ),
+                              ],
+                            ],
                           ),
-                        ],
+                        ),
                       ),
-                    ),
+                    ],
                   ],
                 ),
               ),

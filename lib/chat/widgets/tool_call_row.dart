@@ -3,7 +3,6 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
-import '../../ide/ide_motion.dart';
 import '../../l10n/l10n.dart';
 import '../../theme/app_theme.dart';
 import '../../theme/workbench_theme.dart' show themeColors;
@@ -202,32 +201,18 @@ class ToolCallRow extends StatelessWidget {
         header,
         if (_answered case final answered?)
           StepBody(child: _QuestionAnswers(answered: answered))
-        else
-          IdeStepBody(
-            expanded: expanded && _opens,
-            child: expanded && _opens
-                ? Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      if (_todos case final todos?)
-                        StepBody(child: _TodoList(todos: todos))
-                      else if (results.isNotEmpty || _shown != null)
-                        StepBody(
-                          child: results.isNotEmpty && files != null
-                              ? _Results(results: results, files: files)
-                              : Text(
-                                  results.isNotEmpty
-                                      ? results.join('\n')
-                                      : _shown!,
-                                  style: stepMono,
-                                ),
-                        ),
-                      if (images.isNotEmpty) ToolImages(images: _images),
-                    ],
-                  )
-                : null,
+        else if (_todos case final todos? when expanded)
+          StepBody(child: _TodoList(todos: todos))
+        else if (expanded && (results.isNotEmpty || _shown != null))
+          StepBody(
+            child: results.isNotEmpty && files != null
+                ? _Results(results: results, files: files)
+                : Text(
+                    results.isNotEmpty ? results.join('\n') : _shown!,
+                    style: stepMono,
+                  ),
           ),
+        if (expanded && images.isNotEmpty) ToolImages(images: _images),
       ],
     );
   }

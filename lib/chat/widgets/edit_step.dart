@@ -3,7 +3,6 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 import '../../ide/ide_code_diff.dart';
-import '../../ide/ide_motion.dart';
 import '../../l10n/l10n.dart';
 import '../../theme/app_theme.dart';
 import '../../theme/material_file_icons.dart';
@@ -60,17 +59,13 @@ class EditStep extends StatelessWidget {
             onToggle: onToggle,
             trailing: _Counts(item),
           ),
-          IdeStepBody(
-            expanded: expanded,
-            child: expanded
-                ? _card(
-                    context,
-                    counts: false,
-                    maxHeight: CodeCitationCard.maxCodeHeight,
-                    padding: EdgeInsets.zero,
-                  )
-                : null,
-          ),
+          if (expanded)
+            _card(
+              context,
+              counts: false,
+              maxHeight: CodeCitationCard.maxCodeHeight,
+              padding: EdgeInsets.zero,
+            ),
         ],
       ),
     },

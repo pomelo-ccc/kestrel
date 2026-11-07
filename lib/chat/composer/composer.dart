@@ -9,7 +9,6 @@ import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 import 'package:bao_markdown/bao_markdown.dart';
 
-import '../../ide/ide_motion.dart';
 import '../../kernel/agent_kernel.dart';
 import '../../kernel/kernel_types.dart';
 import '../../keybindings/chat_keybindings.dart';
@@ -2221,49 +2220,40 @@ class _SendButton extends StatelessWidget {
             ),
       child: HoverBuilder(
         cursor: active ? SystemMouseCursors.click : SystemMouseCursors.basic,
-        builder: (context, hovered) => IdePressScale(
-          enabled: active,
-          pressedScale: 0.91,
-          child: GestureDetector(
-            onTap: streaming ? onStop : (enabled ? onSend : null),
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 160),
-              curve: const Cubic(0.22, 1.0, 0.36, 1.0),
-              width: 24,
-              height: 24,
-              decoration: BoxDecoration(
-                color: !active
-                    ? Colors.transparent
-                    : hovered
-                    ? colors['button.hoverBackground']
-                    : colors['button.background'],
-                shape: BoxShape.circle,
-              ),
-              child: AnimatedSwitcher(
-                duration: const Duration(milliseconds: 180),
-                switchInCurve: const Cubic(0.34, 1.56, 0.64, 1.0),
-                switchOutCurve: Curves.easeInCubic,
-                transitionBuilder: (child, animation) => FadeTransition(
-                  opacity: animation,
-                  child: ScaleTransition(scale: animation, child: child),
-                ),
-                child: streaming
-                    ? Container(
-                        key: const ValueKey('stop'),
-                        width: 8,
-                        height: 8,
-                        decoration: BoxDecoration(
-                          color: foreground,
-                          borderRadius: BorderRadius.circular(1.5),
-                        ),
-                      )
-                    : Icon(
-                        key: const ValueKey('send'),
-                        Icons.arrow_upward_rounded,
-                        size: 15,
-                        color: active ? foreground : AppColors.textFaint,
+        builder: (context, hovered) => GestureDetector(
+          onTap: streaming ? onStop : (enabled ? onSend : null),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 150),
+            width: 24,
+            height: 24,
+            decoration: BoxDecoration(
+              color: !active
+                  ? Colors.transparent
+                  : hovered
+                  ? colors['button.hoverBackground']
+                  : colors['button.background'],
+              shape: BoxShape.circle,
+            ),
+            child: AnimatedSwitcher(
+              duration: const Duration(milliseconds: 150),
+              transitionBuilder: (child, animation) =>
+                  ScaleTransition(scale: animation, child: child),
+              child: streaming
+                  ? Container(
+                      key: const ValueKey('stop'),
+                      width: 8,
+                      height: 8,
+                      decoration: BoxDecoration(
+                        color: foreground,
+                        borderRadius: BorderRadius.circular(1.5),
                       ),
-              ),
+                    )
+                  : Icon(
+                      key: const ValueKey('send'),
+                      Icons.arrow_upward_rounded,
+                      size: 15,
+                      color: active ? foreground : AppColors.textFaint,
+                    ),
             ),
           ),
         ),

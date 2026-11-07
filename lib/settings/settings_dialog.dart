@@ -19,7 +19,6 @@ import '../theme/codicons.dart';
 import '../theme/app_theme.dart';
 import '../ide/ide_back_button.dart';
 import '../ide/ide_modern_ui.dart' show IdeModernUI;
-import '../ide/ide_motion.dart';
 import '../sidebar/sidebar.dart' show SidebarIconButton;
 import '../theme/workbench_theme.dart' show themeColors;
 import 'pages/settings_widgets.dart' show SettingsColors;
@@ -114,13 +113,9 @@ Future<void> showSettingsDialog(
   context: context,
   barrierLabel: 'Dismiss',
   barrierColor: const Color(0x00000000),
-  transitionDuration: const Duration(milliseconds: 210),
-  transitionBuilder: (context, animation, _, child) => IdeMotion.enter(
-    animation,
-    child,
-    from: 0.985,
-    slideFrom: const Offset(0, 0.008),
-  ),
+  transitionDuration: const Duration(milliseconds: 120),
+  transitionBuilder: (context, animation, _, child) =>
+      FadeTransition(opacity: animation, child: child),
   pageBuilder: (context, _, _) => SettingsDialog(
     section: section,
     pageBuilder: pageBuilder,
@@ -481,24 +476,9 @@ class SettingsDialogState extends State<SettingsDialog> {
         if (widget.noticeBuilder case final notice?)
           notice(context, (section) => setState(() => _section = section)),
         Expanded(
-          child: AnimatedSwitcher(
-            duration: const Duration(milliseconds: 160),
-            switchInCurve: Curves.easeOutCubic,
-            switchOutCurve: Curves.easeInCubic,
-            transitionBuilder: (child, animation) => FadeTransition(
-              opacity: animation,
-              child: SlideTransition(
-                position: Tween<Offset>(
-                  begin: const Offset(0, 0.015),
-                  end: Offset.zero,
-                ).animate(animation),
-                child: child,
-              ),
-            ),
-            child: KeyedSubtree(
-              key: ValueKey(_section),
-              child: widget.pageBuilder(context, _section),
-            ),
+          child: KeyedSubtree(
+            key: ValueKey(_section),
+            child: widget.pageBuilder(context, _section),
           ),
         ),
       ],
@@ -835,14 +815,12 @@ class _NavItemState extends State<_NavItem> {
         child: GestureDetector(
           behavior: HitTestBehavior.opaque,
           onTap: widget.onTap,
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 130),
-            curve: Curves.easeOutCubic,
+          child: Container(
             height: 30,
             margin: const EdgeInsets.only(bottom: 1),
             padding: const EdgeInsets.symmetric(horizontal: 10),
             decoration: BoxDecoration(
-              color: selected || _hover ? SettingsColors.hover : Colors.transparent,
+              color: selected || _hover ? SettingsColors.hover : null,
               borderRadius: BorderRadius.circular(6),
             ),
             child: Row(
@@ -856,19 +834,15 @@ class _NavItemState extends State<_NavItem> {
                 ),
                 const SizedBox(width: 8),
                 Expanded(
-                  child: AnimatedDefaultTextStyle(
-                    duration: const Duration(milliseconds: 130),
-                    curve: Curves.easeOutCubic,
+                  child: Text(
+                    widget.label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                     style: TextStyle(
                       color: selected
                           ? SettingsColors.textPrimary
                           : SettingsColors.textSecondary,
                       fontSize: 13,
-                    ),
-                    child: Text(
-                      widget.label,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
                 ),

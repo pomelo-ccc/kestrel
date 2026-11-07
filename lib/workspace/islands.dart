@@ -595,19 +595,15 @@ class _IslandSegmentState extends State<IslandSegment> {
       behavior: HitTestBehavior.opaque,
       onTap: widget.onTap,
       child: Center(
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 130),
-          curve: Curves.easeOutCubic,
+        child: Container(
           height: IslandSegment.height,
           padding: const EdgeInsets.symmetric(horizontal: 10),
           alignment: Alignment.center,
           decoration: BoxDecoration(
-            color:
-                Islands.segmentFill(
-                  selected: widget.selected,
-                  hovered: _hovered,
-                ) ??
-                Colors.transparent,
+            color: Islands.segmentFill(
+              selected: widget.selected,
+              hovered: _hovered,
+            ),
             borderRadius: BorderRadius.circular(Islands.controlRadius),
           ),
           child: widget.child,

@@ -69,8 +69,8 @@ class FloatingLayer extends StatefulWidget {
   final Duration enterDuration;
   final Duration exitDuration;
 
-  static const defaultEnterDuration = Duration(milliseconds: 170);
-  static const defaultExitDuration = Duration(milliseconds: 110);
+  static const defaultEnterDuration = Duration(milliseconds: 140);
+  static const defaultExitDuration = Duration(milliseconds: 100);
 
   /// Kept clear of the window edges.
   static const viewportPadding = 8.0;
@@ -110,7 +110,7 @@ class _FloatingLayerState extends State<FloatingLayer>
       .animate(
         CurvedAnimation(
           parent: _controller,
-          curve: const Cubic(0.16, 1.0, 0.3, 1.0),
+          curve: Curves.easeOutCubic,
           reverseCurve: Curves.easeInCubic,
         ),
       );
@@ -311,16 +311,7 @@ class _FloatingLayerState extends State<FloatingLayer>
             ignoring: !widget.visible,
             child: FadeTransition(
               opacity: _opacity,
-              child: ScaleTransition(
-                alignment: switch (widget.placement.side) {
-                  FloatingSide.top => Alignment.bottomCenter,
-                  FloatingSide.bottom => Alignment.topCenter,
-                  FloatingSide.left => Alignment.centerRight,
-                  FloatingSide.right => Alignment.centerLeft,
-                },
-                scale: _scale,
-                child: content,
-              ),
+              child: ScaleTransition(scale: _scale, child: content),
             ),
           ),
         ),

@@ -197,10 +197,8 @@ class _IdeHoverState extends State<IdeHover> {
       enableTapToDismiss: !widget.interactive,
       ignorePointer: !widget.interactive,
       animationStyle: const AnimationStyle(
-        duration: Duration(milliseconds: 130),
-        reverseDuration: Duration(milliseconds: 80),
-        curve: Curves.easeOutCubic,
-        reverseCurve: Curves.easeInCubic,
+        duration: Duration(milliseconds: 100),
+        reverseDuration: Duration.zero,
       ),
       positionDelegate: widget.followMouse ? _placeAtMouse : _place,
       tooltipBuilder: (context, animation) => FadeTransition(
@@ -426,20 +424,18 @@ class _IdeActionButtonState extends State<IdeActionButton> {
           child: GestureDetector(
             behavior: HitTestBehavior.opaque,
             onTap: widget.onPressed,
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 110),
-              curve: Curves.easeOutCubic,
+            child: Container(
               width: widget.width ?? widget.size,
               height: widget.size,
               alignment: Alignment.center,
               decoration: BoxDecoration(
                 color: !enabled
-                    ? Colors.transparent
+                    ? null
                     : widget.checked
                     ? IdeActionButton.activeBackground
                     : _hover
                     ? IdeActionButton.hoverBackground
-                    : Colors.transparent,
+                    : null,
                 borderRadius: BorderRadius.circular(5),
               ),
               foregroundDecoration: outline == null
@@ -448,9 +444,7 @@ class _IdeActionButtonState extends State<IdeActionButton> {
                       border: Border.all(color: outline),
                       borderRadius: BorderRadius.circular(5),
                     ),
-              child: AnimatedOpacity(
-                duration: const Duration(milliseconds: 110),
-                curve: Curves.easeOutCubic,
+              child: Opacity(
                 opacity: enabled ? 1 : 0.4,
                 child:
                     widget.iconWidget ??

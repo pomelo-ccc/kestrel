@@ -339,7 +339,7 @@ class _ChatHistoryViewState extends State<ChatHistoryView>
   // not lag behind, nor the list's hold on its bottom.
 
   static const _motionDuration = Duration(milliseconds: 220);
-  static const _motionCurve = Cubic(0.22, 1.0, 0.36, 1.0);
+  static const _motionCurve = Curves.easeOutCubic;
 
   /// Per item, how many times the user has changed it: each time, its
   /// next change of height animates (see [_HeightMotion]).
@@ -3974,13 +3974,12 @@ class _RenderHeightMotion extends RenderProxyBox {
   void paint(PaintingContext context, Offset offset) {
     final child = this.child;
     if (child == null) return;
-    if (size.height >= child.size.height && !_moving) {
+    if (size.height >= child.size.height) {
       _clip.layer = null;
       super.paint(context, offset);
       return;
     }
-    // Growing or closing, clip what extends past the animated height;
-    // room at the sides for shadows.
+    // Growing, what is not in yet; room at the sides for shadows.
     _clip.layer = context.pushClipRect(
       needsCompositing,
       offset,

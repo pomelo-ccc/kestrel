@@ -257,9 +257,7 @@ class _IdeInputBoxState extends State<IdeInputBox> {
     if (widget.semanticsLabel case final label?) {
       field = Semantics(label: label, textField: true, child: field);
     }
-    final box = AnimatedContainer(
-      duration: const Duration(milliseconds: 130),
-      curve: Curves.easeOutCubic,
+    final box = Container(
       decoration: BoxDecoration(
         color: IdeInputColors.background,
         border: Border.all(color: outline),
@@ -392,9 +390,7 @@ class _IdeInputToggleState extends State<IdeInputToggle> {
           child: GestureDetector(
             behavior: HitTestBehavior.opaque,
             onTap: () => widget.onChanged(!checked),
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 110),
-              curve: Curves.easeOutCubic,
+            child: Container(
               width: 20,
               height: 20,
               margin: const EdgeInsets.only(left: 2),
@@ -404,7 +400,7 @@ class _IdeInputToggleState extends State<IdeInputToggle> {
                     ? IdeInputColors.optionActiveBackground
                     : _hover && !highContrast
                     ? IdeInputColors.optionHoverBackground
-                    : Colors.transparent,
+                    : null,
                 border: Border.all(
                   color: _hover && highContrast
                       ? colors['focusBorder']

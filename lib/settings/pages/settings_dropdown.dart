@@ -32,19 +32,15 @@ class SettingsDropdown extends StatefulWidget {
 
 class _SettingsDropdownState extends State<SettingsDropdown> {
   bool _hover = false;
-  bool _open = false;
 
-  void _openMenu() {
+  void _open() {
     final box = context.findRenderObject()! as RenderBox;
-    setState(() => _open = true);
     unawaited(
       showIdeMenu(
         context,
         anchor: box.localToGlobal(Offset.zero) & box.size,
         entries: widget.entries(),
-      ).whenComplete(() {
-        if (mounted) setState(() => _open = false);
-      }),
+      ),
     );
   }
 
@@ -55,23 +51,21 @@ class _SettingsDropdownState extends State<SettingsDropdown> {
       button: true,
       label: widget.semanticLabel,
       excludeSemantics: true,
-      onTap: _openMenu,
+      onTap: _open,
       child: MouseRegion(
         cursor: SystemMouseCursors.click,
         onEnter: (_) => setState(() => _hover = true),
         onExit: (_) => setState(() => _hover = false),
         child: GestureDetector(
           behavior: HitTestBehavior.opaque,
-          onTap: _openMenu,
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 120),
-            curve: Curves.easeOutCubic,
+          onTap: _open,
+          child: Container(
             width: widget.width,
             height: 26,
             constraints: const BoxConstraints(maxWidth: 260),
             padding: const EdgeInsets.only(left: 9, right: 6),
             decoration: BoxDecoration(
-              color: _hover || _open ? AppColors.hover : Colors.transparent,
+              color: _hover ? AppColors.hover : Colors.transparent,
               borderRadius: BorderRadius.circular(6),
               border: Border.all(color: AppColors.borderStrong),
             ),
@@ -91,15 +85,10 @@ class _SettingsDropdownState extends State<SettingsDropdown> {
                   ),
                 ),
                 const SizedBox(width: 4),
-                AnimatedRotation(
-                  turns: _open ? 0.5 : 0,
-                  duration: const Duration(milliseconds: 160),
-                  curve: Curves.easeOutCubic,
-                  child: Icon(
-                    Codicons.chevronDown,
-                    size: 13,
-                    color: colors['dropdown.foreground'],
-                  ),
+                Icon(
+                  Codicons.chevronDown,
+                  size: 13,
+                  color: colors['dropdown.foreground'],
                 ),
               ],
             ),

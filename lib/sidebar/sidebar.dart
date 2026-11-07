@@ -22,7 +22,6 @@ import '../ide/ide_button.dart' show IdeButtonColors;
 import '../ide/ide_commands.dart' show ideUsesMacKeys;
 import '../ide/ide_hover.dart';
 import '../ide/ide_list.dart';
-import '../ide/ide_motion.dart';
 import '../ide/ide_speed_search.dart';
 import '../ide/ide_spinning.dart';
 import '../kernel/agent_kernel.dart' show KernelChoiceKind;
@@ -1140,13 +1139,21 @@ class _SidebarState extends State<Sidebar>
           textDirection: right ? TextDirection.rtl : TextDirection.ltr,
           children: [
             const Spacer(),
-            SidebarIconButton(
-              icon: right
-                  ? Codicons.layoutSidebarRight
-                  : Codicons.layoutSidebarLeft,
-              tooltip: context.l10n.windowHideSidebar,
-              command: 'workbench.action.toggleSidebarVisibility',
-              onTap: widget.onCollapse,
+            Builder(
+              builder: (context) => Visibility(
+                visible: SidebarTopBarButtonVisibility.of(context),
+                maintainSize: true,
+                maintainAnimation: true,
+                maintainState: true,
+                child: SidebarIconButton(
+                  icon: right
+                      ? Codicons.layoutSidebarRight
+                      : Codicons.layoutSidebarLeft,
+                  tooltip: context.l10n.windowHideSidebar,
+                  command: 'workbench.action.toggleSidebarVisibility',
+                  onTap: widget.onCollapse,
+                ),
+              ),
             ),
             const SizedBox(width: 6),
           ],
@@ -1193,71 +1200,31 @@ class _SidebarState extends State<Sidebar>
                           : const Color(0xFFE6E5E0),
                       borderRadius: BorderRadius.circular(7),
                     ),
-                    child: IntrinsicWidth(
-                      child: Stack(
-                        children: [
-                          Positioned.fill(
-                            child: AnimatedAlign(
-                              duration: const Duration(milliseconds: 220),
-                              curve: const Cubic(0.22, 1.0, 0.36, 1.0),
-                              alignment: _showArchived
-                                  ? Alignment.centerRight
-                                  : Alignment.centerLeft,
-                              child: FractionallySizedBox(
-                                widthFactor: 0.5,
-                                heightFactor: 1.0,
-                                child: DecoratedBox(
-                                  decoration: BoxDecoration(
-                                    color: themeColors.dark
-                                        ? const Color(0xFF333230)
-                                        : const Color(0xFFFFFFFF),
-                                    borderRadius: BorderRadius.circular(5),
-                                    boxShadow: const [
-                                      BoxShadow(
-                                        color: Color(0x14000000),
-                                        blurRadius: 2,
-                                        offset: Offset(0, 1),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        _SegmentPill(
+                          label: activeLabel,
+                          selected: !_showArchived,
+                          onTap: () {
+                            if (_showArchived) _workspace.showArchived = false;
+                          },
+                        ),
+                        SidebarMenu(
+                          items: () => _archivedItems(context.l10n),
+                          placement: (
+                            side: FloatingSide.bottom,
+                            align: FloatingAlign.start,
                           ),
-                          Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Expanded(
-                                child: _SegmentPill(
-                                  label: activeLabel,
-                                  selected: !_showArchived,
-                                  onTap: () {
-                                    if (_showArchived) {
-                                      _workspace.showArchived = false;
-                                    }
-                                  },
-                                ),
-                              ),
-                              Expanded(
-                                child: SidebarMenu(
-                                  items: () => _archivedItems(context.l10n),
-                                  placement: (
-                                    side: FloatingSide.bottom,
-                                    align: FloatingAlign.start,
-                                  ),
-                                  builder: (context, menu) => _SegmentPill(
-                                    label: archivedLabel,
-                                    selected: _showArchived,
-                                    onTap: _toggleArchived,
-                                    onSecondaryTap: (details) =>
-                                        menu.open(details.globalPosition),
-                                  ),
-                                ),
-                              ),
-                            ],
+                          builder: (context, menu) => _SegmentPill(
+                            label: archivedLabel,
+                            selected: _showArchived,
+                            onTap: _toggleArchived,
+                            onSecondaryTap: (details) =>
+                                menu.open(details.globalPosition),
                           ),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
                   ),
                 ),
@@ -2693,9 +2660,7 @@ class _SearchBox extends StatelessWidget {
         builder: (context, hovered) => GestureDetector(
           behavior: HitTestBehavior.opaque,
           onTap: onTap,
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 130),
-            curve: Curves.easeOutCubic,
+          child: Container(
             height: 32,
             padding: const EdgeInsets.only(left: 10, right: 6),
             decoration: BoxDecoration(
@@ -2813,6 +2778,7 @@ class _SegmentPill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final dark = themeColors.dark;
     return HoverBuilder(
       cursor: SystemMouseCursors.click,
       builder: (context, hovered) => GestureDetector(
@@ -2822,9 +2788,23 @@ class _SegmentPill extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
           alignment: Alignment.center,
-          child: AnimatedDefaultTextStyle(
-            duration: const Duration(milliseconds: 160),
-            curve: const Cubic(0.22, 1.0, 0.36, 1.0),
+          decoration: selected
+              ? BoxDecoration(
+                  color: dark
+                      ? const Color(0xFF333230)
+                      : const Color(0xFFFFFFFF),
+                  borderRadius: BorderRadius.circular(5),
+                  boxShadow: const [
+                    BoxShadow(
+                      color: Color(0x14000000),
+                      blurRadius: 2,
+                      offset: Offset(0, 1),
+                    ),
+                  ],
+                )
+              : null,
+          child: Text(
+            label,
             style: TextStyle(
               color: selected || hovered
                   ? AppColors.textPrimary
@@ -2833,7 +2813,6 @@ class _SegmentPill extends StatelessWidget {
               fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
               height: 1.1,
             ),
-            child: Text(label),
           ),
         ),
       ),
@@ -3129,9 +3108,7 @@ class _GroupHeader extends StatelessWidget {
           onSecondaryTapUp: menu == null
               ? null
               : (details) => menu.open(details.globalPosition),
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 120),
-            curve: Curves.easeOutCubic,
+          child: Container(
             height: Sidebar.rowHeight,
             margin: const EdgeInsets.only(top: 6),
             padding: const EdgeInsets.only(left: 12, right: 4),
@@ -4527,30 +4504,25 @@ class SidebarIconButton extends StatelessWidget {
         label: tooltip,
         child: HoverBuilder(
           cursor: SystemMouseCursors.click,
-          builder: (context, hovered) => IdePressScale(
-            pressedScale: 0.92,
-            child: GestureDetector(
-              onTap: onTap,
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 110),
-                curve: IdeMotion.easeOut,
-                width: size,
-                height: size,
-                decoration: BoxDecoration(
-                  color: hovered
-                      ? themeColors['toolbar.hoverBackground']
-                      : Colors.transparent,
-                  borderRadius: BorderRadius.circular(5),
-                ),
-                child: switch (AppIcon(
-                  icon,
-                  size: size * 0.65,
-                  color: hovered ? AppColors.text : AppColors.textMuted,
-                )) {
-                  final icon when spinning => IdeSpinning(icon),
-                  final icon => icon,
-                },
+          builder: (context, hovered) => GestureDetector(
+            onTap: onTap,
+            child: Container(
+              width: size,
+              height: size,
+              decoration: BoxDecoration(
+                color: hovered
+                    ? themeColors['toolbar.hoverBackground']
+                    : Colors.transparent,
+                borderRadius: BorderRadius.circular(5),
               ),
+              child: switch (AppIcon(
+                icon,
+                size: size * 0.65,
+                color: hovered ? AppColors.text : AppColors.textMuted,
+              )) {
+                final icon when spinning => IdeSpinning(icon),
+                final icon => icon,
+              },
             ),
           ),
         ),
@@ -4590,9 +4562,7 @@ class _UpdateButton extends StatelessWidget {
           cursor: SystemMouseCursors.click,
           builder: (context, hovered) => GestureDetector(
             onTap: onTap,
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 120),
-              curve: Curves.easeOutCubic,
+            child: Container(
               height: 22,
               padding: const EdgeInsets.symmetric(horizontal: 10),
               alignment: Alignment.center,
@@ -4710,9 +4680,7 @@ class _DialogButton extends StatelessWidget {
       cursor: SystemMouseCursors.click,
       builder: (context, hovered) => GestureDetector(
         onTap: onTap,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 120),
-          curve: Curves.easeOutCubic,
+        child: Container(
           height: 28,
           padding: const EdgeInsets.symmetric(horizontal: 12),
           alignment: Alignment.center,
@@ -4771,9 +4739,7 @@ class _HeaderIcon extends StatelessWidget {
         cursor: SystemMouseCursors.click,
         builder: (context, hovered) => GestureDetector(
           onTap: onTap,
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 120),
-            curve: Curves.easeOutCubic,
+          child: Container(
             width: 24,
             height: 24,
             alignment: Alignment.center,
@@ -4894,4 +4860,28 @@ class _HostDot extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Controls whether [Sidebar]'s top-bar collapse button is painted: hidden
+/// while the docked sidebar is narrower than the macOS traffic-lights bumper
+/// during an open/close transition, where [Workbench] pins the toggle beside
+/// the traffic lights instead of sliding it underneath them.
+class SidebarTopBarButtonVisibility extends InheritedWidget {
+  const SidebarTopBarButtonVisibility({
+    super.key,
+    required this.visible,
+    required super.child,
+  });
+
+  final bool visible;
+
+  static bool of(BuildContext context) =>
+      context
+          .dependOnInheritedWidgetOfExactType<SidebarTopBarButtonVisibility>()
+          ?.visible ??
+      true;
+
+  @override
+  bool updateShouldNotify(SidebarTopBarButtonVisibility oldWidget) =>
+      oldWidget.visible != visible;
 }

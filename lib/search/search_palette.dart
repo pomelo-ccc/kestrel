@@ -7,7 +7,6 @@ import 'package:path/path.dart' as p;
 
 import '../chat/widgets/hover_builder.dart';
 import '../ide/ide_fuzzy.dart';
-import '../ide/ide_motion.dart';
 import '../ide/ide_quick_input.dart' show IdeKeycap, IdeQuickInput;
 import '../ide/ide_quick_open.dart';
 import '../l10n/l10n.dart';
@@ -82,14 +81,9 @@ Future<void> showSearchPalette(
     barrierLabel: 'Dismiss',
     // Black, not the theme's: as upstream's modal backdrops.
     barrierColor: const Color(0x33000000),
-    transitionDuration: const Duration(milliseconds: 200),
-    transitionBuilder: (context, animation, _, child) => IdeMotion.enter(
-      animation,
-      child,
-      alignment: Alignment.topCenter,
-      from: 0.97,
-      slideFrom: const Offset(0, -0.014),
-    ),
+    transitionDuration: const Duration(milliseconds: 100),
+    transitionBuilder: (context, animation, _, child) =>
+        FadeTransition(opacity: animation, child: child),
     pageBuilder: (context, _, _) => SearchPalette(
       agents: agents,
       conversations: conversations,
@@ -844,9 +838,7 @@ class _FilterChip extends StatelessWidget {
     cursor: SystemMouseCursors.click,
     builder: (context, hovered) => GestureDetector(
       onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 120),
-        curve: Curves.easeOutCubic,
+      child: Container(
         height: 24,
         padding: const EdgeInsets.symmetric(horizontal: 9),
         alignment: Alignment.center,
@@ -858,14 +850,12 @@ class _FilterChip extends StatelessWidget {
               : Colors.transparent,
           borderRadius: BorderRadius.circular(6),
         ),
-        child: AnimatedDefaultTextStyle(
-          duration: const Duration(milliseconds: 120),
-          curve: Curves.easeOutCubic,
+        child: Text(
+          label,
           style: TextStyle(
             color: selected ? AppColors.textPrimary : AppColors.textMuted,
             fontSize: 12.5,
           ),
-          child: Text(label),
         ),
       ),
     ),
@@ -912,89 +902,85 @@ class _PaletteRow extends StatelessWidget {
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
         onTap: onTap,
-        child: SizedBox(
+        child: Container(
           height: entry.height,
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 90),
-            curve: Curves.easeOutCubic,
-            margin: const EdgeInsets.symmetric(horizontal: 6),
-            padding: const EdgeInsets.symmetric(horizontal: 10),
-            decoration: BoxDecoration(
+          margin: const EdgeInsets.symmetric(horizontal: 6),
+          padding: const EdgeInsets.symmetric(horizontal: 10),
+          decoration: BoxDecoration(
+            color: selected
+                ? colors['quickInputList.focusBackground']
+                : Colors.transparent,
+            borderRadius: BorderRadius.circular(6),
+          ),
+          // High contrast themes outline it, as the IDE's lists do.
+          foregroundDecoration: selected
+              ? switch (colors.get('contrastActiveBorder')) {
+                  final outline? => BoxDecoration(
+                    border: Border.all(color: outline),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  null => null,
+                }
+              : null,
+          child: IconTheme.merge(
+            data: IconThemeData(
               color: selected
-                  ? colors['quickInputList.focusBackground']
-                  : Colors.transparent,
-              borderRadius: BorderRadius.circular(6),
+                  ? colors.get('quickInputList.focusIconForeground') ?? muted
+                  : AppColors.textMuted,
             ),
-            // High contrast themes outline it, as the IDE's lists do.
-            foregroundDecoration: selected
-                ? switch (colors.get('contrastActiveBorder')) {
-                    final outline? => BoxDecoration(
-                      border: Border.all(color: outline),
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                    null => null,
-                  }
-                : null,
-            child: IconTheme.merge(
-              data: IconThemeData(
-                color: selected
-                    ? colors.get('quickInputList.focusIconForeground') ?? muted
-                    : AppColors.textMuted,
-              ),
-              child: Row(
-                children: [
-                  if (entry.leading case final leading?) ...[
-                    SizedBox(width: 16, child: Center(child: leading)),
-                    const SizedBox(width: 10),
-                  ],
-                  Expanded(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
+            child: Row(
+              children: [
+                if (entry.leading case final leading?) ...[
+                  SizedBox(width: 16, child: Center(child: leading)),
+                  const SizedBox(width: 10),
+                ],
+                Expanded(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _highlighted(
+                        entry.title,
+                        entry.titleMatches,
+                        TextStyle(color: foreground, fontSize: 13),
+                        highlight,
+                      ),
+                      if (snippet != null) ...[
+                        const SizedBox(height: 2),
                         _highlighted(
-                          entry.title,
-                          entry.titleMatches,
-                          TextStyle(color: foreground, fontSize: 13),
+                          snippet.snippet,
+                          [
+                            for (
+                              var i = snippet.matchStart;
+                              i < snippet.matchStart + snippet.matchLength;
+                              i++
+                            )
+                              i,
+                          ],
+                          TextStyle(color: muted, fontSize: 12),
                           highlight,
                         ),
-                        if (snippet != null) ...[
-                          const SizedBox(height: 2),
-                          _highlighted(
-                            snippet.snippet,
-                            [
-                              for (
-                                var i = snippet.matchStart;
-                                i < snippet.matchStart + snippet.matchLength;
-                                i++
-                              )
-                                i,
-                            ],
-                            TextStyle(color: muted, fontSize: 12),
-                            highlight,
-                          ),
-                        ],
                       ],
+                    ],
+                  ),
+                ),
+                if (entry.trailing case final trailing?) ...[
+                  const SizedBox(width: 12),
+                  ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 220),
+                    child: Text(
+                      trailing,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: faint,
                     ),
                   ),
-                  if (entry.trailing case final trailing?) ...[
-                    const SizedBox(width: 12),
-                    ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: 220),
-                      child: Text(
-                        trailing,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: faint,
-                      ),
-                    ),
-                  ],
-                  if (entry.keybinding case final keys?) ...[
-                    const SizedBox(width: 12),
-                    IdeKeycap(keys),
-                  ],
                 ],
-              ),
+                if (entry.keybinding case final keys?) ...[
+                  const SizedBox(width: 12),
+                  IdeKeycap(keys),
+                ],
+              ],
             ),
           ),
         ),

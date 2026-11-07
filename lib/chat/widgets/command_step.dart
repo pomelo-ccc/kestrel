@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import '../../ide/ide_motion.dart';
 import '../../l10n/l10n.dart';
 import '../../sidebar/sidebar_menu.dart';
 import '../../theme/app_theme.dart';
@@ -81,45 +80,41 @@ class CommandStep extends StatelessWidget {
           expanded: expanded,
           onToggle: _opens ? onToggle : null,
         ),
-        IdeStepBody(
-          expanded: expanded && _opens,
-          child: expanded && _opens
-              ? StepBody(
-                  followEnd: _running,
-                  // Clear of the menu button.
-                  padding: const EdgeInsets.fromLTRB(12, 10, 36, 10),
-                  overlay: _CommandMenu(
-                    command: command,
-                    output: output,
-                    onMoveToBackground: onMoveToBackground,
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+        if (expanded && _opens)
+          StepBody(
+            followEnd: _running,
+            // Clear of the menu button.
+            padding: const EdgeInsets.fromLTRB(12, 10, 36, 10),
+            overlay: _CommandMenu(
+              command: command,
+              output: output,
+              onMoveToBackground: onMoveToBackground,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text.rich(
+                  TextSpan(
                     children: [
-                      Text.rich(
-                        TextSpan(
-                          children: [
-                            TextSpan(
-                              text: '\$ ',
-                              style: TextStyle(color: AppColors.textFaint),
-                            ),
-                            ...highlightShell(command),
-                          ],
-                        ),
-                        style: stepMono,
+                      TextSpan(
+                        text: '\$ ',
+                        style: TextStyle(color: AppColors.textFaint),
                       ),
-                      if (printed != null && printed.text.isNotEmpty) ...[
-                        const SizedBox(height: 8),
-                        if (printed.styled)
-                          Text.rich(printed.span, style: stepMono)
-                        else
-                          Text(printed.text, style: stepMono),
-                      ],
+                      ...highlightShell(command),
                     ],
                   ),
-                )
-              : null,
-        ),
+                  style: stepMono,
+                ),
+                if (printed != null && printed.text.isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  if (printed.styled)
+                    Text.rich(printed.span, style: stepMono)
+                  else
+                    Text(printed.text, style: stepMono),
+                ],
+              ],
+            ),
+          ),
       ],
     );
   }

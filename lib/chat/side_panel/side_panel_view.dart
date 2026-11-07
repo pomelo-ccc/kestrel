@@ -28,7 +28,6 @@ import '../../ide/services/git_changes.dart';
 import '../../ide/search/text_search.dart' show IdeTextSearch, ideSearchText;
 import '../../ide/ide_list.dart';
 import '../../ide/ide_menu.dart';
-import '../../ide/ide_motion.dart';
 import '../../ide/ide_notifications.dart';
 import '../../ide/ide_modern_ui.dart';
 import '../../ide/ide_panes.dart';
@@ -97,12 +96,16 @@ class AgentSidePanelArea extends StatefulWidget {
     this.railTop,
     this.hidden = false,
     this.roomComing = false,
+    this.animate = false,
     this.conversation,
     this.bottom = 0,
     required this.child,
   });
 
   final AgentSidePanel panel;
+
+  /// Whether opening and closing the panel slides smoothly over 200ms.
+  final bool animate;
 
   /// How far up from the bottom it ends beside the conversations: over
   /// the row under their cards (see [Islands.belowHeight]), its card's
@@ -263,141 +266,145 @@ class _AgentSidePanelAreaState extends State<AgentSidePanelArea> {
         final rail = !shown && widget.rail != null;
         final width = _shownWidth(room);
         final fullExtent = width + AgentSidePanelArea.sashWidth;
+        Widget? cachedPanelBox;
+        Widget buildPanelBox() => cachedPanelBox ??= RepaintBoundary(
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              // Over the conversations, on the window's color opaque,
+              // its gap too.
+              color: overlay ? AppColors.background : null,
+              boxShadow: overlay
+                  ? [
+                      BoxShadow(
+                        color: themeColors['widget.shadow'],
+                        blurRadius: 24,
+                      ),
+                    ]
+                  : null,
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              // The sash on the side of the conversations.
+              textDirection: atLeft ? TextDirection.rtl : TextDirection.ltr,
+              children: [
+                _sash(atLeft: atLeft),
+                Expanded(
+                  // Never laid out narrower than its least: squeezed
+                  // a while (the sidebar giving way), what has no
+                  // room is cut off, as the sidebar's own is.
+                  child: ClipRect(
+                    child: OverflowBox(
+                      alignment: Alignment.centerLeft,
+                      minWidth: math.max(width, AgentSidePanel.minWidth),
+                      maxWidth: math.max(width, AgentSidePanel.minWidth),
+                      child: _content(context),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
         return TweenAnimationBuilder<double>(
           key: ValueKey(widget.conversation),
           tween: Tween<double>(end: shown ? 1.0 : 0.0),
-          duration: _dragging
+          duration: _dragging || !widget.animate
               ? Duration.zero
-              : Duration(milliseconds: shown ? 230 : 185),
-          curve: shown ? IdeMotion.expoOut : IdeMotion.easeOut,
+              : const Duration(milliseconds: 200),
+          curve: Curves.easeOutCubic,
           builder: (context, t, _) {
             final panelVisible = shown || t > 0.001;
             final beside = panelVisible && !overlay;
             final animatedExtent = fullExtent * t;
+            final railInset = widget.rail != null
+                ? AgentSidePanelArea.railInset * (1.0 - t)
+                : 0.0;
             // Each child keyed: the conversations and the panel are never
             // built anew as the rail, the scrim or the drag's cursor come and
             // go (the panel built anew mid-drag would drop the drag, and
             // leave the cursor's cover over the window).
-            return ClipRect(
-              child: Stack(
-                fit: StackFit.expand,
-                children: [
+            return Stack(
+              fit: StackFit.expand,
+              children: [
+                Positioned(
+                  key: const ValueKey('chat'),
+                  top: 0,
+                  bottom: 0,
+                  // Up to the gap between the two, where the sash is.
+                  left: beside && atLeft ? animatedExtent : 0,
+                  right: beside && !atLeft ? animatedExtent : 0,
+                  child: ChatColumnInset(
+                    right: !atLeft ? railInset : 0,
+                    left: atLeft ? railInset : 0,
+                    child: widget.child,
+                  ),
+                ),
+                if (rail)
                   Positioned(
-                    key: const ValueKey('chat'),
-                    top: 0,
-                    bottom: 0,
-                    // Up to the gap between the two, where the sash is.
-                    left: beside && atLeft ? animatedExtent : 0,
-                    right: beside && !atLeft ? animatedExtent : 0,
-                    child: ChatColumnInset(
-                      right: rail && !atLeft ? AgentSidePanelArea.railInset : 0,
-                      left: rail && atLeft ? AgentSidePanelArea.railInset : 0,
-                      child: widget.child,
+                    key: const ValueKey('rail'),
+                    left: atLeft
+                        ? (beside ? animatedExtent : 0) +
+                              AgentSidePanelArea.railRight
+                        : null,
+                    right: atLeft
+                        ? null
+                        : (beside ? animatedExtent : 0) +
+                              AgentSidePanelArea.railRight,
+                    top: widget.railTop ?? AgentSidePanelArea.defaultRailTop,
+                    child: Opacity(
+                      opacity: (1.0 - t * 2.5).clamp(0.0, 1.0),
+                      child: widget.rail!,
                     ),
                   ),
-                  if (rail)
-                    Positioned(
-                      key: const ValueKey('rail'),
-                      left: atLeft ? AgentSidePanelArea.railRight : null,
-                      right: atLeft ? null : AgentSidePanelArea.railRight,
-                      top: widget.railTop ?? AgentSidePanelArea.defaultRailTop,
-                      child: Opacity(
-                        opacity: (1.0 - t).clamp(0.0, 1.0),
-                        child: Transform.translate(
-                          offset: Offset((atLeft ? -6.0 : 6.0) * t, 0),
-                          child: widget.rail!,
+                if (panelVisible) ...[
+                  if (overlay)
+                    Positioned.fill(
+                      key: const ValueKey('scrim'),
+                      child: GestureDetector(
+                        onTap: _hide,
+                        child: Opacity(
+                          opacity: t.clamp(0.0, 1.0),
+                          child: const ColoredBox(color: Color(0x33000000)),
                         ),
                       ),
                     ),
-                  if (panelVisible) ...[
-                    if (overlay)
-                      Positioned.fill(
-                        key: const ValueKey('scrim'),
-                        child: GestureDetector(
-                          onTap: _hide,
-                          child: Opacity(
-                            opacity: t.clamp(0.0, 1.0),
-                            child: const ColoredBox(color: Color(0x33000000)),
-                          ),
-                        ),
+                  Positioned(
+                    key: const ValueKey('panel'),
+                    top: 0,
+                    // Over the terminals' card, which has the conversation's
+                    // row under it: down to the card's foot, as it is.
+                    bottom: overlay || IslandFootHosted.of(context)
+                        ? 0
+                        : widget.bottom,
+                    left: atLeft ? 0 : null,
+                    right: atLeft ? null : 0,
+                    width: animatedExtent,
+                    child: ClipRect(
+                      child: OverflowBox(
+                        alignment: atLeft
+                            ? Alignment.centerRight
+                            : Alignment.centerLeft,
+                        minWidth: fullExtent,
+                        maxWidth: fullExtent,
+                        child: buildPanelBox(),
                       ),
-                    Positioned(
-                      key: const ValueKey('panel'),
-                      top: 0,
-                      // Over the terminals' card, which has the conversation's
-                      // row under it: down to the card's foot, as it is.
-                      bottom: overlay || IslandFootHosted.of(context)
-                          ? 0
-                          : widget.bottom,
-                      left: atLeft ? -fullExtent * (1.0 - t) : null,
-                      right: atLeft ? null : -fullExtent * (1.0 - t),
-                      width: fullExtent,
-                      child: Opacity(
-                        opacity: (0.2 + 0.8 * t).clamp(0.0, 1.0),
-                        child: RepaintBoundary(
-                          child: DecoratedBox(
-                            decoration: BoxDecoration(
-                              // Over the conversations, on the window's color opaque,
-                              // its gap too.
-                              color: overlay ? AppColors.background : null,
-                              boxShadow: overlay
-                                  ? [
-                                      BoxShadow(
-                                        color: themeColors['widget.shadow'],
-                                        blurRadius: 24,
-                                      ),
-                                    ]
-                                  : null,
-                            ),
-                            child: Row(
-                              crossAxisAlignment: CrossAxisAlignment.stretch,
-                              // The sash on the side of the conversations.
-                              textDirection: atLeft
-                                  ? TextDirection.rtl
-                                  : TextDirection.ltr,
-                              children: [
-                                _sash(atLeft: atLeft),
-                                Expanded(
-                                  // Never laid out narrower than its least: squeezed
-                                  // a while (the sidebar giving way), what has no
-                                  // room is cut off, as the sidebar's own is.
-                                  child: ClipRect(
-                                    child: OverflowBox(
-                                      alignment: Alignment.centerLeft,
-                                      minWidth: math.max(
-                                        width,
-                                        AgentSidePanel.minWidth,
-                                      ),
-                                      maxWidth: math.max(
-                                        width,
-                                        AgentSidePanel.minWidth,
-                                      ),
-                                      child: _content(context),
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
+                    ),
+                  ),
+                  // The resize cursor wherever the pointer goes while dragging;
+                  // a press there (a drag whose end was lost) ends it.
+                  if (_dragging)
+                    Positioned.fill(
+                      key: const ValueKey('drag-cursor'),
+                      child: Listener(
+                        behavior: HitTestBehavior.translucent,
+                        onPointerDown: (_) => _endDrag(),
+                        child: const MouseRegion(
+                          cursor: SystemMouseCursors.resizeColumn,
                         ),
                       ),
                     ),
-                    // The resize cursor wherever the pointer goes while dragging;
-                    // a press there (a drag whose end was lost) ends it.
-                    if (_dragging)
-                      Positioned.fill(
-                        key: const ValueKey('drag-cursor'),
-                        child: Listener(
-                          behavior: HitTestBehavior.translucent,
-                          onPointerDown: (_) => _endDrag(),
-                          child: const MouseRegion(
-                            cursor: SystemMouseCursors.resizeColumn,
-                          ),
-                        ),
-                      ),
-                  ],
                 ],
-              ),
+              ],
             );
           },
         );
@@ -659,28 +666,23 @@ class AgentSidePanelView extends StatelessWidget {
           leading: leading,
           windowTitleBar: windowTitleBar,
         ),
-        body: AnimatedSwitcher(
-          duration: const Duration(milliseconds: 140),
-          switchInCurve: Curves.easeOutCubic,
-          switchOutCurve: Curves.easeInCubic,
-          child: switch (tabs.shown) {
-            SidePanelSection.files => _filesPage(context, tabs),
-            SidePanelSection.changes => _changesPage(context, tabs),
-            SidePanelSection.terminal => _terminalPage(context, tabs),
-            SidePanelSection.usage => ConversationUsageView(
-              key: ValueKey(('page', SidePanelSection.usage, session)),
-              session: session,
+        body: switch (tabs.shown) {
+          SidePanelSection.files => _filesPage(context, tabs),
+          SidePanelSection.changes => _changesPage(context, tabs),
+          SidePanelSection.terminal => _terminalPage(context, tabs),
+          SidePanelSection.usage => ConversationUsageView(
+            key: ValueKey(('page', SidePanelSection.usage, session)),
+            session: session,
+          ),
+          SidePanelSection.plan => _planPage(context, tabs.plan!),
+          SidePanelSection.ports => switch (_portsHost(session)) {
+            final host? => PortsView(
+              key: ValueKey(('page', SidePanelSection.ports, host)),
+              host: host,
             ),
-            SidePanelSection.plan => _planPage(context, tabs.plan!),
-            SidePanelSection.ports => switch (_portsHost(session)) {
-              final host? => PortsView(
-                key: ValueKey(('page', SidePanelSection.ports, host)),
-                host: host,
-              ),
-              null => const SizedBox.shrink(),
-            },
+            null => const SizedBox.shrink(),
           },
-        ),
+        },
       );
     },
   );

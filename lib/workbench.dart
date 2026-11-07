@@ -63,7 +63,6 @@ import 'ide/ide_chat_title.dart';
 import 'ide/ide_color_theme_picker.dart';
 import 'ide/ide_commands.dart';
 import 'ide/ide_dialog.dart';
-import 'ide/ide_motion.dart';
 import 'ide/ide_menu.dart';
 import 'models/model_welcome.dart';
 import 'models/upstream_import.dart';
@@ -2982,81 +2981,116 @@ class _WorkbenchState extends State<Workbench> implements WindowDelegate {
 
   /// The sidebar docked beside [body] (by default the chat's panes).
   Widget _buildWide({Widget? body}) {
-    // Built once for the widths a drag goes through (see [_width]).
+    // Built once for the widths a drag goes through (see [_width]), and
+    // reused across every frame of the open/close width animation so
+    // neither the sidebar nor the chat panes rebuild while sliding.
     final sidebar = RepaintBoundary(child: _buildSidebar(onWindow: true));
-    final panes = RepaintBoundary(
-      child: body ?? _buildPanes(showToggle: !_sidebarDocked),
-    );
     final right = _sidebarAtRight;
+    final macLeft = !right && !WindowControls.drawsHeader;
+    final trafficLightsToggleLeft =
+        Islands.gap + AppMetrics.trafficLightsWidth + 8;
+    final handoffWidth = trafficLightsToggleLeft + 28;
+    Widget? panesWithoutToggle;
+    Widget? panesWithToggle;
+    Widget panesFor(bool showToggle) {
+      if (body != null) return body;
+      if (showToggle) {
+        return panesWithToggle ??= RepaintBoundary(
+          child: _buildPanes(showToggle: true),
+        );
+      }
+      return panesWithoutToggle ??= RepaintBoundary(
+        child: _buildPanes(showToggle: false),
+      );
+    }
+
     final row = ValueListenableBuilder(
       valueListenable: _width,
       builder: (context, _, _) => TweenAnimationBuilder<double>(
         tween: Tween<double>(end: _sidebarDocked ? 1.0 : 0.0),
         duration: _dragging ? Duration.zero : _duration,
-        curve: _sidebarDocked ? IdeMotion.expoOut : IdeMotion.easeOut,
+        curve: Curves.easeOutCubic,
         builder: (context, t, _) {
           final width = _shownWidth * t;
           final gap = Islands.gap * (1.0 - t);
-          return Row(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            // At the window's right, the sidebar after the cards.
-            textDirection: right ? TextDirection.rtl : TextDirection.ltr,
+          final sidebarOpenOrMoving = _sidebarDocked || t > 0.001;
+          final showToggleInPanes = macLeft
+              ? !sidebarOpenOrMoving
+              : !_sidebarDocked;
+          final pinToggleAtTrafficLights =
+              macLeft && sidebarOpenOrMoving && width < handoffWidth;
+          final panes = panesFor(showToggleInPanes);
+          return Stack(
+            fit: StackFit.expand,
             children: [
-              SizedBox(
-                width: width,
-                child: ClipRect(
-                  child: OverflowBox(
-                    // Its edge by the cards seen first, as it comes in.
-                    alignment: right
-                        ? Alignment.centerLeft
-                        : Alignment.centerRight,
-                    minWidth: _shownWidth,
-                    maxWidth: _shownWidth,
-                    child: Opacity(
-                      opacity: (0.25 + 0.75 * t).clamp(0.0, 1.0),
-                      child: Directionality(
-                        textDirection: Directionality.of(context),
-                        child: sidebar,
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                // At the window's right, the sidebar after the cards.
+                textDirection: right ? TextDirection.rtl : TextDirection.ltr,
+                children: [
+                  SizedBox(
+                    width: width,
+                    child: ClipRect(
+                      child: OverflowBox(
+                        // Its edge by the cards seen first, as it comes in.
+                        alignment: right
+                            ? Alignment.centerLeft
+                            : Alignment.centerRight,
+                        minWidth: _shownWidth,
+                        maxWidth: _shownWidth,
+                        child: Directionality(
+                          textDirection: Directionality.of(context),
+                          child: SidebarTopBarButtonVisibility(
+                            visible: !pinToggleAtTrafficLights,
+                            child: sidebar,
+                          ),
+                        ),
                       ),
                     ),
                   ),
-                ),
-              ),
-              // The cards a gap in from the window's edges; against the
-              // sidebar, not on a card of its own, with none (its scroll bar
-              // by their side). The handle over their edge, clear of the
-              // scroll bar.
-              Expanded(
-                child: Directionality(
-                  textDirection: Directionality.of(context),
-                  child: Stack(
-                    fit: StackFit.expand,
-                    children: [
-                      Positioned.fill(
-                        child: Padding(
-                          padding: EdgeInsets.only(
-                            left: right ? 0 : gap,
-                            right: !right ? 0 : gap,
+                  // The cards a gap in from the window's edges; against the
+                  // sidebar, not on a card of its own, with none (its scroll bar
+                  // by their side). The handle over their edge, clear of the
+                  // scroll bar.
+                  Expanded(
+                    child: Directionality(
+                      textDirection: Directionality.of(context),
+                      child: Stack(
+                        fit: StackFit.expand,
+                        children: [
+                          Positioned.fill(
+                            child: Padding(
+                              padding: EdgeInsets.only(
+                                left: right ? 0 : gap,
+                                right: !right ? 0 : gap,
+                              ),
+                              child: _islandsInset(
+                                panes,
+                                left: right,
+                                right: !right,
+                              ),
+                            ),
                           ),
-                          child: _islandsInset(
-                            panes,
-                            left: right,
-                            right: !right,
-                          ),
-                        ),
+                          if (_sidebarDocked)
+                            Positioned(
+                              left: right ? null : 0,
+                              right: right ? 0 : null,
+                              top: 0,
+                              bottom: 0,
+                              child: _buildResizeHandle(island: true),
+                            ),
+                        ],
                       ),
-                      if (_sidebarDocked)
-                        Positioned(
-                          left: right ? null : 0,
-                          right: right ? 0 : null,
-                          top: 0,
-                          bottom: 0,
-                          child: _buildResizeHandle(island: true),
-                        ),
-                    ],
+                    ),
                   ),
-                ),
+                ],
               ),
+              if (pinToggleAtTrafficLights)
+                Positioned(
+                  left: trafficLightsToggleLeft,
+                  top: (AppMetrics.titleBarHeight - 22) / 2,
+                  child: TitleBarControls(child: _showSidebarButton()),
+                ),
             ],
           );
         },
@@ -3921,6 +3955,7 @@ class _WorkbenchState extends State<Workbench> implements WindowDelegate {
         // Customize, in place of the conversations, isn't one of theirs.
         hidden: _sidePanelHidden || _replacingChat,
         roomComing: _sidebarGivingWay,
+        animate: true,
         // Just under the row along the top of the conversation's card (see
         // [AgentSidePanelArea.defaultRailTop]).
         // Not in a narrow window, where the conversation has no room to spare
@@ -5180,6 +5215,7 @@ class _WorkbenchState extends State<Workbench> implements WindowDelegate {
     conversation: thread.session,
     hidden: _sidePanelHidden,
     roomComing: _sidebarGivingWay,
+    animate: true,
     rail: _railFor(thread),
     railTop: ChatScreen.cardHeaderHeight + AgentSidePanelArea.railRight,
     builder: (context) => _buildSidePanel(thread, windowTitleBar: false),

@@ -828,15 +828,10 @@ class ComposerPickerState extends State<ComposerPicker> {
               style: TextStyle(color: color, fontSize: 12),
             ),
           ),
-          AnimatedRotation(
-            turns: open ? 0.5 : 0,
-            duration: const Duration(milliseconds: 150),
-            curve: Curves.easeOutCubic,
-            child: Icon(
-              Icons.keyboard_arrow_down_rounded,
-              size: 15,
-              color: AppColors.textFaint,
-            ),
+          Icon(
+            Icons.keyboard_arrow_down_rounded,
+            size: 15,
+            color: AppColors.textFaint,
           ),
         ],
       ),
@@ -1329,9 +1324,7 @@ class _SearchLine extends StatelessWidget {
       // line there all along, so that nothing moves.
       child: ListenableBuilder(
         listenable: focusNode,
-        builder: (context, row) => AnimatedContainer(
-          duration: const Duration(milliseconds: 120),
-          curve: Curves.easeOutCubic,
+        builder: (context, row) => Container(
           height: 28,
           margin: const EdgeInsets.fromLTRB(4, 0, 4, 2),
           padding: const EdgeInsets.symmetric(horizontal: 7),
@@ -1410,9 +1403,7 @@ class _FooterRow extends StatelessWidget {
     builder: (context, hovered) => GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 90),
-        curve: Curves.easeOutCubic,
+      child: Container(
         height: 28,
         padding: const EdgeInsets.symmetric(horizontal: 8),
         decoration: BoxDecoration(
@@ -1606,9 +1597,7 @@ class _Highlighted extends StatelessWidget {
     child: child,
     builder: (context, highlighted, child) {
       final on = highlighted == index;
-      return AnimatedContainer(
-        duration: const Duration(milliseconds: 85),
-        curve: Curves.easeOutCubic,
+      return Container(
         height: height,
         padding: const EdgeInsets.symmetric(horizontal: 8),
         decoration: BoxDecoration(

@@ -254,18 +254,12 @@ class _EditedFilePill extends StatelessWidget {
         cursor: SystemMouseCursors.click,
         builder: (context, hovered) => GestureDetector(
           onTap: () => _open(context),
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 120),
-            curve: Curves.easeOutCubic,
+          child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2.5),
             decoration: BoxDecoration(
               color: hovered ? AppColors.hover : AppColors.surface,
               borderRadius: BorderRadius.circular(5),
-              border: Border.all(
-                color: hovered
-                    ? AppColors.accent.withValues(alpha: 0.35)
-                    : AppColors.partBorder,
-              ),
+              border: Border.all(color: AppColors.partBorder),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
@@ -348,12 +342,10 @@ class ProjectMemoryButton extends StatelessWidget {
             ),
           ),
           behavior: HitTestBehavior.opaque,
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 120),
-            curve: Curves.easeOutCubic,
+          child: Container(
             padding: const EdgeInsets.all(3),
             decoration: BoxDecoration(
-              color: hovered ? AppColors.hover : Colors.transparent,
+              color: hovered ? AppColors.hover : null,
               borderRadius: BorderRadius.circular(4),
             ),
             child: Icon(
@@ -747,26 +739,18 @@ class _ExportTurnButtonState extends State<ExportTurnButton> {
             _export(fullSession: HardwareKeyboard.instance.isShiftPressed),
           ),
           behavior: HitTestBehavior.opaque,
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 120),
-            curve: Curves.easeOutCubic,
+          child: Container(
             padding: const EdgeInsets.all(3),
             decoration: BoxDecoration(
-              color: hovered ? AppColors.hover : Colors.transparent,
+              color: hovered ? AppColors.hover : null,
               borderRadius: BorderRadius.circular(4),
             ),
-            child: AnimatedSwitcher(
-              duration: const Duration(milliseconds: 150),
-              transitionBuilder: (child, animation) =>
-                  ScaleTransition(scale: animation, child: child),
-              child: Icon(
-                _exported ? Codicons.check : Codicons.markdown,
-                key: ValueKey(_exported),
-                size: 13,
-                color: hovered || _exported
-                    ? AppColors.text
-                    : AppColors.textFaint,
-              ),
+            child: Icon(
+              _exported ? Codicons.check : Codicons.markdown,
+              size: 13,
+              color: hovered || _exported
+                  ? AppColors.text
+                  : AppColors.textFaint,
             ),
           ),
         ),
@@ -965,12 +949,10 @@ class ModelPkButton extends StatelessWidget {
         builder: (context, hovered) => GestureDetector(
           onTap: () => unawaited(_openPicker(context)),
           behavior: HitTestBehavior.opaque,
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 120),
-            curve: Curves.easeOutCubic,
+          child: Container(
             padding: const EdgeInsets.all(3),
             decoration: BoxDecoration(
-              color: hovered ? AppColors.hover : Colors.transparent,
+              color: hovered ? AppColors.hover : null,
               borderRadius: BorderRadius.circular(4),
             ),
             child: Icon(
