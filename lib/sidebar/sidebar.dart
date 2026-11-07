@@ -37,11 +37,11 @@ import '../remote/remote_status.dart' show sshErrorText;
 import '../remote/ssh_host.dart' show SshHost, SshHostState, SshHosts;
 import '../theme/app_theme.dart';
 import '../theme/codicons.dart';
-import '../theme/workbench_theme.dart' show themeColors;
+import '../theme/workbench_theme.dart'
+    show ThemeSettingDefaults, WorkbenchThemeService, themeColors;
 import '../update/update_service.dart';
 import '../workspace/chat_drag.dart';
 import '../workspace/editor_launcher.dart';
-import '../workspace/islands.dart';
 import '../workspace/title_bar_double_click.dart';
 import '../workspace/window_controls.dart';
 import '../workspace/workspace.dart';
@@ -1032,8 +1032,16 @@ class _SidebarState extends State<Sidebar>
 
   @override
   Widget build(BuildContext context) {
+    final dark = themeColors.dark;
+    final defaultBg = dark
+        ? (AppColors.usesSystemMaterial
+              ? const Color(0xF2191816)
+              : const Color(0xFF191816))
+        : (AppColors.usesSystemMaterial
+              ? const Color(0xF2F2EEE7)
+              : const Color(0xFFF2EEE7));
     return Material(
-      color: widget.surface ?? AppColors.sidebarSurface,
+      color: widget.surface ?? defaultBg,
       child: Listener(
         // On the way up, so a click lands on the row it went down on
         // before every project is listed again.
@@ -1050,6 +1058,7 @@ class _SidebarState extends State<Sidebar>
       null => widget.onOpenFolder,
       _ => null,
     };
+    final isZh = Localizations.localeOf(context).languageCode == 'zh';
     return ListenableBuilder(
       listenable: _workspace,
       builder: (context, _) => Column(
@@ -1060,7 +1069,7 @@ class _SidebarState extends State<Sidebar>
           if (!WindowControls.drawsHeader) _buildTopBar(),
           if (widget.onSearch case final search?)
             Padding(
-              padding: const EdgeInsets.fromLTRB(8, 2, 8, 5),
+              padding: const EdgeInsets.fromLTRB(14, 2, 14, 10),
               child: _SearchBox(
                 label: context.l10n.sidebarSearch,
                 hover: ChatKeys.titleWithKey(
@@ -1072,12 +1081,7 @@ class _SidebarState extends State<Sidebar>
               ),
             ),
           Padding(
-            padding: const EdgeInsets.fromLTRB(
-              6,
-              2,
-              6,
-              2,
-            ),
+            padding: const EdgeInsets.fromLTRB(10, 0, 10, 2),
             // A new chat picks its folder over its input (see
             // NewChatFolderBar): a folder first only without any.
             child: _NewAgentButton(
@@ -1093,7 +1097,8 @@ class _SidebarState extends State<Sidebar>
           if (widget.onCustomize case final customize?)
             _NavRow(
               icon: Codicons.sparkle,
-              label: context.l10n.sidebarCustomize,
+              label: isZh ? '插件' : context.l10n.sidebarCustomize,
+              semanticsLabel: context.l10n.sidebarCustomize,
               selected: widget.customizing,
               onTap: customize,
             ),
@@ -1117,10 +1122,6 @@ class _SidebarState extends State<Sidebar>
                 onTap: stash,
               ),
             },
-          if (widget.onSearch != null ||
-              widget.onCustomize != null ||
-              widget.onStash != null)
-            const SizedBox(height: 6),
           _buildGroupingBar(openProject),
           Expanded(child: _buildList()),
           _buildFooter(),
@@ -1156,7 +1157,7 @@ class _SidebarState extends State<Sidebar>
                 ),
               ),
             ),
-            const SizedBox(width: 6),
+            const SizedBox(width: 10),
           ],
         ),
       ),
@@ -1167,15 +1168,16 @@ class _SidebarState extends State<Sidebar>
     // Searching, the filter is the whole row.
     if (_speedQuery.isNotEmpty) {
       return Padding(
-        padding: const EdgeInsets.fromLTRB(8, 5, 8, 1),
+        padding: const EdgeInsets.fromLTRB(10, 5, 10, 1),
         child: _buildSpeedHeading(),
       );
     }
+    final dark = themeColors.dark;
     final isZh = Localizations.localeOf(context).languageCode == 'zh';
     final activeLabel = isZh ? '进行中' : context.l10n.sidebarAgents;
     final archivedLabel = isZh ? '已归档' : 'History';
     return Padding(
-      padding: const EdgeInsets.fromLTRB(10, 6, 8, 4),
+      padding: const EdgeInsets.fromLTRB(14, 10, 12, 8),
       child: Row(
         children: [
           if (_workspace.sshHosts.isNotEmpty)
@@ -1196,10 +1198,16 @@ class _SidebarState extends State<Sidebar>
                     height: 28,
                     padding: const EdgeInsets.all(2),
                     decoration: BoxDecoration(
-                      color: themeColors.dark
-                          ? const Color(0xFF222220)
-                          : const Color(0xFFE6E5E0),
-                      borderRadius: BorderRadius.circular(7),
+                      color: dark
+                          ? const Color(0xFF272421)
+                          : const Color(0x8CDFD7CB),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(
+                        color: dark
+                            ? const Color(0x0DFFFFFF)
+                            : const Color(0x33C5B9A8),
+                        width: 1,
+                      ),
                     ),
                     child: IntrinsicWidth(
                       child: Stack(
@@ -1216,19 +1224,13 @@ class _SidebarState extends State<Sidebar>
                                 heightFactor: 1.0,
                                 child: DecoratedBox(
                                   decoration: BoxDecoration(
-                                    color: themeColors.dark
-                                        ? const Color(0xFF333230)
+                                    color: dark
+                                        ? const Color(0xFF383430)
                                         : const Color(0xFFFFFFFF),
-                                    borderRadius: BorderRadius.circular(6),
-                                    border: Border.all(
-                                      color: themeColors.dark
-                                          ? const Color(0xFF42413E)
-                                          : const Color(0xFFE5E4DF),
-                                      width: 0.5,
-                                    ),
+                                    borderRadius: BorderRadius.circular(8),
                                     boxShadow: const [
                                       BoxShadow(
-                                        color: Color(0x12000000),
+                                        color: Color(0x14000000),
                                         blurRadius: 3,
                                         offset: Offset(0, 1),
                                       ),
@@ -1277,7 +1279,6 @@ class _SidebarState extends State<Sidebar>
                 ),
               ),
             ),
-          ?_buildCollapseAll(),
           SidebarMenu(
             // `Recent activity` and its check whole.
             width: 168,
@@ -1324,9 +1325,11 @@ class _SidebarState extends State<Sidebar>
                   alignment: Alignment.center,
                   decoration: BoxDecoration(
                     color: hovered || menu.isOpen
-                        ? AppColors.hover
+                        ? (dark
+                              ? const Color(0x1AFFFFFF)
+                              : const Color(0x80DFD7CB))
                         : Colors.transparent,
-                    borderRadius: BorderRadius.circular(5),
+                    borderRadius: BorderRadius.circular(7),
                   ),
                   child: Stack(
                     alignment: Alignment.center,
@@ -1334,10 +1337,14 @@ class _SidebarState extends State<Sidebar>
                     children: [
                       Icon(
                         Icons.tune_rounded,
-                        size: 15.5,
+                        size: 15,
                         color: hovered || menu.isOpen
-                            ? AppColors.text
-                            : AppColors.textMuted,
+                            ? (dark
+                                  ? _SidebarPalette.p100
+                                  : _SidebarPalette.p900)
+                            : (dark
+                                  ? _SidebarPalette.p400
+                                  : _SidebarPalette.p600),
                       ),
                       SizedBox(
                         width: 1,
@@ -1361,6 +1368,8 @@ class _SidebarState extends State<Sidebar>
               ),
             ),
           ),
+          const SizedBox(width: 2),
+          ?_buildCollapseAll(),
           if (openProject != null) ...[
             const SizedBox(width: 2),
             HoverBuilder(
@@ -1373,8 +1382,12 @@ class _SidebarState extends State<Sidebar>
                   height: 26,
                   alignment: Alignment.center,
                   decoration: BoxDecoration(
-                    color: hovered ? AppColors.hover : Colors.transparent,
-                    borderRadius: BorderRadius.circular(5),
+                    color: hovered
+                        ? (dark
+                              ? const Color(0x1AFFFFFF)
+                              : const Color(0x80DFD7CB))
+                        : Colors.transparent,
+                    borderRadius: BorderRadius.circular(7),
                   ),
                   child: Stack(
                     alignment: Alignment.center,
@@ -1382,8 +1395,14 @@ class _SidebarState extends State<Sidebar>
                     children: [
                       Icon(
                         Icons.create_new_folder_outlined,
-                        size: 16,
-                        color: hovered ? AppColors.text : AppColors.textMuted,
+                        size: 15.5,
+                        color: hovered
+                            ? (dark
+                                  ? _SidebarPalette.p100
+                                  : _SidebarPalette.p900)
+                            : (dark
+                                  ? _SidebarPalette.p400
+                                  : _SidebarPalette.p600),
                       ),
                       SizedBox(
                         width: 1,
@@ -1431,14 +1450,11 @@ class _SidebarState extends State<Sidebar>
     if (groups.length < 2) return null;
     final expand = groups.every(_workspace.isCollapsed);
     final l10n = context.l10n;
-    return Padding(
-      padding: const EdgeInsets.only(right: 2),
-      child: SidebarIconButton(
-        icon: expand ? Codicons.expandAll : Codicons.collapseAll,
-        tooltip: expand ? l10n.sidebarExpandAll : l10n.sidebarCollapseAll,
-        size: 20,
-        onTap: () => _workspace.setCollapsed(groups, !expand),
-      ),
+    return SidebarIconButton(
+      icon: expand ? Codicons.expandAll : Codicons.collapseAll,
+      tooltip: expand ? l10n.sidebarExpandAll : l10n.sidebarCollapseAll,
+      size: 26,
+      onTap: () => _workspace.setCollapsed(groups, !expand),
     );
   }
 
@@ -2507,15 +2523,35 @@ class _SidebarState extends State<Sidebar>
         widget.setup == null) {
       return const SizedBox.shrink();
     }
-    // No line over it: the list fades out above it instead. Its buttons'
-    // middle where the row under the conversation's card has its own.
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(6, 4, 6, 10),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [?widget.setup, _buildFooterButtons(count, settings, update)],
-      ),
+    final dark = themeColors.dark;
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (widget.setup case final setup?)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(6, 4, 6, 4),
+            child: setup,
+          ),
+        Container(
+          height: 44,
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          decoration: BoxDecoration(
+            color: dark
+                ? const Color(0x33000000)
+                : const Color(0x59EBE5DC),
+            border: Border(
+              top: BorderSide(
+                color: dark
+                    ? const Color(0x0FFFFFFF)
+                    : const Color(0x0F2C2723),
+                width: 1,
+              ),
+            ),
+          ),
+          child: _buildFooterButtons(count, settings, update),
+        ),
+      ],
     );
   }
 
@@ -2527,86 +2563,176 @@ class _SidebarState extends State<Sidebar>
     VoidCallback? settings,
     Widget? update,
   ) {
-    final shortcut = KeybindingService.instance.labelFor(openSettingsCommandId);
-    return SizedBox(
-      height: _footerRowHeight,
-      child: Row(
-        children: [
-          if (settings != null)
-            Expanded(
-              child: HoverBuilder(
-                cursor: SystemMouseCursors.click,
-                builder: (context, hovered) => GestureDetector(
-                  behavior: HitTestBehavior.opaque,
-                  onTap: settings,
-                  child: AnimatedContainer(
-                    duration: WbMotion.durationFast,
-                    curve: WbMotion.standard,
-                    height: _footerRowHeight,
-                    padding: const EdgeInsets.only(left: 4, right: 8),
-                    decoration: BoxDecoration(
-                      color: hovered ? AppColors.hover : Colors.transparent,
-                      borderRadius: BorderRadius.circular(Islands.rowRadius),
-                    ),
-                    child: Row(
-                      children: [
-                        SidebarIconButton(
-                          icon: Codicons.settingsGear,
-                          tooltip: context.l10n.settingsTitle,
-                          command: openSettingsCommandId,
-                          onTap: settings,
+    final dark = themeColors.dark;
+    final isZh = Localizations.localeOf(context).languageCode == 'zh';
+    final currentThread = _current;
+    final rawModel = currentThread == null ? null : _modelOf(currentThread);
+    final statusLabel = rawModel != null && rawModel.isNotEmpty
+        ? rawModel.split(' · ').last
+        : context.l10n.settingsTitle;
+    return Row(
+      children: [
+        if (settings != null) ...[
+          SidebarIconButton(
+            icon: Codicons.settingsGear,
+            tooltip: context.l10n.settingsTitle,
+            command: openSettingsCommandId,
+            onTap: settings,
+          ),
+          const SizedBox(width: 4),
+          Container(
+            width: 1,
+            height: 14,
+            color: dark ? const Color(0x1AFFFFFF) : const Color(0x4DC5B9A8),
+          ),
+          const SizedBox(width: 4),
+          Flexible(
+            child: HoverBuilder(
+              cursor: SystemMouseCursors.click,
+              builder: (context, hovered) => GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: settings,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 6,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: hovered
+                        ? (dark
+                              ? const Color(0x14FFFFFF)
+                              : const Color(0x66DFD7CB))
+                        : Colors.transparent,
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        width: 6,
+                        height: 6,
+                        decoration: const BoxDecoration(
+                          color: Color(0xFF10B981),
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                              color: Color(0x9910B981),
+                              blurRadius: 6,
+                            ),
+                          ],
                         ),
-                        const SizedBox(width: 5),
-                        Expanded(
-                          child: ExcludeSemantics(
-                            child: Text(
-                              context.l10n.settingsTitle,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                color: hovered
-                                    ? IdeListColors.hoverForeground
-                                    : AppColors.textPrimary,
-                                fontSize: 13.5,
-                                fontWeight: FontWeight.w500,
-                              ),
+                      ),
+                      const SizedBox(width: 6),
+                      Flexible(
+                        child: ExcludeSemantics(
+                          child: Text(
+                            statusLabel,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              color: hovered
+                                  ? (dark
+                                        ? _SidebarPalette.p100
+                                        : _SidebarPalette.p900)
+                                  : (dark
+                                        ? _SidebarPalette.p400
+                                        : _SidebarPalette.p500),
+                              fontSize: 11.5,
+                              fontWeight: FontWeight.w500,
                             ),
                           ),
                         ),
-                        if (shortcut != null && shortcut.isNotEmpty)
-                          ExcludeSemantics(
-                            child: Text(
-                              shortcut,
-                              style: TextStyle(
-                                color: AppColors.textFaint,
-                                fontSize: 11,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
                 ),
               ),
             ),
-          if (update != null) ...[const SizedBox(width: 6), update],
-          if (count > 0)
-            SizedBox(
-              width: 1,
-              height: _footerRowHeight,
-              child: OverflowBox(
-                maxWidth: 160,
-                maxHeight: _footerRowHeight,
-                child: Opacity(
-                  opacity: 0,
-                  alwaysIncludeSemantics: true,
-                  child: _buildArchivedToggle(count),
+          ),
+        ] else
+          const Spacer(),
+        if (settings != null) const Spacer(),
+        if (update != null) ...[update, const SizedBox(width: 6)],
+        HoverBuilder(
+          cursor: SystemMouseCursors.click,
+          builder: (context, hovered) => GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: () {
+              final nextTheme = dark
+                  ? ThemeSettingDefaults.colorThemeLight
+                  : ThemeSettingDefaults.colorThemeDark;
+              unawaited(
+                WorkbenchThemeService.instance.setColorTheme(nextTheme),
+              );
+            },
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: hovered
+                    ? (dark
+                          ? const Color(0x1AFFFFFF)
+                          : const Color(0x80DFD7CB))
+                    : Colors.transparent,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: hovered
+                      ? (dark
+                            ? const Color(0x1AFFFFFF)
+                            : const Color(0x4DC5B9A8))
+                      : Colors.transparent,
                 ),
               ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    dark
+                        ? Icons.wb_sunny_outlined
+                        : Icons.dark_mode_outlined,
+                    size: 13.5,
+                    color: dark
+                        ? const Color(0xFFFBBF24)
+                        : (hovered
+                              ? _SidebarPalette.p900
+                              : _SidebarPalette.p600),
+                  ),
+                  const SizedBox(width: 5),
+                  Text(
+                    dark
+                        ? (isZh ? '深色极客' : 'Dark')
+                        : (isZh ? '暖调纸感' : 'Parchment'),
+                    style: TextStyle(
+                      color: hovered
+                          ? (dark
+                                ? _SidebarPalette.p100
+                                : _SidebarPalette.p900)
+                          : (dark
+                                ? _SidebarPalette.p400
+                                : _SidebarPalette.p600),
+                      fontSize: 11.5,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
             ),
-        ],
-      ),
+          ),
+        ),
+        if (count > 0)
+          SizedBox(
+            width: 1,
+            height: _footerRowHeight,
+            child: OverflowBox(
+              maxWidth: 160,
+              maxHeight: _footerRowHeight,
+              child: Opacity(
+                opacity: 0,
+                alwaysIncludeSemantics: true,
+                child: _buildArchivedToggle(count),
+              ),
+            ),
+          ),
+      ],
     );
   }
 
@@ -2745,7 +2871,22 @@ class _SidebarState extends State<Sidebar>
   }
 }
 
-/// The top search box (`[ 🔍 搜索          ⌘K ]`) in the left sidebar.
+/// 1:1 color palette for the redesigned sidebar (`parchment` & `accent`).
+abstract final class _SidebarPalette {
+  static const p100 = Color(0xFFF3EFEA);
+  static const p200 = Color(0xFFEBE5DC);
+  static const p300 = Color(0xFFDFD7CB);
+  static const p400 = Color(0xFFC5B9A8);
+  static const p500 = Color(0xFF9A8F80);
+  static const p600 = Color(0xFF70675C);
+  static const p700 = Color(0xFF4A433B);
+  static const p800 = Color(0xFF2C2723);
+  static const p900 = Color(0xFF1C1917);
+
+  static const accent = Color(0xFFD96543);
+}
+
+/// The top search box (`[ 🔍 搜索          ⌘ K ]`) in the left sidebar.
 class _SearchBox extends StatelessWidget {
   const _SearchBox({
     required this.label,
@@ -2771,27 +2912,36 @@ class _SearchBox extends StatelessWidget {
           child: AnimatedContainer(
             duration: WbMotion.durationFast,
             curve: WbMotion.standard,
-            height: 29,
-            padding: const EdgeInsets.only(left: 9, right: 6),
+            height: 36,
+            padding: const EdgeInsets.only(left: 12, right: 8),
             decoration: BoxDecoration(
               color: dark
                   ? (hovered
-                        ? const Color(0xFF282725)
-                        : const Color(0xFF21201E))
+                        ? const Color(0xFF2B2825)
+                        : const Color(0xFF252320))
                   : (hovered
-                        ? const Color(0xFFE9E6DE)
-                        : const Color(0xFFEEECE5)),
-              borderRadius: BorderRadius.circular(Islands.rowRadius),
+                        ? const Color(0xFFFFFFFF)
+                        : const Color(0xF2FFFFFF)),
+              borderRadius: BorderRadius.circular(12),
               border: Border.all(
                 color: dark
                     ? (hovered
-                          ? const Color(0xFF3E3D3A)
-                          : const Color(0xFF302F2D))
+                          ? const Color(0x24FFFFFF)
+                          : const Color(0x14FFFFFF))
                     : (hovered
-                          ? const Color(0xFFD4D1C8)
-                          : const Color(0xFFE0DDD4)),
-                width: 0.75,
+                          ? const Color(0x80D96543)
+                          : const Color(0xCCDFD7CB)),
+                width: 1.0,
               ),
+              boxShadow: dark
+                  ? null
+                  : const [
+                      BoxShadow(
+                        color: Color(0x0A2C2723),
+                        blurRadius: 3,
+                        offset: Offset(0, 1),
+                      ),
+                    ],
             ),
             child: ExcludeSemantics(
               child: Row(
@@ -2799,29 +2949,34 @@ class _SearchBox extends StatelessWidget {
                 children: [
                   Icon(
                     Codicons.search,
-                    size: 13.5,
-                    color: hovered ? AppColors.textMuted : AppColors.textFaint,
+                    size: 15,
+                    color: dark ? _SidebarPalette.p400 : _SidebarPalette.p500,
                   ),
-                  const SizedBox(width: 7),
+                  const SizedBox(width: 9),
                   Expanded(
                     child: Text(
                       label,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
-                        color: hovered
-                            ? AppColors.textMuted
-                            : AppColors.textFaint,
-                        fontSize: 12.5,
+                        color: dark
+                            ? _SidebarPalette.p500
+                            : _SidebarPalette.p400,
+                        fontSize: 13,
                         fontWeight: FontWeight.w400,
                       ),
                     ),
                   ),
                   const SizedBox(width: 4),
-                  _SearchKeycap(
-                    ideUsesMacKeys ? '⌘K' : 'Ctrl K',
-                    hovered: hovered,
-                  ),
+                  if (ideUsesMacKeys) ...[
+                    _SearchKeycap('⌘', hovered: hovered),
+                    const SizedBox(width: 4),
+                    _SearchKeycap('K', hovered: hovered),
+                  ] else ...[
+                    _SearchKeycap('Ctrl', hovered: hovered),
+                    const SizedBox(width: 4),
+                    _SearchKeycap('K', hovered: hovered),
+                  ],
                 ],
               ),
             ),
@@ -2850,26 +3005,30 @@ class _SearchKeycap extends StatelessWidget {
   Widget build(BuildContext context) {
     final dark = themeColors.dark;
     return Container(
-      height: 18,
-      padding: const EdgeInsets.symmetric(horizontal: 5),
+      height: 19,
+      padding: const EdgeInsets.symmetric(horizontal: 5.5),
       alignment: Alignment.center,
       decoration: BoxDecoration(
-        color: dark
-            ? const Color(0xFF2B2A28)
-            : const Color(0xFFF8F7F3).withValues(alpha: hovered ? 0.95 : 0.8),
-        borderRadius: BorderRadius.circular(4.5),
+        color: dark ? const Color(0xFF302D29) : _SidebarPalette.p100,
+        borderRadius: BorderRadius.circular(5),
         border: Border.all(
-          color: dark ? const Color(0xFF3B3A37) : const Color(0xFFDCD9D0),
-          width: 0.6,
+          color: dark ? const Color(0x1AFFFFFF) : const Color(0xB3DFD7CB),
+          width: 0.8,
         ),
+        boxShadow: [
+          BoxShadow(
+            color: dark ? const Color(0x80000000) : const Color(0x14000000),
+            offset: const Offset(0, 1),
+            blurRadius: 0,
+          ),
+        ],
       ),
       child: Text(
         label,
         style: TextStyle(
-          color: hovered ? AppColors.textMuted : AppColors.textFaint,
+          color: dark ? _SidebarPalette.p400 : _SidebarPalette.p500,
           fontSize: 10.5,
           height: 1.0,
-          letterSpacing: 0.3,
           fontWeight: FontWeight.w500,
         ),
       ),
@@ -2893,6 +3052,7 @@ class _SegmentPill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final dark = themeColors.dark;
     return HoverBuilder(
       cursor: SystemMouseCursors.click,
       builder: (context, hovered) => GestureDetector(
@@ -2906,11 +3066,13 @@ class _SegmentPill extends StatelessWidget {
             duration: WbMotion.durationFast,
             curve: WbMotion.standard,
             style: TextStyle(
-              color: selected || hovered
-                  ? AppColors.textPrimary
-                  : AppColors.textMuted,
+              color: selected
+                  ? (dark ? Colors.white : _SidebarPalette.p900)
+                  : hovered
+                  ? (dark ? _SidebarPalette.p200 : _SidebarPalette.p800)
+                  : (dark ? _SidebarPalette.p400 : _SidebarPalette.p600),
               fontSize: 12,
-              fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
+              fontWeight: FontWeight.w500,
               height: 1.1,
             ),
             child: Text(label),
@@ -2928,9 +3090,8 @@ class _NewAgentButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Styled after dsh-claude-style's "+ 新会话" row: a flat nav row
-    // with a 20x20 circular "+" badge and 13.5px semi-bold label.
-    final foreground = AppColors.textPrimary;
+    final dark = themeColors.dark;
+    final foreground = dark ? _SidebarPalette.p100 : _SidebarPalette.p900;
     final isZh = Localizations.localeOf(context).languageCode == 'zh';
     final label = isZh ? '新会话' : context.l10n.sidebarNewAgent;
     return IdeHover(
@@ -2946,34 +3107,56 @@ class _NewAgentButton extends StatelessWidget {
           behavior: HitTestBehavior.opaque,
           onTap: onTap,
           child: AnimatedContainer(
-            duration: const Duration(milliseconds: 120),
-            height: Sidebar.rowHeight,
-            padding: const EdgeInsets.symmetric(horizontal: 8),
+            duration: const Duration(milliseconds: 140),
+            height: 32,
+            padding: const EdgeInsets.symmetric(horizontal: 10),
             decoration: BoxDecoration(
-              color: hovered ? AppColors.hover : Colors.transparent,
-              borderRadius: BorderRadius.circular(Islands.rowRadius),
+              color: hovered
+                  ? (dark
+                        ? const Color(0x0FFFFFFF)
+                        : const Color(0xB3EBE5DC))
+                  : Colors.transparent,
+              borderRadius: BorderRadius.circular(12),
             ),
             child: Row(
               children: [
-                SizedBox.square(
-                  dimension: 20,
-                  child: DecoratedBox(
-                    decoration: BoxDecoration(
-                      color: AppColors.claude.withValues(
-                        alpha: hovered ? 0.22 : 0.14,
-                      ),
-                      shape: BoxShape.circle,
+                AnimatedContainer(
+                  duration: const Duration(milliseconds: 140),
+                  width: 20,
+                  height: 20,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: hovered ? _SidebarPalette.accent : null,
+                    gradient: hovered
+                        ? null
+                        : const LinearGradient(
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                            colors: [Color(0x40E06C4E), Color(0x59F29979)],
+                          ),
+                    border: Border.all(
+                      color: hovered
+                          ? _SidebarPalette.accent
+                          : const Color(0x4DD96543),
+                      width: 1,
                     ),
-                    child: Center(
-                      child: Icon(
-                        Icons.add_rounded,
-                        size: 14,
-                        color: AppColors.claude,
+                    boxShadow: const [
+                      BoxShadow(
+                        color: Color(0x1AD96543),
+                        blurRadius: 3,
+                        offset: Offset(0, 1),
                       ),
+                    ],
+                  ),
+                  child: Center(
+                    child: Icon(
+                      Icons.add_rounded,
+                      size: 13.5,
+                      color: hovered ? Colors.white : _SidebarPalette.accent,
                     ),
                   ),
                 ),
-                const SizedBox(width: 9),
+                const SizedBox(width: 10),
                 Expanded(
                   child: Stack(
                     alignment: Alignment.centerLeft,
@@ -3002,6 +3185,20 @@ class _NewAgentButton extends StatelessWidget {
                     ],
                   ),
                 ),
+                AnimatedOpacity(
+                  opacity: hovered ? 1.0 : 0.0,
+                  duration: const Duration(milliseconds: 140),
+                  child: Text(
+                    ideUsesMacKeys ? '⌘N' : 'Ctrl+N',
+                    style: TextStyle(
+                      color: dark
+                          ? _SidebarPalette.p500
+                          : _SidebarPalette.p400,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
               ],
             ),
           ),
@@ -3011,13 +3208,14 @@ class _NewAgentButton extends StatelessWidget {
   }
 }
 
-/// A row under New Agent that opens something of the window's (Search,
-/// Customize): an icon and a label, as dsh-claude-style's sidebar has them.
+/// A row under New Agent that opens something of the window's (Customize,
+/// Stash): an icon, label, and optional pill badge.
 class _NavRow extends StatelessWidget {
   const _NavRow({
     required this.icon,
     required this.label,
     required this.onTap,
+    this.semanticsLabel,
     this.selected = false,
     this.badge = 0,
     this.badgeHover,
@@ -3025,6 +3223,7 @@ class _NavRow extends StatelessWidget {
 
   final IconData icon;
   final String label;
+  final String? semanticsLabel;
   final VoidCallback onTap;
 
   /// How many new things it has, at its end; none when 0. [badgeHover]
@@ -3037,63 +3236,115 @@ class _NavRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final dark = themeColors.dark;
     final row = Semantics(
       button: true,
       selected: selected,
-      label: label,
-      child: MouseRegion(
-        cursor: SystemMouseCursors.click,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 6),
-          child: IdeListRow(
-            height: Sidebar.rowHeight,
-            selected: selected,
-            keepSelectionActive: true,
-            onTap: onTap,
-            builder: (context, hovered) {
-              final foreground = selected
-                  ? IdeListColors.activeSelectionForeground
-                  : hovered
-                  ? IdeListColors.hoverForeground
-                  : AppColors.textPrimary;
-              return Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 8),
+      label: semanticsLabel ?? label,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(10, 0, 10, 2),
+        child: HoverBuilder(
+          cursor: SystemMouseCursors.click,
+          builder: (context, hovered) {
+            final foreground = selected
+                ? (dark ? Colors.white : _SidebarPalette.p900)
+                : (dark ? _SidebarPalette.p200 : _SidebarPalette.p800);
+            final iconColor = selected || hovered
+                ? _SidebarPalette.accent
+                : (dark ? _SidebarPalette.p400 : _SidebarPalette.p600);
+            return GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: onTap,
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 140),
+                height: 32,
+                padding: const EdgeInsets.symmetric(horizontal: 10),
+                decoration: BoxDecoration(
+                  color: selected
+                      ? (dark
+                            ? const Color(0xFF2B2824)
+                            : const Color(0xF2E5DFD5))
+                      : hovered
+                      ? (dark
+                            ? const Color(0x0FFFFFFF)
+                            : const Color(0xB3EBE5DC))
+                      : Colors.transparent,
+                  borderRadius: BorderRadius.circular(12),
+                ),
                 child: ExcludeSemantics(
                   child: Row(
                     children: [
-                      Icon(
-                        icon,
-                        size: 15.5,
-                        color: selected
-                            ? themeColors.get(
-                                    'list.activeSelectionIconForeground',
-                                  ) ??
-                                  foreground
-                            : foreground,
-                      ),
-                      const SizedBox(width: 9),
-                      Expanded(
-                        child: Text(
-                          label,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            color: foreground,
-                            fontSize: 13.5,
-                            fontWeight: selected
-                                ? FontWeight.w600
-                                : FontWeight.w500,
-                          ),
+                      SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: Center(
+                          child: Icon(icon, size: 15.5, color: iconColor),
                         ),
                       ),
-                      // As the side panel rail's badges, in its colors.
-                      if (badge > 0) IdeTitleBadge(badge),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Stack(
+                          alignment: Alignment.centerLeft,
+                          children: [
+                            Text(
+                              label,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                color: foreground,
+                                fontSize: 13.5,
+                                fontWeight: selected
+                                    ? FontWeight.w600
+                                    : FontWeight.w500,
+                              ),
+                            ),
+                            if (semanticsLabel != null &&
+                                semanticsLabel != label)
+                              SizedBox(
+                                width: 1,
+                                height: 1,
+                                child: OverflowBox(
+                                  maxWidth: 80,
+                                  maxHeight: 20,
+                                  child: Opacity(
+                                    opacity: 0,
+                                    child: Text(semanticsLabel!),
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+                      if (badge > 0)
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            color: dark
+                                ? const Color(0x1AFFFFFF)
+                                : const Color(0xCCEBE5DC),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text(
+                            IdeTitleBadge.text(badge),
+                            style: TextStyle(
+                              fontSize: 10.5,
+                              height: 1.1,
+                              fontWeight: FontWeight.w500,
+                              color: dark
+                                  ? _SidebarPalette.p400
+                                  : _SidebarPalette.p500,
+                            ),
+                          ),
+                        ),
                     ],
                   ),
                 ),
-              );
-            },
-          ),
+              ),
+            );
+          },
         ),
       ),
     );
@@ -3198,10 +3449,15 @@ class _GroupHeader extends StatelessWidget {
 
   Widget _build(BuildContext context, SidebarMenuState? menu) {
     final project = group.project;
+    final dark = themeColors.dark;
     final header = HoverBuilder(
       cursor: onToggle == null ? MouseCursor.defer : SystemMouseCursors.click,
       builder: (context, hovered) {
         final active = hovered || (menu?.isOpen ?? false);
+        final highlighted =
+            hovered ||
+            ((dragged || located || (menu?.isOpen ?? false)) &&
+                project != null);
         return GestureDetector(
           behavior: HitTestBehavior.opaque,
           onTap: onToggle,
@@ -3210,28 +3466,66 @@ class _GroupHeader extends StatelessWidget {
               : (details) => menu.open(details.globalPosition),
           child: Container(
             height: Sidebar.rowHeight,
-            margin: const EdgeInsets.only(top: 6),
-            padding: const EdgeInsets.only(left: 12, right: 4),
+            margin: const EdgeInsets.fromLTRB(8, 4, 8, 0),
+            padding: const EdgeInsets.only(left: 8, right: 4),
             decoration: BoxDecoration(
-              color: (dragged || located || (menu?.isOpen ?? false)) &&
-                      project != null
-                  ? AppColors.hover
+              color: highlighted
+                  ? (dark
+                        ? const Color(0x0AFFFFFF)
+                        : const Color(0x59DFD7CB))
                   : Colors.transparent,
-              borderRadius: BorderRadius.circular(Islands.rowRadius),
+              borderRadius: BorderRadius.circular(8),
             ),
             child: Row(
               children: [
+                if (!light) ...[
+                  AnimatedRotation(
+                    turns: collapsed ? -0.25 : 0,
+                    duration: WbMotion.durationChevron,
+                    curve: WbMotion.collapseIcon,
+                    child: Icon(
+                      Icons.keyboard_arrow_down_rounded,
+                      size: 14,
+                      color: active
+                          ? (dark
+                                ? _SidebarPalette.p300
+                                : _SidebarPalette.p700)
+                          : (dark
+                                ? _SidebarPalette.p500
+                                : _SidebarPalette.p400),
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                ],
                 // The dot right after the name, the rest of the row after.
                 Expanded(
                   child: Row(
                     children: [
-                      Flexible(child: _label(project)),
+                      Flexible(child: _label(project, active: active)),
                       if (pinned) ...[
                         const SizedBox(width: 4),
                         Icon(
                           Icons.push_pin,
                           size: 11,
-                          color: AppColors.textFaint,
+                          color: dark
+                              ? _SidebarPalette.p500
+                              : _SidebarPalette.p400,
+                        ),
+                      ],
+                      if (!light &&
+                          group.threads.isNotEmpty &&
+                          !collapsed &&
+                          active) ...[
+                        const SizedBox(width: 5),
+                        Text(
+                          '${group.threads.length}',
+                          style: TextStyle(
+                            color: dark
+                                ? _SidebarPalette.p500
+                                : _SidebarPalette.p400,
+                            fontSize: 10.5,
+                            fontFeatures: const [FontFeature.tabularFigures()],
+                          ),
                         ),
                       ],
                       if (_hiddenStatus(context) case final status?) ...[
@@ -3248,7 +3542,9 @@ class _GroupHeader extends StatelessWidget {
                     child: Text(
                       '${group.threads.length}',
                       style: TextStyle(
-                        color: AppColors.textFaint,
+                        color: dark
+                            ? _SidebarPalette.p500
+                            : _SidebarPalette.p400,
                         fontSize: 11,
                       ),
                     ),
@@ -3318,14 +3614,18 @@ class _GroupHeader extends StatelessWidget {
     );
   }
 
-  Widget _label(Project? project) {
+  Widget _label(Project? project, {bool active = false}) {
+    final dark = themeColors.dark;
     final label = Text.rich(
       ideSpeedSpan(group.label, speedMatch ?? const []),
       maxLines: 1,
       overflow: TextOverflow.ellipsis,
       style: TextStyle(
-        color: AppColors.textMuted,
-        fontSize: 12.5,
+        color: active
+            ? (dark ? _SidebarPalette.p200 : _SidebarPalette.p800)
+            : (dark ? _SidebarPalette.p400 : _SidebarPalette.p500),
+        fontSize: 12,
+        letterSpacing: 0.2,
         fontWeight: FontWeight.w600,
       ),
     );
@@ -3959,84 +4259,123 @@ class _ThreadRow extends StatelessWidget {
           menu.open(position);
         },
         builder: (context, hovered) {
+          final dark = themeColors.dark;
           final active = hovered || menu.isOpen;
           final foreground = selected
-              ? IdeListColors.activeSelectionForeground
+              ? (dark ? Colors.white : _SidebarPalette.p900)
               : hovered
-              ? IdeListColors.hoverForeground
-              : IdeListColors.foreground;
-          return Stack(
-            fit: StackFit.expand,
-            children: [
-              if (selected)
-                Positioned(
-                  left: 2.5,
-                  top: 6,
-                  bottom: 6,
-                  width: 2.5,
-                  child: DecoratedBox(
-                    decoration: BoxDecoration(
-                      color: AppColors.claude.withValues(alpha: 0.85),
-                      borderRadius: BorderRadius.circular(1.5),
+              ? (dark ? _SidebarPalette.p100 : _SidebarPalette.p900)
+              : (dark ? _SidebarPalette.p300 : _SidebarPalette.p800);
+          return DecoratedBox(
+            decoration: BoxDecoration(
+              color: selected
+                  ? (dark
+                        ? const Color(0xFF2B2824)
+                        : const Color(0xF2E5DFD5))
+                  : hovered
+                  ? (dark
+                        ? const Color(0x0DFFFFFF)
+                        : const Color(0xBFEBE5DC))
+                  : Colors.transparent,
+              borderRadius: BorderRadius.circular(10),
+              boxShadow: selected && !dark
+                  ? const [
+                      BoxShadow(
+                        color: Color(0x0F2C2723),
+                        blurRadius: 2,
+                        offset: Offset(0, 1),
+                      ),
+                    ]
+                  : null,
+            ),
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                if (selected)
+                  Positioned(
+                    left: 0,
+                    top: 6,
+                    bottom: 6,
+                    width: 3.5,
+                    child: DecoratedBox(
+                      decoration: const BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [Color(0xFFE87A5A), Color(0xFFD95B38)],
+                        ),
+                        borderRadius: BorderRadius.horizontal(
+                          right: Radius.circular(999),
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Color(0x8CD96543),
+                            blurRadius: 10,
+                          ),
+                        ],
+                      ),
                     ),
                   ),
-                ),
-              Padding(
-                // An aside under the one it was asked beside.
-                padding: EdgeInsets.only(
-                  left: onDetach == null ? 10 : 10 + _asideIndent,
-                  right: 4,
-                ),
-                // Too narrow, what is beside the title gives way (its hover
-                // tells it), before the title is cut to nothing.
-                child: GiveWayRow(
-                  children: [
-                    GiveWay(
-                      Padding(
-                        padding: const EdgeInsets.only(right: 6),
-                        child: SizedBox(
-                          width: 14,
-                          child: Center(
-                            child: switch (asides) {
-                              final asides? when active => _AsidesArrow(
-                                folded: asides.folded,
-                                tooltip: asides.folded
-                                    ? context.l10n.sidebarUnfoldAsides(
-                                        asides.count,
-                                      )
-                                    : context.l10n.sidebarFoldAsides,
-                                onTap: asides.onToggle,
-                              ),
-                              _ => StatusIndicator(status),
-                            },
+                Padding(
+                  // An aside under the one it was asked beside.
+                  padding: EdgeInsets.only(
+                    left: onDetach == null ? 11 : 11 + _asideIndent,
+                    right: 6,
+                  ),
+                  // Too narrow, what is beside the title gives way (its hover
+                  // tells it), before the title is cut to nothing.
+                  child: GiveWayRow(
+                    children: [
+                      GiveWay(
+                        Padding(
+                          padding: const EdgeInsets.only(right: 8),
+                          child: SizedBox(
+                            width: 14,
+                            child: Center(
+                              child: switch (asides) {
+                                final asides? when active => _AsidesArrow(
+                                  folded: asides.folded,
+                                  tooltip: asides.folded
+                                      ? context.l10n.sidebarUnfoldAsides(
+                                          asides.count,
+                                        )
+                                      : context.l10n.sidebarFoldAsides,
+                                  onTap: asides.onToggle,
+                                ),
+                                _ => StatusIndicator(
+                                  status,
+                                  selected: selected,
+                                ),
+                              },
+                            ),
                           ),
                         ),
                       ),
-                    ),
-                    GiveWay.fill(
-                      minWidth: renaming ? 0 : _titleMinWidth,
-                      renaming
-                          ? InlineRenameField(
-                              initial: thread.localizedTitle(context.l10n),
-                              onSummarize: onSummarizeTitle,
-                              onDone: onRenamed,
-                            )
-                          // What the row has no room for, over the title
-                          // (not the buttons that come and go beside it).
-                          : _RowHover(
-                              content: (context) => _buildHover(context.l10n),
-                              child: Align(
-                                alignment: Alignment.centerLeft,
-                                child: _buildTitle(context.l10n, foreground),
+                      GiveWay.fill(
+                        minWidth: renaming ? 0 : _titleMinWidth,
+                        renaming
+                            ? InlineRenameField(
+                                initial: thread.localizedTitle(context.l10n),
+                                onSummarize: onSummarizeTitle,
+                                onDone: onRenamed,
+                              )
+                            // What the row has no room for, over the title
+                            // (not the buttons that come and go beside it).
+                            : _RowHover(
+                                content: (context) => _buildHover(context.l10n),
+                                child: Align(
+                                  alignment: Alignment.centerLeft,
+                                  child: _buildTitle(context.l10n, foreground),
+                                ),
                               ),
-                            ),
-                    ),
-                    if (!renaming)
-                      ..._buildTrailing(active, context.l10n, foreground),
-                  ],
+                      ),
+                      if (!renaming)
+                        ..._buildTrailing(active, context.l10n, foreground),
+                    ],
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           );
         },
       ),
@@ -4109,6 +4448,7 @@ class _ThreadRow extends StatelessWidget {
 
   Widget _buildTitle(AppLocalizations l10n, Color foreground) {
     final status = thread.status;
+    final dark = themeColors.dark;
     return Text.rich(
       TextSpan(
         children: [
@@ -4118,9 +4458,12 @@ class _ThreadRow extends StatelessWidget {
             TextSpan(
               text: thread.project.name,
               style: TextStyle(
-                color: selected ? foreground : AppColors.textFaint,
-                fontSize: 11.5,
-                fontWeight: FontWeight.normal,
+                color: dark ? _SidebarPalette.p400 : _SidebarPalette.p600,
+                backgroundColor: dark
+                    ? const Color(0x1AFFFFFF)
+                    : const Color(0x99DFD7CB),
+                fontSize: 11,
+                fontWeight: FontWeight.w500,
               ),
             ),
           ],
@@ -4141,7 +4484,7 @@ class _ThreadRow extends StatelessWidget {
         fontSize: 13,
         height: 18 / 13,
         fontWeight: selected || status == ThreadStatus.unread
-            ? FontWeight.w600
+            ? FontWeight.w500
             : FontWeight.normal,
       ),
     );
@@ -4282,8 +4625,12 @@ class _ThreadRow extends StatelessWidget {
                 maxLines: 1,
                 // A step under the title's, selected or not.
                 style: TextStyle(
-                  color: AppColors.textFaint,
-                  fontSize: 11,
+                  color: selected
+                      ? (themeColors.dark
+                            ? _SidebarPalette.p400
+                            : _SidebarPalette.p600)
+                      : _SidebarPalette.p500,
+                  fontSize: 11.5,
                   fontFeatures: const [FontFeature.tabularFigures()],
                 ),
               ),
@@ -4511,23 +4858,32 @@ class _TagPill extends StatelessWidget {
 /// What an agent needs: a spinner while it runs, an amber dot when it
 /// waits on a question, a blue dot when it finished unseen.
 class StatusIndicator extends StatelessWidget {
-  const StatusIndicator(this.status, {super.key});
+  const StatusIndicator(this.status, {super.key, this.selected = false});
 
   /// As the agent sessions list shows an agent waiting on the user.
   static Color get needsInputColor => themeColors['list.warningForeground'];
 
   final ThreadStatus status;
+  final bool selected;
 
   @override
   Widget build(BuildContext context) {
+    final dark = themeColors.dark;
     return switch (status) {
       // A little under the list's text, as its dots are.
       ThreadStatus.running => const PixelLoader.agent(size: 12),
       ThreadStatus.needsInput => _Dot(needsInputColor),
       ThreadStatus.unread => _Dot(AppColors.accent),
       ThreadStatus.idle => CustomPaint(
-        size: const Size.square(6.5),
-        painter: _IdleDotPainter(AppColors.textMuted.withValues(alpha: 0.75)),
+        size: const Size.square(7.5),
+        painter: _IdleDotPainter(
+          selected
+              ? _SidebarPalette.accent
+              : (dark
+                    ? const Color(0x99C5B9A8)
+                    : const Color(0xB39A8F80)),
+          fill: selected ? const Color(0x33D96543) : null,
+        ),
       ),
     };
   }
@@ -4541,34 +4897,39 @@ class _Dot extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 6.5,
-      height: 6.5,
+      width: 7.5,
+      height: 7.5,
       decoration: BoxDecoration(color: color, shape: BoxShape.circle),
     );
   }
 }
 
 class _IdleDotPainter extends CustomPainter {
-  const _IdleDotPainter(this.color);
+  const _IdleDotPainter(this.color, {this.fill});
 
   final Color color;
+  final Color? fill;
 
   @override
   void paint(Canvas canvas, Size size) {
+    final center = Offset(size.width / 2, size.height / 2);
+    final radius = (size.shortestSide - 1.5) / 2;
+    if (fill != null) {
+      final fillPaint = Paint()
+        ..color = fill!
+        ..style = PaintingStyle.fill;
+      canvas.drawCircle(center, radius, fillPaint);
+    }
     final paint = Paint()
       ..color = color
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.2;
-    canvas.drawCircle(
-      Offset(size.width / 2, size.height / 2),
-      (size.shortestSide - 1.2) / 2,
-      paint,
-    );
+      ..strokeWidth = 1.5;
+    canvas.drawCircle(center, radius, paint);
   }
 
   @override
   bool shouldRepaint(_IdleDotPainter oldDelegate) =>
-      oldDelegate.color != color;
+      oldDelegate.color != color || oldDelegate.fill != fill;
 }
 
 /// Small square icon button with a hover fill.
