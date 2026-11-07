@@ -13,8 +13,10 @@ import '../../kernel/claude_code/claude_path_setting.dart';
 import '../../kernel/commit_attribution.dart';
 import '../../kernel/prompt_suggestions.dart';
 import '../../chat/composer/composer_polish.dart' show ComposerPolishSetting;
+import '../../chat/widgets/pixel_loader.dart';
 import '../../chat/widgets/turn_footer.dart'
     show LiveTurnStatsSetting, SessionReplaySetting;
+import 'appearance_page.dart' show AppearanceSettingsPage;
 import '../../kernel/queued_messages.dart';
 import '../../l10n/l10n.dart';
 import '../../platform/app_platform.dart';
@@ -402,6 +404,71 @@ class GeneralSettingsPage extends StatelessWidget {
                     SessionReplaySetting.settingKey,
                     on ? null : SessionReplaySetting.off,
                   ),
+                ),
+                ListenableBuilder(
+                  listenable: PixelLoaderRole.agent.style,
+                  builder: (context, _) {
+                    final isZh =
+                        Localizations.localeOf(context).languageCode == 'zh';
+                    final current = PixelLoaderRole.agent.style.value;
+                    final shown = AppearanceSettingsPage.loaderStyleName(
+                      context,
+                      current,
+                    );
+                    const featured = [
+                      PixelLoaderStyle.fill,
+                      PixelLoaderStyle.equalizer,
+                      PixelLoaderStyle.pulse,
+                      PixelLoaderStyle.ripple,
+                      PixelLoaderStyle.rain,
+                      PixelLoaderStyle.breathe,
+                      PixelLoaderStyle.snake,
+                      PixelLoaderStyle.stack,
+                      PixelLoaderStyle.checker,
+                      PixelLoaderStyle.bar,
+                    ];
+                    return SettingsRow(
+                      label: isZh ? '加载线条跳动规律' : 'Loading Bar Rhythm',
+                      description: isZh
+                          ? '对话内思考加载与左侧会话列表运行状态的 4 柱线条跳动规律'
+                          : 'Rhythm pattern of the 4-bar Byte loading indicator in chat and sidebar',
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          PixelLoader.preview(
+                            current,
+                            role: PixelLoaderRole.agent,
+                            size: 16,
+                          ),
+                          const SizedBox(width: 12),
+                          SettingsDropdown(
+                            current: shown,
+                            width: 210,
+                            semanticLabel: shown,
+                            entries: () => ideMenuGroups([
+                              [
+                                for (final style in featured)
+                                  IdeMenuAction(
+                                    AppearanceSettingsPage.loaderStyleName(
+                                      context,
+                                    style,
+                                    ),
+                                    checked: style == current,
+                                    onSelected: () {
+                                      PixelLoaderRole.agent.style.value = style;
+                                      _write(
+                                        PixelLoaderRole.agent.styleKey,
+                                        style.setting,
+                                      );
+                                    },
+                                  ),
+                              ],
+                            ]),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
                 ),
               ],
             ),

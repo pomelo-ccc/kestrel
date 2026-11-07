@@ -239,6 +239,30 @@ class AppearanceSettingsPage extends StatelessWidget {
   };
 
   static String loaderStyleName(BuildContext context, PixelLoaderStyle style) {
+    final isZh = Localizations.maybeLocaleOf(context)?.languageCode == 'zh';
+    if (isZh) {
+      return switch (style) {
+        PixelLoaderStyle.fill => '波浪律动（默认 · App 图标）',
+        PixelLoaderStyle.equalizer => '音律均衡（频谱高低交错）',
+        PixelLoaderStyle.pulse => '双拍心跳（主橙柱领跳脉冲）',
+        PixelLoaderStyle.ripple => '涟漪扩散（由左向右依次弹起）',
+        PixelLoaderStyle.rain => '交替跃动（奇偶双柱反相跳动）',
+        PixelLoaderStyle.breathe => '同频呼吸（保持图标黄金比例）',
+        PixelLoaderStyle.snake => '回旋追逐（波峰左右往返）',
+        PixelLoaderStyle.stack => '阶梯蓄力（逐级攀升后回落）',
+        PixelLoaderStyle.twinkle => '灵动闪烁（错落韵律跳跃）',
+        PixelLoaderStyle.checker => '对称共振（内外双柱交替）',
+        PixelLoaderStyle.bar => '单柱领跑（四柱轮流冲顶）',
+        PixelLoaderStyle.sweep => '顺滑扫掠（斜向波浪推进）',
+        PixelLoaderStyle.scan => '极速音轨（高频律动跳动）',
+        PixelLoaderStyle.hourglass => '潮汐涨落（慢起快落律动）',
+        PixelLoaderStyle.spinner => '顺向波浪',
+        PixelLoaderStyle.twinSpinner => '双峰并进',
+        PixelLoaderStyle.corners => '两端呼应',
+        PixelLoaderStyle.dots => '轻盈点跃',
+        PixelLoaderStyle.circle => context.l10n.loaderStyleCircle,
+      };
+    }
     final l10n = context.l10n;
     return switch (style) {
       PixelLoaderStyle.snake => l10n.loaderStyleSnake,

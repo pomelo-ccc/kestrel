@@ -1,15 +1,12 @@
-import 'dart:math' as math;
-
 import 'package:flutter/material.dart';
 
 import '../../base/step_clock.dart';
 import '../../theme/app_theme.dart';
+import 'pixel_loader.dart';
 
-/// Claude's spark while it thinks, as Claude Code draws it: a star that
-/// blooms from a dot and folds back (· ✢ ✳ ✶ ✻ ✽ ✻ ✶ ✳ ✢), a shape every
-/// [frameTime], as it slowly turns. Drawn rather than set in a font: every
-/// shape sits on the same center, and looks the same everywhere. Still, in
-/// bloom, where motion is turned down.
+/// Byte's animated 4-bar indicator while the agent thinks or works,
+/// matching the Byte App Icon (4 vertical rounded bars: blue, orange, blue, blue)
+/// and following the user's chosen bar-jumping rhythm in [PixelLoaderRole.agent].
 class ThinkingSpark extends StatefulWidget {
   const ThinkingSpark({
     super.key,
@@ -41,9 +38,24 @@ class ThinkingSpark extends StatefulWidget {
 }
 
 class _ThinkingSparkState extends State<ThinkingSpark> {
-  // A step each shape: drawn only as it changes, not at every vsync.
-  final StepClock _clock = StepClock(ThinkingSpark.frameTime);
+  late final StepClock _clock = StepClock(_frameTime);
   bool _still = false;
+
+  Duration get _frameTime => Duration(
+    microseconds: (28 * 1000 / PixelLoaderRole.agent.speed.value)
+        .round()
+        .clamp(10000, 100000),
+  );
+
+  @override
+  void initState() {
+    super.initState();
+    PixelLoaderRole.agent.speed.addListener(_onSpeedChanged);
+  }
+
+  void _onSpeedChanged() {
+    _clock.step = _frameTime;
+  }
 
   @override
   void didChangeDependencies() {
@@ -53,129 +65,32 @@ class _ThinkingSparkState extends State<ThinkingSpark> {
 
   @override
   void dispose() {
+    PixelLoaderRole.agent.speed.removeListener(_onSpeedChanged);
     _clock.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox.square(
-      dimension: widget.size,
-      child: CustomPaint(
-        painter: _SparkPainter(_clock, widget.color, still: _still),
-      ),
+    return ListenableBuilder(
+      listenable: PixelLoaderRole.agent.style,
+      builder: (context, _) {
+        final style = PixelLoaderRole.agent.style.value;
+        final effectiveStyle = style == PixelLoaderStyle.circle
+            ? PixelLoaderStyle.fill
+            : style;
+        return SizedBox.square(
+          dimension: widget.size,
+          child: CustomPaint(
+            painter: ByteBarsPainter(
+              _clock,
+              effectiveStyle,
+              widget.color,
+              still: _still,
+            ),
+          ),
+        );
+      },
     );
   }
-}
-
-class _SparkPainter extends CustomPainter {
-  _SparkPainter(this.clock, this.color, {required this.still})
-    : super(repaint: clock);
-
-  final StepClock clock;
-  final Color color;
-  final bool still;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final time = clock.time;
-    final shape = still ? 4 : ThinkingSpark.shapeAt(time);
-    final turned =
-        time.inMicroseconds %
-        ThinkingSpark.turn.inMicroseconds /
-        ThinkingSpark.turn.inMicroseconds;
-    canvas
-      ..save()
-      ..translate(size.width / 2, size.height / 2)
-      ..rotate(still ? 0 : turned * 2 * math.pi)
-      // Drawn at a radius of 1.
-      ..scale(size.shortestSide / 2);
-    final paint = Paint()..color = color;
-    switch (shape) {
-      // ·
-      case 0:
-        canvas.drawCircle(Offset.zero, 0.2, paint);
-      // ✢
-      case 1:
-        _petals(canvas, paint, 4, length: 0.9, bulb: 0.2, neck: 0.05);
-      // ✳
-      case 2:
-        paint
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = 0.16
-          ..strokeCap = StrokeCap.round;
-        for (var i = 0; i < 8; i++) {
-          final angle = i * math.pi / 4;
-          canvas.drawLine(
-            Offset.zero,
-            Offset(math.cos(angle), math.sin(angle)) * 0.8,
-            paint,
-          );
-        }
-      // ✶
-      case 3:
-        final star = Path();
-        for (var i = 0; i < 12; i++) {
-          final angle = i * math.pi / 6 - math.pi / 2;
-          final radius = i.isEven ? 0.88 : 0.46;
-          final point = Offset(math.cos(angle), math.sin(angle)) * radius;
-          i == 0
-              ? star.moveTo(point.dx, point.dy)
-              : star.lineTo(point.dx, point.dy);
-        }
-        // Its points rounded off: filled, and outlined with round joins.
-        canvas.drawPath(
-          star..close(),
-          paint
-            ..style = PaintingStyle.fill
-            ..strokeWidth = 0.18
-            ..strokeJoin = StrokeJoin.round,
-        );
-        canvas.drawPath(star, paint..style = PaintingStyle.stroke);
-      // ✻
-      case 4:
-        _petals(canvas, paint, 6, length: 0.98, bulb: 0.19, neck: 0.04);
-      // ✽
-      default:
-        _petals(canvas, paint, 6, length: 0.97, bulb: 0.29, neck: 0.07);
-    }
-    canvas.restore();
-  }
-
-  /// [count] teardrops about the center, the first straight up: a stem
-  /// [neck] wide swelling to a round [bulb] at [length] out.
-  static void _petals(
-    Canvas canvas,
-    Paint paint,
-    int count, {
-    required double length,
-    required double bulb,
-    required double neck,
-  }) {
-    final c = length - bulb;
-    final petal = Path()
-      ..moveTo(0, 0)
-      ..cubicTo(-neck, -c * 0.45, -bulb, -c * 0.7, -bulb, -c)
-      ..arcTo(
-        Rect.fromCircle(center: Offset(0, -c), radius: bulb),
-        math.pi,
-        math.pi,
-        false,
-      )
-      ..cubicTo(bulb, -c * 0.7, neck, -c * 0.45, 0, 0)
-      ..close();
-    // Where the stems meet.
-    canvas.drawCircle(Offset.zero, neck * 2, paint);
-    for (var i = 0; i < count; i++) {
-      canvas
-        ..save()
-        ..rotate(i * 2 * math.pi / count)
-        ..drawPath(petal, paint)
-        ..restore();
-    }
-  }
-
-  @override
-  bool shouldRepaint(_SparkPainter old) =>
-      old.color != color || old.still != still;
 }
