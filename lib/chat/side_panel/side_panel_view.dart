@@ -625,23 +625,28 @@ class AgentSidePanelView extends StatelessWidget {
           leading: leading,
           windowTitleBar: windowTitleBar,
         ),
-        body: switch (tabs.shown) {
-          SidePanelSection.files => _filesPage(context, tabs),
-          SidePanelSection.changes => _changesPage(context, tabs),
-          SidePanelSection.terminal => _terminalPage(context, tabs),
-          SidePanelSection.usage => ConversationUsageView(
-            key: ValueKey(('page', SidePanelSection.usage, session)),
-            session: session,
-          ),
-          SidePanelSection.plan => _planPage(context, tabs.plan!),
-          SidePanelSection.ports => switch (_portsHost(session)) {
-            final host? => PortsView(
-              key: ValueKey(('page', SidePanelSection.ports, host)),
-              host: host,
+        body: AnimatedSwitcher(
+          duration: const Duration(milliseconds: 140),
+          switchInCurve: Curves.easeOutCubic,
+          switchOutCurve: Curves.easeInCubic,
+          child: switch (tabs.shown) {
+            SidePanelSection.files => _filesPage(context, tabs),
+            SidePanelSection.changes => _changesPage(context, tabs),
+            SidePanelSection.terminal => _terminalPage(context, tabs),
+            SidePanelSection.usage => ConversationUsageView(
+              key: ValueKey(('page', SidePanelSection.usage, session)),
+              session: session,
             ),
-            null => const SizedBox.shrink(),
+            SidePanelSection.plan => _planPage(context, tabs.plan!),
+            SidePanelSection.ports => switch (_portsHost(session)) {
+              final host? => PortsView(
+                key: ValueKey(('page', SidePanelSection.ports, host)),
+                host: host,
+              ),
+              null => const SizedBox.shrink(),
+            },
           },
-        },
+        ),
       );
     },
   );

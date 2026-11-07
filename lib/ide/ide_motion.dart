@@ -9,7 +9,7 @@ class IdeMotion extends InheritedWidget {
   final bool lively;
 
   static bool livelyOf(BuildContext context) =>
-      context.dependOnInheritedWidgetOfExactType<IdeMotion>()?.lively ?? false;
+      context.dependOnInheritedWidgetOfExactType<IdeMotion>()?.lively ?? true;
 
   /// A dialog's or a menu's coming in: [animation] from 0 to 1.
   static Widget enter(

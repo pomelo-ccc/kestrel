@@ -2652,7 +2652,9 @@ class _SearchBox extends StatelessWidget {
         builder: (context, hovered) => GestureDetector(
           behavior: HitTestBehavior.opaque,
           onTap: onTap,
-          child: Container(
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 130),
+            curve: Curves.easeOutCubic,
             height: 32,
             padding: const EdgeInsets.only(left: 10, right: 6),
             decoration: BoxDecoration(
@@ -2777,26 +2779,29 @@ class _SegmentPill extends StatelessWidget {
         behavior: HitTestBehavior.opaque,
         onTap: onTap,
         onSecondaryTapUp: onSecondaryTap,
-        child: Container(
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 140),
+          curve: Curves.easeOutCubic,
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
           alignment: Alignment.center,
-          decoration: selected
-              ? BoxDecoration(
-                  color: dark
-                      ? const Color(0xFF333230)
-                      : const Color(0xFFFFFFFF),
-                  borderRadius: BorderRadius.circular(5),
-                  boxShadow: const [
+          decoration: BoxDecoration(
+            color: selected
+                ? (dark ? const Color(0xFF333230) : const Color(0xFFFFFFFF))
+                : Colors.transparent,
+            borderRadius: BorderRadius.circular(5),
+            boxShadow: selected
+                ? const [
                     BoxShadow(
                       color: Color(0x14000000),
                       blurRadius: 2,
                       offset: Offset(0, 1),
                     ),
-                  ],
-                )
-              : null,
-          child: Text(
-            label,
+                  ]
+                : null,
+          ),
+          child: AnimatedDefaultTextStyle(
+            duration: const Duration(milliseconds: 140),
+            curve: Curves.easeOutCubic,
             style: TextStyle(
               color: selected || hovered
                   ? AppColors.textPrimary
@@ -2805,6 +2810,7 @@ class _SegmentPill extends StatelessWidget {
               fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
               height: 1.1,
             ),
+            child: Text(label),
           ),
         ),
       ),
@@ -3100,7 +3106,9 @@ class _GroupHeader extends StatelessWidget {
           onSecondaryTapUp: menu == null
               ? null
               : (details) => menu.open(details.globalPosition),
-          child: Container(
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 120),
+            curve: Curves.easeOutCubic,
             height: Sidebar.rowHeight,
             margin: const EdgeInsets.only(top: 6),
             padding: const EdgeInsets.only(left: 12, right: 4),
@@ -4498,7 +4506,9 @@ class SidebarIconButton extends StatelessWidget {
           cursor: SystemMouseCursors.click,
           builder: (context, hovered) => GestureDetector(
             onTap: onTap,
-            child: Container(
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 110),
+              curve: Curves.easeOutCubic,
               width: size,
               height: size,
               decoration: BoxDecoration(
@@ -4554,7 +4564,9 @@ class _UpdateButton extends StatelessWidget {
           cursor: SystemMouseCursors.click,
           builder: (context, hovered) => GestureDetector(
             onTap: onTap,
-            child: Container(
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 120),
+              curve: Curves.easeOutCubic,
               height: 22,
               padding: const EdgeInsets.symmetric(horizontal: 10),
               alignment: Alignment.center,
@@ -4672,7 +4684,9 @@ class _DialogButton extends StatelessWidget {
       cursor: SystemMouseCursors.click,
       builder: (context, hovered) => GestureDetector(
         onTap: onTap,
-        child: Container(
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 120),
+          curve: Curves.easeOutCubic,
           height: 28,
           padding: const EdgeInsets.symmetric(horizontal: 12),
           alignment: Alignment.center,
@@ -4731,7 +4745,9 @@ class _HeaderIcon extends StatelessWidget {
         cursor: SystemMouseCursors.click,
         builder: (context, hovered) => GestureDetector(
           onTap: onTap,
-          child: Container(
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 120),
+            curve: Curves.easeOutCubic,
             width: 24,
             height: 24,
             alignment: Alignment.center,

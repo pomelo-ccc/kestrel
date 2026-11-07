@@ -113,9 +113,21 @@ Future<void> showSettingsDialog(
   context: context,
   barrierLabel: 'Dismiss',
   barrierColor: const Color(0x00000000),
-  transitionDuration: const Duration(milliseconds: 120),
-  transitionBuilder: (context, animation, _, child) =>
-      FadeTransition(opacity: animation, child: child),
+  transitionDuration: const Duration(milliseconds: 180),
+  transitionBuilder: (context, animation, _, child) {
+    final curved = CurvedAnimation(
+      parent: animation,
+      curve: Curves.easeOutCubic,
+      reverseCurve: Curves.easeInCubic,
+    );
+    return FadeTransition(
+      opacity: curved,
+      child: ScaleTransition(
+        scale: Tween<double>(begin: 0.985, end: 1.0).animate(curved),
+        child: child,
+      ),
+    );
+  },
   pageBuilder: (context, _, _) => SettingsDialog(
     section: section,
     pageBuilder: pageBuilder,
@@ -476,9 +488,24 @@ class SettingsDialogState extends State<SettingsDialog> {
         if (widget.noticeBuilder case final notice?)
           notice(context, (section) => setState(() => _section = section)),
         Expanded(
-          child: KeyedSubtree(
-            key: ValueKey(_section),
-            child: widget.pageBuilder(context, _section),
+          child: AnimatedSwitcher(
+            duration: const Duration(milliseconds: 160),
+            switchInCurve: Curves.easeOutCubic,
+            switchOutCurve: Curves.easeInCubic,
+            transitionBuilder: (child, animation) => FadeTransition(
+              opacity: animation,
+              child: SlideTransition(
+                position: Tween<Offset>(
+                  begin: const Offset(0, 0.015),
+                  end: Offset.zero,
+                ).animate(animation),
+                child: child,
+              ),
+            ),
+            child: KeyedSubtree(
+              key: ValueKey(_section),
+              child: widget.pageBuilder(context, _section),
+            ),
           ),
         ),
       ],
@@ -815,12 +842,14 @@ class _NavItemState extends State<_NavItem> {
         child: GestureDetector(
           behavior: HitTestBehavior.opaque,
           onTap: widget.onTap,
-          child: Container(
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 130),
+            curve: Curves.easeOutCubic,
             height: 30,
             margin: const EdgeInsets.only(bottom: 1),
             padding: const EdgeInsets.symmetric(horizontal: 10),
             decoration: BoxDecoration(
-              color: selected || _hover ? SettingsColors.hover : null,
+              color: selected || _hover ? SettingsColors.hover : Colors.transparent,
               borderRadius: BorderRadius.circular(6),
             ),
             child: Row(
@@ -834,15 +863,19 @@ class _NavItemState extends State<_NavItem> {
                 ),
                 const SizedBox(width: 8),
                 Expanded(
-                  child: Text(
-                    widget.label,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+                  child: AnimatedDefaultTextStyle(
+                    duration: const Duration(milliseconds: 130),
+                    curve: Curves.easeOutCubic,
                     style: TextStyle(
                       color: selected
                           ? SettingsColors.textPrimary
                           : SettingsColors.textSecondary,
                       fontSize: 13,
+                    ),
+                    child: Text(
+                      widget.label,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
                 ),

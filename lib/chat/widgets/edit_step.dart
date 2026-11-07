@@ -59,13 +59,19 @@ class EditStep extends StatelessWidget {
             onToggle: onToggle,
             trailing: _Counts(item),
           ),
-          if (expanded)
-            _card(
-              context,
-              counts: false,
-              maxHeight: CodeCitationCard.maxCodeHeight,
-              padding: EdgeInsets.zero,
-            ),
+          AnimatedSize(
+            duration: const Duration(milliseconds: 180),
+            curve: Curves.easeOutCubic,
+            alignment: Alignment.topCenter,
+            child: expanded
+                ? _card(
+                    context,
+                    counts: false,
+                    maxHeight: CodeCitationCard.maxCodeHeight,
+                    padding: EdgeInsets.zero,
+                  )
+                : const SizedBox.shrink(),
+          ),
         ],
       ),
     },

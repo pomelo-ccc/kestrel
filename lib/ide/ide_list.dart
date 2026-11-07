@@ -313,7 +313,9 @@ class _IdeListRowState extends State<IdeListRow> {
           onSecondaryTapUp: widget.onContextMenu == null
               ? null
               : (details) => widget.onContextMenu!(details.globalPosition),
-          child: Container(
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 110),
+            curve: Curves.easeOutCubic,
             height: widget.height,
             margin: const EdgeInsets.symmetric(horizontal: IdeListColors.inset),
             decoration: BoxDecoration(
@@ -324,7 +326,7 @@ class _IdeListRowState extends State<IdeListRow> {
                         : IdeListColors.inactiveSelection)
                   : _hover
                   ? IdeListColors.hover
-                  : null,
+                  : Colors.transparent,
             ),
             // `outline: 1px solid; outline-offset: -1px`: drawn over the
             // row, so selecting it moves nothing.

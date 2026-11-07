@@ -197,8 +197,10 @@ class _IdeHoverState extends State<IdeHover> {
       enableTapToDismiss: !widget.interactive,
       ignorePointer: !widget.interactive,
       animationStyle: const AnimationStyle(
-        duration: Duration(milliseconds: 100),
-        reverseDuration: Duration.zero,
+        duration: Duration(milliseconds: 130),
+        reverseDuration: Duration(milliseconds: 80),
+        curve: Curves.easeOutCubic,
+        reverseCurve: Curves.easeInCubic,
       ),
       positionDelegate: widget.followMouse ? _placeAtMouse : _place,
       tooltipBuilder: (context, animation) => FadeTransition(
@@ -424,18 +426,20 @@ class _IdeActionButtonState extends State<IdeActionButton> {
           child: GestureDetector(
             behavior: HitTestBehavior.opaque,
             onTap: widget.onPressed,
-            child: Container(
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 110),
+              curve: Curves.easeOutCubic,
               width: widget.width ?? widget.size,
               height: widget.size,
               alignment: Alignment.center,
               decoration: BoxDecoration(
                 color: !enabled
-                    ? null
+                    ? Colors.transparent
                     : widget.checked
                     ? IdeActionButton.activeBackground
                     : _hover
                     ? IdeActionButton.hoverBackground
-                    : null,
+                    : Colors.transparent,
                 borderRadius: BorderRadius.circular(5),
               ),
               foregroundDecoration: outline == null
@@ -444,7 +448,9 @@ class _IdeActionButtonState extends State<IdeActionButton> {
                       border: Border.all(color: outline),
                       borderRadius: BorderRadius.circular(5),
                     ),
-              child: Opacity(
+              child: AnimatedOpacity(
+                duration: const Duration(milliseconds: 110),
+                curve: Curves.easeOutCubic,
                 opacity: enabled ? 1 : 0.4,
                 child:
                     widget.iconWidget ??

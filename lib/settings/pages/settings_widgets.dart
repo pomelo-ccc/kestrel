@@ -311,10 +311,15 @@ class SettingsFolding extends StatelessWidget {
                 children: [
                   Row(
                     children: [
-                      Icon(
-                        open ? Codicons.chevronDown : Codicons.chevronRight,
-                        size: 13,
-                        color: SettingsColors.textSecondary,
+                      AnimatedRotation(
+                        turns: open ? 0.25 : 0,
+                        duration: const Duration(milliseconds: 160),
+                        curve: Curves.easeOutCubic,
+                        child: Icon(
+                          Codicons.chevronRight,
+                          size: 13,
+                          color: SettingsColors.textSecondary,
+                        ),
                       ),
                       const SizedBox(width: 4),
                       Text(title, style: SettingsText.heading),
@@ -331,23 +336,33 @@ class SettingsFolding extends StatelessWidget {
                       ],
                     ],
                   ),
-                  if (description case final description? when open) ...[
-                    const SizedBox(height: 2),
-                    Padding(
-                      padding: const EdgeInsets.only(left: 17),
-                      child: Text(
-                        description,
-                        style: SettingsText.headingDescription,
+                  AnimatedSize(
+                    duration: const Duration(milliseconds: 180),
+                    curve: Curves.easeOutCubic,
+                    alignment: Alignment.topLeft,
+                    child: switch (description) {
+                      final description? when open => Padding(
+                        padding: const EdgeInsets.only(left: 17, top: 2),
+                        child: Text(
+                          description,
+                          style: SettingsText.headingDescription,
+                        ),
                       ),
-                    ),
-                  ],
+                      _ => const SizedBox.shrink(),
+                    },
+                  ),
                 ],
               ),
             ),
           ),
         ),
       ),
-      if (open) SettingsCard(children: children),
+      AnimatedSize(
+        duration: const Duration(milliseconds: 200),
+        curve: Curves.easeOutCubic,
+        alignment: Alignment.topCenter,
+        child: open ? SettingsCard(children: children) : const SizedBox.shrink(),
+      ),
     ],
   );
 }

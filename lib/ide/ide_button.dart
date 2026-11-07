@@ -176,9 +176,13 @@ class _IdeButtonState extends State<IdeButton> {
         child: GestureDetector(
           behavior: HitTestBehavior.opaque,
           onTap: widget.onPressed,
-          child: Opacity(
+          child: AnimatedOpacity(
+            duration: const Duration(milliseconds: 120),
+            curve: Curves.easeOutCubic,
             opacity: enabled ? 1 : 0.4,
-            child: Container(
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 120),
+              curve: Curves.easeOutCubic,
               padding: widget.padding,
               alignment: widget.expand ? Alignment.center : null,
               decoration: decoration,
@@ -209,7 +213,9 @@ class _IdeButtonState extends State<IdeButton> {
     return MouseRegion(
       onEnter: (_) => setState(() => _hover = true),
       onExit: (_) => setState(() => _hover = false),
-      child: Container(
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 120),
+        curve: Curves.easeOutCubic,
         decoration: decoration,
         child: Row(
           mainAxisSize: widget.expand ? MainAxisSize.max : MainAxisSize.min,

@@ -902,11 +902,15 @@ class _MenuItem extends StatelessWidget {
         child: GestureDetector(
           behavior: HitTestBehavior.opaque,
           onTap: enabled ? onTap : null,
-          child: Container(
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 85),
+            curve: Curves.easeOutCubic,
             height: 24,
             margin: const EdgeInsets.symmetric(horizontal: 4),
             decoration: BoxDecoration(
-              color: selected ? IdeMenuColors.selectionBackground : null,
+              color: selected
+                  ? IdeMenuColors.selectionBackground
+                  : Colors.transparent,
               borderRadius: BorderRadius.circular(6),
             ),
             // `outline-offset: -1px`: over the item.

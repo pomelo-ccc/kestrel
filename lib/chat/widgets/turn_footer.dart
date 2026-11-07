@@ -157,14 +157,20 @@ class _TurnFooterState extends State<TurnFooter> {
                 ..._stats(l10n),
               ]),
             ),
-            if (_challenger != null && answer != null && summary != null)
-              ModelPkComparisonCard(
-                promptText: summary.promptText,
-                originalAnswer: answer,
-                challenger: _challenger!,
-                session: session,
-                onClose: () => setState(() => _challenger = null),
-              ),
+            AnimatedSize(
+              duration: const Duration(milliseconds: 220),
+              curve: Curves.easeOutCubic,
+              alignment: Alignment.topCenter,
+              child: _challenger != null && answer != null && summary != null
+                  ? ModelPkComparisonCard(
+                      promptText: summary.promptText,
+                      originalAnswer: answer,
+                      challenger: _challenger!,
+                      session: session,
+                      onClose: () => setState(() => _challenger = null),
+                    )
+                  : const SizedBox.shrink(),
+            ),
           ],
         ),
       );
@@ -386,19 +392,29 @@ class _CopyButtonState extends State<_CopyButton> {
         builder: (context, hovered) => GestureDetector(
           onTap: _copy,
           behavior: HitTestBehavior.opaque,
-          child: Container(
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 120),
+            curve: Curves.easeOutCubic,
             padding: const EdgeInsets.all(3),
             decoration: BoxDecoration(
-              color: hovered ? AppColors.hover : null,
+              color: hovered ? AppColors.hover : Colors.transparent,
               borderRadius: BorderRadius.circular(4),
             ),
-            child: SvgPicture.asset(
-              _copied ? _checkIcon : _copyIcon,
-              width: 13,
-              height: 13,
-              colorFilter: ColorFilter.mode(
-                hovered || _copied ? AppColors.text : AppColors.textFaint,
-                BlendMode.srcIn,
+            child: AnimatedSwitcher(
+              duration: const Duration(milliseconds: 150),
+              switchInCurve: Curves.easeOutBack,
+              switchOutCurve: Curves.easeIn,
+              transitionBuilder: (child, animation) =>
+                  ScaleTransition(scale: animation, child: child),
+              child: SvgPicture.asset(
+                _copied ? _checkIcon : _copyIcon,
+                key: ValueKey(_copied),
+                width: 13,
+                height: 13,
+                colorFilter: ColorFilter.mode(
+                  hovered || _copied ? AppColors.text : AppColors.textFaint,
+                  BlendMode.srcIn,
+                ),
               ),
             ),
           ),
@@ -424,20 +440,28 @@ class _PinButton extends StatelessWidget {
         builder: (context, hovered) => GestureDetector(
           onTap: onTap,
           behavior: HitTestBehavior.opaque,
-          child: Container(
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 120),
+            curve: Curves.easeOutCubic,
             padding: const EdgeInsets.all(3),
             decoration: BoxDecoration(
               color: hovered
                   ? AppColors.hover
-                  : (pinned ? accent.withValues(alpha: 0.14) : null),
+                  : (pinned ? accent.withValues(alpha: 0.14) : Colors.transparent),
               borderRadius: BorderRadius.circular(4),
             ),
-            child: Icon(
-              pinned ? Codicons.pinned : Codicons.pin,
-              size: 13,
-              color: pinned
-                  ? accent
-                  : (hovered ? AppColors.text : AppColors.textFaint),
+            child: AnimatedSwitcher(
+              duration: const Duration(milliseconds: 140),
+              transitionBuilder: (child, animation) =>
+                  ScaleTransition(scale: animation, child: child),
+              child: Icon(
+                pinned ? Codicons.pinned : Codicons.pin,
+                key: ValueKey(pinned),
+                size: 13,
+                color: pinned
+                    ? accent
+                    : (hovered ? AppColors.text : AppColors.textFaint),
+              ),
             ),
           ),
         ),
