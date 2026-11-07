@@ -237,27 +237,30 @@ class _AgentSidePanelAreaState extends State<AgentSidePanelArea> {
 
   /// The widest it shows in [room]: beside the conversations, what they
   /// leave at their least; over them, all but a strip of them.
-  double _most(double room) => _overlay
+  double _most(double room, {required double sashWidth}) => _overlay
       ? math.max(0.0, room - 48)
       : math.max(
           0.0,
-          room - AgentSidePanelArea.minChat - AgentSidePanelArea.sashWidth,
+          room - AgentSidePanelArea.minChat - sashWidth,
         );
 
   /// How wide it shows in [room]: as wide as it was made, as far as there
   /// is room for; or filling [room] when maximized.
-  double _shownWidth(double room) => _panel.maximized
+  double _shownWidth(double room, {required double sashWidth}) =>
+      _panel.maximized
       ? math.max(
           AgentSidePanel.minWidth,
-          room - AgentSidePanelArea.sashWidth,
+          room - sashWidth,
         )
-      : math.min(_panel.width, _most(room));
+      : math.min(_panel.width, _most(room, sashWidth: sashWidth));
 
   @override
   Widget build(BuildContext context) => ListenableBuilder(
     listenable: _panel,
     builder: (context, _) => LayoutBuilder(
       builder: (context, constraints) {
+        final islands = Islands.on(context);
+        final sashWidth = islands ? AgentSidePanelArea.sashWidth : 1.0;
         final room = constraints.maxWidth;
         final shown = _shownHere && !widget.hidden;
         // Over the conversations only where it cannot be beside them at
@@ -269,8 +272,8 @@ class _AgentSidePanelAreaState extends State<AgentSidePanelArea> {
         final overlay = _overlay;
         final atLeft = _panel.atLeft;
         final rail = !shown && widget.rail != null;
-        final width = _shownWidth(room);
-        final fullExtent = width + AgentSidePanelArea.sashWidth;
+        final width = _shownWidth(room, sashWidth: sashWidth);
+        final fullExtent = width + sashWidth;
         Widget? cachedPanelBox;
         Widget buildPanelBox() => cachedPanelBox ??= RepaintBoundary(
           child: DecoratedBox(
@@ -292,7 +295,7 @@ class _AgentSidePanelAreaState extends State<AgentSidePanelArea> {
               // The sash on the side of the conversations.
               textDirection: atLeft ? TextDirection.rtl : TextDirection.ltr,
               children: [
-                _sash(atLeft: atLeft),
+                _sash(atLeft: atLeft, islands: islands),
                 Expanded(
                   // Never laid out narrower than its least: squeezed
                   // a while (the sidebar giving way), what has no
@@ -310,6 +313,10 @@ class _AgentSidePanelAreaState extends State<AgentSidePanelArea> {
             ),
           ),
         );
+        final defaultRailTop =
+            (WindowControls.drawsHeader ? 0 : AppMetrics.titleBarHeight) +
+            (islands ? ChatScreen.cardHeaderHeight : 0) +
+            AgentSidePanelArea.railRight;
         return TweenAnimationBuilder<double>(
           key: ValueKey(widget.conversation),
           tween: Tween<double>(end: shown ? 1.0 : 0.0),
@@ -355,7 +362,7 @@ class _AgentSidePanelAreaState extends State<AgentSidePanelArea> {
                         ? null
                         : (beside ? animatedExtent : 0) +
                               AgentSidePanelArea.railRight,
-                    top: widget.railTop ?? AgentSidePanelArea.defaultRailTop,
+                    top: widget.railTop ?? defaultRailTop,
                     child: Opacity(
                       opacity: (1.0 - t * 2.5).clamp(0.0, 1.0),
                       child: widget.rail!,
@@ -399,6 +406,22 @@ class _AgentSidePanelAreaState extends State<AgentSidePanelArea> {
                       ),
                     ),
                   ),
+                  if (!islands && shown)
+                    Positioned(
+                      key: const ValueKey('flat-sash-hit'),
+                      top: 0,
+                      bottom: overlay || IslandFootHosted.of(context)
+                          ? 0
+                          : widget.bottom,
+                      left: atLeft ? animatedExtent - 3 : null,
+                      right: atLeft ? null : animatedExtent - 3,
+                      width: AgentSidePanelArea.sashWidth,
+                      child: _dragGesture(
+                        atLeft: atLeft,
+                        sashWidth: sashWidth,
+                        child: const SizedBox.expand(),
+                      ),
+                    ),
                   // The resize cursor wherever the pointer goes while dragging;
                   // a press there (a drag whose end was lost) ends it.
                   if (_dragging)
@@ -439,12 +462,15 @@ class _AgentSidePanelAreaState extends State<AgentSidePanelArea> {
         ),
       );
 
-  /// The strip on the panel's edge beside the conversations: its left,
-  /// or its right [atLeft].
-  Widget _sash({required bool atLeft}) => MouseRegion(
+  Widget _dragGesture({
+    required bool atLeft,
+    required double sashWidth,
+    required Widget child,
+    Key? key,
+  }) => MouseRegion(
     cursor: SystemMouseCursors.resizeColumn,
     child: GestureDetector(
-      key: const ValueKey('side-panel-sash'),
+      key: key,
       behavior: HitTestBehavior.opaque,
       dragStartBehavior: DragStartBehavior.down,
       // From the width it shows, not the one it was made: narrower where
@@ -454,7 +480,10 @@ class _AgentSidePanelAreaState extends State<AgentSidePanelArea> {
         _dragging = true;
         _dragStart = (
           x: details.globalPosition.dx,
-          width: _shownWidth(context.size?.width ?? double.infinity),
+          width: _shownWidth(
+            context.size?.width ?? double.infinity,
+            sashWidth: sashWidth,
+          ),
         );
       }),
       onHorizontalDragUpdate: (details) {
@@ -467,7 +496,7 @@ class _AgentSidePanelAreaState extends State<AgentSidePanelArea> {
         // again once the pointer is back.
         _panel.width = math.min(
           atLeft ? start.width + moved : start.width - moved,
-          math.max(AgentSidePanel.minWidth, _most(room)),
+          math.max(AgentSidePanel.minWidth, _most(room, sashWidth: sashWidth)),
         );
       },
       onHorizontalDragEnd: (_) => _endDrag(),
@@ -476,12 +505,26 @@ class _AgentSidePanelAreaState extends State<AgentSidePanelArea> {
         _panel.width = AgentSidePanel.defaultWidth;
         _panel.save();
       },
-      // The gap alone at rest; dragged, the IDE's sash in it.
-      child: SizedBox(
-        width: AgentSidePanelArea.sashWidth,
-        child: Islands.sashLine(dragging: _dragging, axis: Axis.horizontal),
-      ),
+      child: child,
     ),
+  );
+
+  /// The strip on the panel's edge beside the conversations: its left,
+  /// or its right [atLeft].
+  Widget _sash({required bool atLeft, required bool islands}) => _dragGesture(
+    key: const ValueKey('side-panel-sash'),
+    atLeft: atLeft,
+    sashWidth: islands ? AgentSidePanelArea.sashWidth : 1.0,
+    child: islands
+        ? SizedBox(
+            width: AgentSidePanelArea.sashWidth,
+            child: Islands.sashLine(dragging: _dragging, axis: Axis.horizontal),
+          )
+        : AnimatedContainer(
+            duration: const Duration(milliseconds: 100),
+            width: _dragging ? IdeModernUI.gap : 1,
+            color: _dragging ? IdeModernUI.sashHover : AppColors.partBorder,
+          ),
   );
 
   void _endDrag() {
@@ -662,11 +705,12 @@ class AgentSidePanelView extends StatelessWidget {
       final tabs = panel.tabsOf(session);
       // Its pages' tabs on the window's color, along its top as the
       // conversation's title bar is; the page on a card under them.
+      final islands = Islands.on(context);
       return IslandTabbedCard(
         tabsHeight: AppMetrics.titleBarHeight,
         color: AppColors.code,
         // The Git log its own cards.
-        card: tabs.shown != SidePanelSection.changes || _git == null,
+        card: !islands || tabs.shown != SidePanelSection.changes || _git == null,
         tabs: _SectionBar(
           panel: panel,
           session: session,
@@ -879,7 +923,7 @@ class AgentSidePanelView extends StatelessWidget {
         notifications: notifications,
         background: AppColors.code,
         border: AppColors.partBorder,
-        islands: true,
+        islands: Islands.on(context),
         onOpen: (path) => panel.open(session, FileOpenRequest(path)),
         // A commit's files, the local changes and a stash's in the table's
         // place, one at a time, as the IDE's Source Control shows them.

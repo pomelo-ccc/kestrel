@@ -792,25 +792,33 @@ class _ChatScreenState extends State<ChatScreen>
       [final one] => one,
       _ => Row(mainAxisSize: MainAxisSize.min, children: buttons),
     };
-    final bar = SizedBox(
-      height: AppMetrics.titleBarHeight,
-      child: CustomMultiChildLayout(
-        delegate: _TitleBarLayout(inset: inset, end: widget.titleBarEnd),
-        children: [
-          if (widget.leading case final leading?)
-            LayoutId(id: _TitleBarSlot.leading, child: leading),
-          LayoutId(
-            id: _TitleBarSlot.title,
-            // The title at the bar's start, as the row macOS draws has it
-            // (Windows draws none of it: see window_header/).
-            child: title ? _buildTitle() : const SizedBox.shrink(),
-          ),
-          if (trailing != null)
+    final bar = DecoratedBox(
+      position: DecorationPosition.foreground,
+      decoration: BoxDecoration(
+        border: title
+            ? Border(bottom: BorderSide(color: AppColors.partBorder))
+            : null,
+      ),
+      child: SizedBox(
+        height: AppMetrics.titleBarHeight,
+        child: CustomMultiChildLayout(
+          delegate: _TitleBarLayout(inset: inset, end: widget.titleBarEnd),
+          children: [
+            if (widget.leading case final leading?)
+              LayoutId(id: _TitleBarSlot.leading, child: leading),
             LayoutId(
-              id: _TitleBarSlot.trailing,
-              child: TitleBarControls(child: trailing),
+              id: _TitleBarSlot.title,
+              // The title at the bar's start, as the row macOS draws has it
+              // (Windows draws none of it: see window_header/).
+              child: title ? _buildTitle() : const SizedBox.shrink(),
             ),
-        ],
+            if (trailing != null)
+              LayoutId(
+                id: _TitleBarSlot.trailing,
+                child: TitleBarControls(child: trailing),
+              ),
+          ],
+        ),
       ),
     );
     // Beside the title (a double click renames it) and the buttons, a
@@ -1242,8 +1250,10 @@ class _ChatScreenState extends State<ChatScreen>
   /// ([_buildCardHeader]).
   bool get _titled => !widget.embedded && (widget.titleBar || _renaming);
 
+  Color? get _island => Islands.on(context) ? widget.island : null;
+
   Widget _buildScaffold() {
-    final island = widget.island;
+    final island = _island;
     final conversation = _buildConversation();
     final footer = _footer;
     final titled = _titled;
@@ -1397,13 +1407,13 @@ class _ChatScreenState extends State<ChatScreen>
   /// [ChatScreen.footOnCard]): not where what is around it shows it.
   bool get _footOnCard =>
       widget.footOnCard &&
-      widget.island != null &&
+      _island != null &&
       !IslandFootHosted.of(context);
 
   /// Whether it is on a card: its own ([ChatScreen.island]), or the one
   /// it is put on (the IDE's, see [IslandSurface]).
   bool get _onCard =>
-      widget.island != null || IslandSurface.colorOf(context) != null;
+      _island != null || IslandSurface.colorOf(context) != null;
 
   /// The row under the card, on the window's color: its own card's, or the
   /// one it is on's (the IDE's), if that leaves one; else 0, [ChatScreen.below]
@@ -1443,7 +1453,7 @@ class _ChatScreenState extends State<ChatScreen>
                       // Under its card's title, or a subagent's header.
                       underTitle:
                           widget.back != null ||
-                          (_titled && widget.island != null),
+                          (_titled && _island != null),
                       maxContentWidth: _maxContentWidth,
                       minimap: _minimap,
                       minimapRoom: widget.back == null

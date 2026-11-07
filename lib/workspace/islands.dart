@@ -68,6 +68,24 @@ abstract final class Islands {
   /// are, the IDE's not (see [IslandStyle]).
   static bool on(BuildContext context) => IslandStyle.of(context);
 
+  /// The `settings.json` key for whether the workbench uses island cards
+  /// (`true`, Style 1) or flush 1px border lines (`false`, Style 2).
+  static const settingKey = 'workbench.islands';
+
+  /// Whether the window's parts are floating island cards with gaps (`true`)
+  /// or flush panes separated by 1px border lines (`false`).
+  static final ValueNotifier<bool> enabled = ValueNotifier<bool>(true);
+
+  static bool parse(Object? raw) => raw is bool ? raw : true;
+
+  static Object? setting(bool value) => value ? null : false;
+
+  static void follow(Listenable changes, Object? Function() read) {
+    void update() => enabled.value = parse(read());
+    update();
+    changes.addListener(update);
+  }
+
   /// A sash in a gap: nothing at rest, the gap's middle the IDE's
   /// `sash.hoverBorder` while dragged.
   static Widget sashLine({
@@ -93,7 +111,8 @@ class IslandStyle extends InheritedWidget {
 
   /// Islands where nothing says otherwise.
   static bool of(BuildContext context) =>
-      context.dependOnInheritedWidgetOfExactType<IslandStyle>()?.on ?? true;
+      context.dependOnInheritedWidgetOfExactType<IslandStyle>()?.on ??
+      Islands.enabled.value;
 
   @override
   bool updateShouldNotify(IslandStyle old) => old.on != on;
@@ -203,36 +222,52 @@ class _IslandTabbedCardState extends State<IslandTabbedCard> {
   }
 
   @override
-  Widget build(BuildContext context) => IslandCorner(
-    square: _square,
-    child: Stack(
-      fit: StackFit.expand,
-      children: [
-        Positioned.fill(
-          top: widget.tabsHeight,
-          child: widget.card
-              ? IslandCornerRadius(
-                  square: _square,
-                  builder: (context, topLeft, body) => Island(
-                    color: widget.color,
-                    topLeft: topLeft,
-                    child: body!,
-                  ),
-                  child: widget.body,
-                )
-              : widget.body,
-        ),
-        // After the card: the tab in front covers its outline.
-        Positioned(
-          left: 0,
-          right: 0,
-          top: 0,
-          height: widget.tabsHeight,
-          child: widget.tabs,
-        ),
-      ],
-    ),
-  );
+  Widget build(BuildContext context) {
+    final islands = Islands.on(context);
+    return IslandCorner(
+      square: _square,
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          Positioned.fill(
+            top: widget.tabsHeight,
+            child: widget.card
+                ? islands
+                      ? IslandCornerRadius(
+                          square: _square,
+                          builder: (context, topLeft, body) => Island(
+                            color: widget.color,
+                            topLeft: topLeft,
+                            child: body!,
+                          ),
+                          child: widget.body,
+                        )
+                      : DecoratedBox(
+                          position: DecorationPosition.foreground,
+                          decoration: BoxDecoration(
+                            border: Border(
+                              top: BorderSide(color: Islands.border),
+                            ),
+                          ),
+                          child: ColoredBox(
+                            color: widget.color,
+                            child: widget.body,
+                          ),
+                        )
+                : widget.body,
+          ),
+          // After the card: the tab in front covers its outline.
+          Positioned(
+            left: 0,
+            right: 0,
+            top: 0,
+            height: widget.tabsHeight,
+            child: widget.tabs,
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 /// Whether the card under a strip of tabs has its top left corner square:

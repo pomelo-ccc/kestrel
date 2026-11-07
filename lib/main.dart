@@ -140,6 +140,7 @@ import 'window/window_settings.dart';
 import 'workbench.dart';
 import 'workspace/editor_launcher.dart';
 import 'workspace/agent_title.dart';
+import 'workspace/islands.dart';
 import 'workspace/main_window.dart';
 import 'workspace/preference_store.dart';
 import 'workspace/window_controls.dart';
@@ -611,6 +612,11 @@ void followSettingsFiles(SettingsFiles files) {
     files.settings,
     () => files.settings[SidebarTimes.settingKey],
   );
+  // Settings → Appearance: whether panes are floating island cards or flush.
+  Islands.follow(
+    files.settings,
+    () => files.settings[Islands.settingKey],
+  );
   // Settings → Browser: whether the agents may use the user's browsers.
   BrowserBridge.instance.follow(
     files.settings,
@@ -835,6 +841,7 @@ class _BaoCodeAppState extends State<BaoCodeApp>
     CodeFont.size,
     CodeFont.ligatures,
     WindowBlur.enabled,
+    Islands.enabled,
   ]);
 
   late final AppSettings _settings =
@@ -1062,9 +1069,14 @@ class _BaoCodeAppState extends State<BaoCodeApp>
           ),
         );
       },
-      child: _themeTransition.wrap(
-        child ?? const SizedBox.shrink(),
-        canvas: AppColors.windowCanvas,
+      child: ValueListenableBuilder<bool>(
+        valueListenable: Islands.enabled,
+        builder: (context, islands, child) =>
+            IslandStyle(on: islands, child: child!),
+        child: _themeTransition.wrap(
+          child ?? const SizedBox.shrink(),
+          canvas: AppColors.windowCanvas,
+        ),
       ),
     ),
     locale: _locale.locale,

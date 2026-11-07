@@ -2984,10 +2984,12 @@ class _WorkbenchState extends State<Workbench> implements WindowDelegate {
     // reused across every frame of the open/close width animation so
     // neither the sidebar nor the chat panes rebuild while sliding.
     final sidebar = RepaintBoundary(child: _buildSidebar(onWindow: true));
+    final islands = Islands.on(context);
+    final edgeGap = islands ? Islands.gap : 0.0;
     final right = _sidebarAtRight;
     final macLeft = !right && !WindowControls.drawsHeader;
     final trafficLightsToggleLeft =
-        Islands.gap + AppMetrics.trafficLightsWidth + 8;
+        edgeGap + AppMetrics.trafficLightsWidth + 8;
     final handoffWidth = trafficLightsToggleLeft + 28;
     Widget? panesWithoutToggle;
     Widget? panesWithToggle;
@@ -3013,7 +3015,7 @@ class _WorkbenchState extends State<Workbench> implements WindowDelegate {
         curve: WbMotion.panelCurve(open: _sidebarDocked),
         builder: (context, t, _) {
           final width = _shownWidth * t;
-          final gap = Islands.gap * (1.0 - t);
+          final gap = edgeGap * (1.0 - t);
           final sidebarOpenOrMoving = _sidebarDocked || t > 0.001;
           final showToggleInPanes = macLeft
               ? !sidebarOpenOrMoving
@@ -3070,6 +3072,7 @@ class _WorkbenchState extends State<Workbench> implements WindowDelegate {
                                 right: !right ? 0 : gap,
                               ),
                               child: _islandsInset(
+                                context,
                                 panes,
                                 left: right,
                                 right: !right,
@@ -3082,7 +3085,7 @@ class _WorkbenchState extends State<Workbench> implements WindowDelegate {
                               right: right ? 0 : null,
                               top: 0,
                               bottom: 0,
-                              child: _buildResizeHandle(island: true),
+                              child: _buildResizeHandle(island: islands),
                             ),
                         ],
                       ),
@@ -3119,23 +3122,27 @@ class _WorkbenchState extends State<Workbench> implements WindowDelegate {
   /// [Islands.belowHeight]) down to the window's edge, as the IDE's status
   /// bar is; a card with none under it keeps a gap there ([_footless]).
   static Widget _islandsInset(
+    BuildContext context,
     Widget child, {
     bool left = true,
     bool right = true,
-  }) => Padding(
-    padding: EdgeInsets.fromLTRB(
-      left ? Islands.gap : 0,
-      0,
-      right ? Islands.gap : 0,
-      0,
-    ),
-    child: child,
-  );
+  }) {
+    final gap = Islands.on(context) ? Islands.gap : 0.0;
+    return Padding(
+      padding: EdgeInsets.fromLTRB(
+        left ? gap : 0,
+        0,
+        right ? gap : 0,
+        0,
+      ),
+      child: child,
+    );
+  }
 
   /// A card in the conversations' place with no row under it (Customize,
   /// the stashes): a gap from the window's bottom, as from its sides.
-  static Widget _footless(Widget child) => Padding(
-    padding: const EdgeInsets.only(bottom: Islands.gap),
+  static Widget _footless(BuildContext context, Widget child) => Padding(
+    padding: EdgeInsets.only(bottom: Islands.on(context) ? Islands.gap : 0),
     child: child,
   );
 
@@ -3149,7 +3156,10 @@ class _WorkbenchState extends State<Workbench> implements WindowDelegate {
         Positioned.fill(
           child: ColoredBox(
             color: AppColors.sidebarSurface,
-            child: _islandsInset(body ?? _buildPanes(showToggle: true)),
+            child: _islandsInset(
+              context,
+              body ?? _buildPanes(showToggle: true),
+            ),
           ),
         ),
         // Scrim: a click outside closes the drawer.
@@ -3828,7 +3838,9 @@ class _WorkbenchState extends State<Workbench> implements WindowDelegate {
         if (!WindowControls.drawsHeader) _panesTitleBar(showToggle: showToggle),
         // Their rows under them on their cards: a gap from the window's
         // bottom, as from its sides.
-        Expanded(child: _footless(_buildGrid(showToggle: showToggle))),
+        Expanded(
+          child: _footless(context, _buildGrid(showToggle: showToggle)),
+        ),
       ],
     ),
     _ => _withSidePanel(
@@ -3841,8 +3853,9 @@ class _WorkbenchState extends State<Workbench> implements WindowDelegate {
   /// their top: as far from the window's edge as the IDE's title bar has
   /// its own (Back to Chat), the gap there counted in; from the sidebar
   /// docked there, as far as from anything else.
-  double get _titleBarEnd =>
-      _sidebarAtRight && _sidebarDocked ? 8 : 8 - Islands.gap;
+  double get _titleBarEnd => _sidebarAtRight && _sidebarDocked
+      ? 8
+      : 8 - (Islands.on(context) ? Islands.gap : 0);
 
   /// Over the conversations side by side, along the window's top (macOS's
   /// title bar): the sidebar's toggle by the traffic lights where it comes
@@ -3957,7 +3970,7 @@ class _WorkbenchState extends State<Workbench> implements WindowDelegate {
   Widget _withSidePanel(Widget child, {required bool showToggle}) =>
       AgentSidePanelArea(
         panel: _sidePanel,
-        bottom: Islands.belowHeight,
+        bottom: Islands.on(context) ? Islands.belowHeight : 0,
         // Customize, in place of the conversations, isn't one of theirs.
         hidden: _sidePanelHidden || _replacingChat,
         roomComing: _sidebarGivingWay,
@@ -4517,12 +4530,15 @@ class _WorkbenchState extends State<Workbench> implements WindowDelegate {
   Widget _buildGrid({required bool showToggle}) {
     if (_stashing) {
       if (StashController.current case final stash?) {
-        return _footless(_buildStash(stash, showToggle: showToggle));
+        return _footless(context, _buildStash(stash, showToggle: showToggle));
       }
     }
     if (_customizing) {
       if (widget.customizations case final store?) {
-        return _footless(_buildCustomize(store, showToggle: showToggle));
+        return _footless(
+          context,
+          _buildCustomize(store, showToggle: showToggle),
+        );
       }
     }
     final grid = _workspace.grid;
@@ -5653,7 +5669,9 @@ class _EmptyWorkspace extends StatelessWidget {
         Expanded(
           // No row under it: a gap from the window's bottom.
           child: Padding(
-            padding: const EdgeInsets.only(bottom: Islands.gap),
+            padding: EdgeInsets.only(
+              bottom: Islands.on(context) ? Islands.gap : 0,
+            ),
             child: Island(
               color: AppColors.conversationSurface,
               child: Center(

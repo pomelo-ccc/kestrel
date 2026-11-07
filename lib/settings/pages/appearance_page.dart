@@ -28,6 +28,7 @@ import '../../platform/event_log.dart' show appEvent;
 import '../../theme/app_theme.dart';
 import '../../theme/code_font.dart';
 import '../../theme/window_blur.dart';
+import '../../workspace/islands.dart';
 import '../../theme/workbench_theme.dart'
     show
         ThemePaletteOverrides,
@@ -228,6 +229,19 @@ class AppearanceSettingsPage extends StatelessWidget {
     _keep(SidebarTimes.settingKey, SidebarTimes.setting(on));
   }
 
+  static String _islandsName(BuildContext context, bool islands) {
+    final isZh = Localizations.maybeLocaleOf(context)?.languageCode == 'zh';
+    if (isZh) {
+      return islands ? '样式 1 · 悬浮岛屿卡片' : '样式 2 · 极简分割线';
+    }
+    return islands ? 'Style 1 · Floating Cards' : 'Style 2 · Flush Borders';
+  }
+
+  void _selectIslands(bool on) {
+    Islands.enabled.value = on;
+    _keep(Islands.settingKey, Islands.setting(on));
+  }
+
   static String elasticityName(
     BuildContext context,
     ChatMinimapElasticity level,
@@ -421,6 +435,7 @@ class AppearanceSettingsPage extends StatelessWidget {
         ChatMinimap.elasticity,
         SidebarTimes.shown,
         WindowBlur.enabled,
+        Islands.enabled,
         for (final role in PixelLoaderRole.values) ...[role.style, role.speed],
         CodeFont.families,
         CodeFont.size,
@@ -468,6 +483,9 @@ class AppearanceSettingsPage extends StatelessWidget {
             ? l10n.themeAuto
             : current?.label ?? currentId;
         final key = ChatKeys.keyLabel(ideSelectColorThemeCommandId);
+        final isZh = Localizations.maybeLocaleOf(context)?.languageCode == 'zh';
+        final islandsOn = Islands.enabled.value;
+        final islandsShown = _islandsName(context, islandsOn);
         return SettingsPage(
           title: l10n.appearanceSettingsTitle,
           children: [
@@ -505,6 +523,27 @@ class AppearanceSettingsPage extends StatelessWidget {
                               onSelected: () => _select(theme.id),
                             ),
                         ],
+                    ]),
+                  ),
+                ),
+                SettingsRow(
+                  label: isZh ? '分区样式' : 'Partition Style',
+                  description: isZh
+                      ? '样式 1 采用悬浮圆角卡片与间距分区；样式 2 采用极简 1px 贯穿分割线分区'
+                      : 'Choose between floating rounded cards (Style 1) or flush 1px border dividers (Style 2)',
+                  trailing: SettingsDropdown(
+                    current: islandsShown,
+                    width: 220,
+                    semanticLabel: islandsShown,
+                    entries: () => ideMenuGroups([
+                      [
+                        for (final on in [true, false])
+                          IdeMenuAction(
+                            _islandsName(context, on),
+                            checked: on == islandsOn,
+                            onSelected: () => _selectIslands(on),
+                          ),
+                      ],
                     ]),
                   ),
                 ),
