@@ -1717,14 +1717,16 @@ class ChatComposerState extends State<ChatComposer>
         key: _boxKey,
         duration: const Duration(milliseconds: 160),
         curve: Curves.easeOutCubic,
-        decoration: BoxDecoration(
+        decoration: ShapeDecoration(
           // The agents window's chat input, editing a sent message too:
           // the color of every bubble, and their line; typed into, the line
           // turns a little towards the accent.
           color: AppColors.bubbleFill,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: AppColors.bubbleBorder(focused: focused)),
-          boxShadow: [
+          shape: RoundedSuperellipseBorder(
+            borderRadius: BorderRadius.circular(16),
+            side: BorderSide(color: AppColors.bubbleBorder(focused: focused)),
+          ),
+          shadows: [
             BoxShadow(
               color: Colors.black.withValues(
                 alpha: focused ? (dark ? 0.28 : 0.065) : (dark ? 0.16 : 0.035),

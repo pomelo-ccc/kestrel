@@ -140,22 +140,31 @@ class Island extends StatelessWidget {
   final double topLeft;
   final Widget child;
 
-  static BorderRadius radiusOf({required double topLeft}) => BorderRadius.only(
-    topLeft: Radius.circular(topLeft),
-    topRight: const Radius.circular(Islands.radius),
-    bottomLeft: const Radius.circular(Islands.radius),
-    bottomRight: const Radius.circular(Islands.radius),
-  );
+  /// Apple continuous superellipse corner radius (`CALayerCornerCurve.continuous`
+  /// / [RSuperellipse]), whose curvature ramps in gradually (~1.53x radius)
+  /// from the straight edges before rounding the apex.
+  static const cornerRadius = 18.0;
+
+  static BorderRadius radiusOf({required double topLeft}) {
+    const scale = cornerRadius / Islands.radius;
+    return BorderRadius.only(
+      topLeft: Radius.circular(topLeft * scale),
+      topRight: const Radius.circular(cornerRadius),
+      bottomLeft: const Radius.circular(cornerRadius),
+      bottomRight: const Radius.circular(cornerRadius),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     if (!Islands.on(context)) return ColoredBox(color: color, child: child);
     final radius = radiusOf(topLeft: topLeft);
-    final isDark = ThemeData.estimateBrightnessForColor(color) == Brightness.dark;
+    final isDark =
+        ThemeData.estimateBrightnessForColor(color) == Brightness.dark;
     return DecoratedBox(
-      decoration: BoxDecoration(
-        borderRadius: radius,
-        boxShadow: [
+      decoration: ShapeDecoration(
+        shape: RoundedSuperellipseBorder(borderRadius: radius),
+        shadows: [
           BoxShadow(
             color: Colors.black.withValues(alpha: isDark ? 0.22 : 0.045),
             blurRadius: 16,
@@ -172,11 +181,13 @@ class Island extends StatelessWidget {
       child: DecoratedBox(
         // The outline over what is in it, at its edge.
         position: DecorationPosition.foreground,
-        decoration: BoxDecoration(
-          borderRadius: radius,
-          border: Border.all(color: borderColor ?? Islands.border),
+        decoration: ShapeDecoration(
+          shape: RoundedSuperellipseBorder(
+            borderRadius: radius,
+            side: BorderSide(color: borderColor ?? Islands.border),
+          ),
         ),
-        child: ClipRRect(
+        child: ClipRSuperellipse(
           borderRadius: radius,
           child: ColoredBox(color: color, child: child),
         ),
@@ -884,13 +895,14 @@ class _HeadedClip extends CustomClipper<Path> {
   Path getClip(Size size) {
     final top = math.max(0.0, header - 1);
     final bottom = size.height - footer;
-    const inner = Radius.circular(Islands.radius - 1);
+    const scale = Island.cornerRadius / Islands.radius;
+    const inner = Radius.circular(Island.cornerRadius - 1);
     return Path()
       ..addRect(Rect.fromLTWH(0, 0, size.width, header))
-      ..addRRect(
-        RRect.fromRectAndCorners(
+      ..addRSuperellipse(
+        RSuperellipse.fromRectAndCorners(
           Rect.fromLTRB(1, top + 1, size.width - 1, bottom - 1),
-          topLeft: Radius.circular(math.max(0.0, topLeft - 1)),
+          topLeft: Radius.circular(math.max(0.0, topLeft * scale - 1)),
           topRight: inner,
           bottomLeft: inner,
           bottomRight: inner,
