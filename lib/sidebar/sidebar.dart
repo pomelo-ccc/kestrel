@@ -2510,7 +2510,7 @@ class _SidebarState extends State<Sidebar>
     // No line over it: the list fades out above it instead. Its buttons'
     // middle where the row under the conversation's card has its own.
     return Padding(
-      padding: const EdgeInsets.fromLTRB(10, 6, 10, 12),
+      padding: const EdgeInsets.fromLTRB(6, 4, 6, 10),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -2519,37 +2519,92 @@ class _SidebarState extends State<Sidebar>
     );
   }
 
-  /// The footer's buttons' row: the archived toggle's height.
-  static const _footerRowHeight = 28.0;
+  /// The footer's buttons' row: matches [Sidebar.rowHeight].
+  static const _footerRowHeight = Sidebar.rowHeight;
 
   Widget _buildFooterButtons(
     int count,
     VoidCallback? settings,
     Widget? update,
   ) {
-    // As high with the archived toggle as without: the buttons where the
-    // conversation's branch is beside it.
+    final shortcut = KeybindingService.instance.labelFor(openSettingsCommandId);
     return SizedBox(
       height: _footerRowHeight,
       child: Row(
         children: [
           if (settings != null)
-            SidebarIconButton(
-              icon: Codicons.settingsGear,
-              tooltip: context.l10n.settingsTitle,
-              command: openSettingsCommandId,
-              onTap: settings,
+            Expanded(
+              child: HoverBuilder(
+                cursor: SystemMouseCursors.click,
+                builder: (context, hovered) => GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: settings,
+                  child: AnimatedContainer(
+                    duration: WbMotion.durationFast,
+                    curve: WbMotion.standard,
+                    height: _footerRowHeight,
+                    padding: const EdgeInsets.only(left: 4, right: 8),
+                    decoration: BoxDecoration(
+                      color: hovered ? AppColors.hover : Colors.transparent,
+                      borderRadius: BorderRadius.circular(Islands.rowRadius),
+                    ),
+                    child: Row(
+                      children: [
+                        SidebarIconButton(
+                          icon: Codicons.settingsGear,
+                          tooltip: context.l10n.settingsTitle,
+                          command: openSettingsCommandId,
+                          onTap: settings,
+                        ),
+                        const SizedBox(width: 5),
+                        Expanded(
+                          child: ExcludeSemantics(
+                            child: Text(
+                              context.l10n.settingsTitle,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                color: hovered
+                                    ? IdeListColors.hoverForeground
+                                    : AppColors.textPrimary,
+                                fontSize: 13.5,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                        ),
+                        if (shortcut != null && shortcut.isNotEmpty)
+                          ExcludeSemantics(
+                            child: Text(
+                              shortcut,
+                              style: TextStyle(
+                                color: AppColors.textFaint,
+                                fontSize: 11,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
             ),
           if (update != null) ...[const SizedBox(width: 6), update],
-          Expanded(
-            child: count == 0
-                ? const SizedBox.shrink()
-                : Opacity(
-                    opacity: 0,
-                    alwaysIncludeSemantics: true,
-                    child: _buildArchivedToggle(count),
-                  ),
-          ),
+          if (count > 0)
+            SizedBox(
+              width: 1,
+              height: _footerRowHeight,
+              child: OverflowBox(
+                maxWidth: 160,
+                maxHeight: _footerRowHeight,
+                child: Opacity(
+                  opacity: 0,
+                  alwaysIncludeSemantics: true,
+                  child: _buildArchivedToggle(count),
+                ),
+              ),
+            ),
         ],
       ),
     );
