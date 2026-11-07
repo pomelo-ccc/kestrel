@@ -12,6 +12,7 @@ import 'package:flutter/services.dart';
 import 'package:path/path.dart' as p;
 
 import 'base/mouse_navigation.dart';
+import 'theme/wb_motion.dart';
 import 'browser/browser_bridge.dart';
 import 'browser/browser_tools.dart';
 import 'browser/browser_welcome.dart';
@@ -250,8 +251,6 @@ class Workbench extends StatefulWidget {
 }
 
 class _WorkbenchState extends State<Workbench> implements WindowDelegate {
-  static const _duration = Duration(milliseconds: 200);
-
   /// The border between sidebar and chat: a line at the left of a strip
   /// this wide, which takes the resize drag.
   static const _handleWidth = 5.0;
@@ -505,7 +504,7 @@ class _WorkbenchState extends State<Workbench> implements WindowDelegate {
     if (sidebarDocked && !_sidebarDocked) {
       _sidebarGivingWay = true;
       _givingWayTimer?.cancel();
-      _givingWayTimer = Timer(_duration, () {
+      _givingWayTimer = Timer(WbMotion.durationFast, () {
         if (mounted) setState(() => _sidebarGivingWay = false);
       });
     }
@@ -3008,8 +3007,10 @@ class _WorkbenchState extends State<Workbench> implements WindowDelegate {
       valueListenable: _width,
       builder: (context, _, _) => TweenAnimationBuilder<double>(
         tween: Tween<double>(end: _sidebarDocked ? 1.0 : 0.0),
-        duration: _dragging ? Duration.zero : _duration,
-        curve: Curves.easeOutCubic,
+        duration: _dragging
+            ? Duration.zero
+            : WbMotion.panelDuration(open: _sidebarDocked),
+        curve: WbMotion.panelCurve(open: _sidebarDocked),
         builder: (context, t, _) {
           final width = _shownWidth * t;
           final gap = Islands.gap * (1.0 - t);
@@ -3040,9 +3041,13 @@ class _WorkbenchState extends State<Workbench> implements WindowDelegate {
                         maxWidth: _shownWidth,
                         child: Directionality(
                           textDirection: Directionality.of(context),
-                          child: SidebarTopBarButtonVisibility(
-                            visible: !pinToggleAtTrafficLights,
-                            child: sidebar,
+                          child: Opacity(
+                            opacity: t.clamp(0.0, 1.0),
+                            alwaysIncludeSemantics: true,
+                            child: SidebarTopBarButtonVisibility(
+                              visible: !pinToggleAtTrafficLights,
+                              child: sidebar,
+                            ),
                           ),
                         ),
                       ),
@@ -3155,7 +3160,8 @@ class _WorkbenchState extends State<Workbench> implements WindowDelegate {
               onTap: _closeDrawer,
               child: AnimatedOpacity(
                 opacity: _drawerOpen ? 1 : 0,
-                duration: _duration,
+                duration: WbMotion.panelDuration(open: _drawerOpen),
+                curve: WbMotion.panelCurve(open: _drawerOpen),
                 // Black, not the theme's: as upstream's modal backdrops.
                 child: const ColoredBox(color: Color(0x66000000)),
               ),
@@ -3169,8 +3175,8 @@ class _WorkbenchState extends State<Workbench> implements WindowDelegate {
           valueListenable: _width,
           builder: (context, _, sidebar) => TweenAnimationBuilder<double>(
             tween: Tween(end: _drawerOpen ? 1 : 0),
-            duration: _duration,
-            curve: Curves.easeOutCubic,
+            duration: WbMotion.panelDuration(open: _drawerOpen),
+            curve: _drawerOpen ? WbMotion.emphasized : WbMotion.accelerate,
             onEnd: () {
               if (_drawerClosing) setState(() => _drawerClosing = false);
             },

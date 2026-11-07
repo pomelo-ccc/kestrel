@@ -971,11 +971,15 @@ class _ThemePaletteSection extends StatelessWidget {
   final ValueChanged<String> onSelectPreset;
 
   String _presetLabel(String currentId, String defaultId) {
-    if (currentId == defaultId) {
-      return dark ? 'Default Dark' : 'Default Light';
-    }
-    for (final entry in entries) {
-      if (entry.id == currentId) return entry.label;
+    final hasCustom = dark
+        ? (ThemePaletteOverrides.darkBackground.value != null ||
+              ThemePaletteOverrides.darkForeground.value != null ||
+              ThemePaletteOverrides.darkAccent.value != null)
+        : (ThemePaletteOverrides.lightBackground.value != null ||
+              ThemePaletteOverrides.lightForeground.value != null ||
+              ThemePaletteOverrides.lightAccent.value != null);
+    if (hasCustom) {
+      return dark ? 'Custom Dark' : 'Custom Light';
     }
     return dark ? 'Default Dark' : 'Default Light';
   }

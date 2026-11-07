@@ -7,6 +7,7 @@ import 'package:flutter/services.dart';
 import 'package:path/path.dart' as p;
 
 import '../../base/shown_when_ready.dart';
+import '../../theme/wb_motion.dart';
 import '../../browser/browser_bridge.dart';
 import '../../ide/file_service.dart';
 import '../../ide/git/git_model.dart';
@@ -310,8 +311,8 @@ class _AgentSidePanelAreaState extends State<AgentSidePanelArea> {
           tween: Tween<double>(end: shown ? 1.0 : 0.0),
           duration: _dragging || !widget.animate
               ? Duration.zero
-              : const Duration(milliseconds: 200),
-          curve: Curves.easeOutCubic,
+              : WbMotion.panelDuration(open: shown),
+          curve: WbMotion.panelCurve(open: shown),
           builder: (context, t, _) {
             final panelVisible = shown || t > 0.001;
             final beside = panelVisible && !overlay;
@@ -386,7 +387,11 @@ class _AgentSidePanelAreaState extends State<AgentSidePanelArea> {
                             : Alignment.centerLeft,
                         minWidth: fullExtent,
                         maxWidth: fullExtent,
-                        child: buildPanelBox(),
+                        child: Opacity(
+                          opacity: t.clamp(0.0, 1.0),
+                          alwaysIncludeSemantics: true,
+                          child: buildPanelBox(),
+                        ),
                       ),
                     ),
                   ),

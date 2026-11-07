@@ -11,6 +11,7 @@ import '../../keybindings/chat_keybindings.dart';
 import '../../l10n/l10n.dart';
 import '../../theme/app_theme.dart';
 import '../../theme/codicons.dart';
+import '../../theme/wb_motion.dart';
 import '../../theme/workbench_theme.dart' show themeColors;
 import '../../usage/ui/usage_breakdown.dart';
 import '../../usage/ui/usage_style.dart';
@@ -786,7 +787,7 @@ class _ContextUsagePanelState extends State<ContextUsagePanel>
       child: Divider(height: 1, thickness: 1, color: AppColors.partBorder),
     );
 
-    return Container(
+    final surface = Container(
       width: 304,
       constraints: const BoxConstraints(maxHeight: 520),
       decoration: BoxDecoration(
@@ -1012,6 +1013,21 @@ class _ContextUsagePanelState extends State<ContextUsagePanel>
               _PlanUsage(stats: stats),
             ],
           ],
+        ),
+      ),
+    );
+    return TweenAnimationBuilder<double>(
+      tween: Tween<double>(begin: 0.0, end: 1.0),
+      duration: WbMotion.durationMedium,
+      curve: WbMotion.popoverExpand,
+      child: surface,
+      builder: (context, t, child) => Opacity(
+        opacity: t.clamp(0.0, 1.0),
+        alwaysIncludeSemantics: true,
+        child: Transform.scale(
+          alignment: Alignment.bottomRight,
+          scale: 0.88 + 0.12 * t,
+          child: child,
         ),
       ),
     );

@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../base/give_way_row.dart';
+import '../theme/wb_motion.dart';
 import '../base/smooth_scroll.dart';
 import '../chat/chat_keys.dart';
 import '../chat/composer/composer_mock_data.dart' show fuzzyMatch;
@@ -1200,31 +1201,77 @@ class _SidebarState extends State<Sidebar>
                           : const Color(0xFFE6E5E0),
                       borderRadius: BorderRadius.circular(7),
                     ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        _SegmentPill(
-                          label: activeLabel,
-                          selected: !_showArchived,
-                          onTap: () {
-                            if (_showArchived) _workspace.showArchived = false;
-                          },
-                        ),
-                        SidebarMenu(
-                          items: () => _archivedItems(context.l10n),
-                          placement: (
-                            side: FloatingSide.bottom,
-                            align: FloatingAlign.start,
+                    child: IntrinsicWidth(
+                      child: Stack(
+                        children: [
+                          Positioned.fill(
+                            child: AnimatedAlign(
+                              alignment: _showArchived
+                                  ? Alignment.centerRight
+                                  : Alignment.centerLeft,
+                              duration: WbMotion.durationFast,
+                              curve: WbMotion.standard,
+                              child: FractionallySizedBox(
+                                widthFactor: 0.5,
+                                heightFactor: 1.0,
+                                child: DecoratedBox(
+                                  decoration: BoxDecoration(
+                                    color: themeColors.dark
+                                        ? const Color(0xFF333230)
+                                        : const Color(0xFFFFFFFF),
+                                    borderRadius: BorderRadius.circular(6),
+                                    border: Border.all(
+                                      color: themeColors.dark
+                                          ? const Color(0xFF42413E)
+                                          : const Color(0xFFE5E4DF),
+                                      width: 0.5,
+                                    ),
+                                    boxShadow: const [
+                                      BoxShadow(
+                                        color: Color(0x12000000),
+                                        blurRadius: 3,
+                                        offset: Offset(0, 1),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
                           ),
-                          builder: (context, menu) => _SegmentPill(
-                            label: archivedLabel,
-                            selected: _showArchived,
-                            onTap: _toggleArchived,
-                            onSecondaryTap: (details) =>
-                                menu.open(details.globalPosition),
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Expanded(
+                                child: _SegmentPill(
+                                  label: activeLabel,
+                                  selected: !_showArchived,
+                                  onTap: () {
+                                    if (_showArchived) {
+                                      _workspace.showArchived = false;
+                                    }
+                                  },
+                                ),
+                              ),
+                              Expanded(
+                                child: SidebarMenu(
+                                  items: () => _archivedItems(context.l10n),
+                                  placement: (
+                                    side: FloatingSide.bottom,
+                                    align: FloatingAlign.start,
+                                  ),
+                                  builder: (context, menu) => _SegmentPill(
+                                    label: archivedLabel,
+                                    selected: _showArchived,
+                                    onTap: _toggleArchived,
+                                    onSecondaryTap: (details) =>
+                                        menu.open(details.globalPosition),
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
                 ),
@@ -2786,7 +2833,6 @@ class _SegmentPill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final dark = themeColors.dark;
     return HoverBuilder(
       cursor: SystemMouseCursors.click,
       builder: (context, hovered) => GestureDetector(
@@ -2796,29 +2842,9 @@ class _SegmentPill extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
           alignment: Alignment.center,
-          decoration: selected
-              ? BoxDecoration(
-                  color: dark
-                      ? const Color(0xFF333230)
-                      : const Color(0xFFFFFFFF),
-                  borderRadius: BorderRadius.circular(6),
-                  border: Border.all(
-                    color: dark
-                        ? const Color(0xFF42413E)
-                        : const Color(0xFFE5E4DF),
-                    width: 0.5,
-                  ),
-                  boxShadow: const [
-                    BoxShadow(
-                      color: Color(0x12000000),
-                      blurRadius: 3,
-                      offset: Offset(0, 1),
-                    ),
-                  ],
-                )
-              : null,
-          child: Text(
-            label,
+          child: AnimatedDefaultTextStyle(
+            duration: WbMotion.durationFast,
+            curve: WbMotion.standard,
             style: TextStyle(
               color: selected || hovered
                   ? AppColors.textPrimary
@@ -2827,6 +2853,7 @@ class _SegmentPill extends StatelessWidget {
               fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
               height: 1.1,
             ),
+            child: Text(label),
           ),
         ),
       ),
@@ -4367,7 +4394,8 @@ class _AsidesArrow extends StatelessWidget {
             dimension: 14,
             child: AnimatedRotation(
               turns: folded ? 0 : 0.25,
-              duration: const Duration(milliseconds: 150),
+              duration: WbMotion.durationChevron,
+              curve: WbMotion.collapseIcon,
               child: Icon(
                 Icons.chevron_right_rounded,
                 size: 15,

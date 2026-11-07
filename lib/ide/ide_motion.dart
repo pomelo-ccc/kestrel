@@ -1,5 +1,7 @@
 import 'package:flutter/widgets.dart';
 
+import '../theme/wb_motion.dart';
+
 /// How the popups under it come and go: still, as VS Code's (the IDE's,
 /// by default), or [lively]: dialogs and menus grow in from a little
 /// smaller, fading, and fade out (the stash's panel).
@@ -20,8 +22,8 @@ class IdeMotion extends InheritedWidget {
   }) {
     final curved = CurvedAnimation(
       parent: animation,
-      curve: Curves.easeOutCubic,
-      reverseCurve: Curves.easeInCubic,
+      curve: WbMotion.decelerate,
+      reverseCurve: WbMotion.accelerate,
     );
     return FadeTransition(
       opacity: curved,
@@ -33,8 +35,8 @@ class IdeMotion extends InheritedWidget {
     );
   }
 
-  static const enterDuration = Duration(milliseconds: 180);
-  static const exitDuration = Duration(milliseconds: 110);
+  static const enterDuration = WbMotion.durationMedium;
+  static const exitDuration = WbMotion.durationFast;
 
   @override
   bool updateShouldNotify(IdeMotion oldWidget) => lively != oldWidget.lively;
@@ -49,7 +51,7 @@ class PopIn extends StatelessWidget {
     required this.child,
     this.alignment = Alignment.bottomCenter,
     this.offset = const Offset(0, 4),
-    this.duration = const Duration(milliseconds: 160),
+    this.duration = WbMotion.durationFast,
   });
 
   final Widget child;
@@ -63,7 +65,7 @@ class PopIn extends StatelessWidget {
   Widget build(BuildContext context) => TweenAnimationBuilder<double>(
     tween: Tween(begin: 0, end: 1),
     duration: duration,
-    curve: Curves.easeOutCubic,
+    curve: WbMotion.popoverExpand,
     child: child,
     builder: (context, t, child) => Opacity(
       opacity: t.clamp(0, 1),

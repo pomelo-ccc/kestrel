@@ -16,6 +16,7 @@ import '../ide/ide_find_widget.dart';
 import '../ide/ide_hover.dart';
 import '../l10n/l10n.dart';
 import '../theme/app_theme.dart';
+import '../theme/wb_motion.dart';
 import '../theme/workbench_theme.dart' show themeColors;
 import 'chat_column.dart';
 import 'chat_feed.dart';
@@ -339,7 +340,7 @@ class _ChatHistoryViewState extends State<ChatHistoryView>
   // not lag behind, nor the list's hold on its bottom.
 
   static const _motionDuration = Duration(milliseconds: 220);
-  static const _motionCurve = Curves.easeOutCubic;
+  static const _motionCurve = WbMotion.collapseContent;
 
   /// Per item, how many times the user has changed it: each time, its
   /// next change of height animates (see [_HeightMotion]).
@@ -3767,7 +3768,7 @@ class _AppearState extends State<_Appear> with SingleTickerProviderStateMixin {
   AnimationController? _controller;
   late final Animation<double> _eased = CurvedAnimation(
     parent: _controller!,
-    curve: Curves.easeOutCubic,
+    curve: WbMotion.decelerate,
   );
 
   @override
@@ -3849,8 +3850,13 @@ class _HeightMotionState extends State<_HeightMotion>
   Widget build(BuildContext context) => _HeightMotionBox(
     motion: widget.motion,
     progress: _progress,
-    onStart: () {
-      if (mounted) _progress.forward(from: 0);
+    onStart: (expanding) {
+      if (!mounted) return;
+      _progress
+        ..duration = expanding
+            ? _ChatHistoryViewState._motionDuration
+            : WbMotion.durationCollapse
+        ..forward(from: 0);
     },
     child: widget.child,
   );
@@ -3866,7 +3872,7 @@ class _HeightMotionBox extends SingleChildRenderObjectWidget {
 
   final int motion;
   final Animation<double> progress;
-  final VoidCallback onStart;
+  final ValueChanged<bool> onStart;
 
   @override
   _RenderHeightMotion createRenderObject(BuildContext context) =>
@@ -3887,7 +3893,7 @@ class _HeightMotionBox extends SingleChildRenderObjectWidget {
 class _RenderHeightMotion extends RenderProxyBox {
   _RenderHeightMotion(this._motion, this._progress, {required this.onStart});
 
-  VoidCallback onStart;
+  ValueChanged<bool> onStart;
 
   int _motion;
   set motion(int value) {
@@ -3960,9 +3966,10 @@ class _RenderHeightMotion extends RenderProxyBox {
       _to = target;
       if (!_starting) {
         _starting = true;
+        final expanding = target >= (_from ?? target);
         SchedulerBinding.instance.addPostFrameCallback((_) {
           _starting = false;
-          if (attached) onStart();
+          if (attached) onStart(expanding);
         });
       }
     }

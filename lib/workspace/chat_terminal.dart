@@ -17,6 +17,7 @@ import '../l10n/l10n.dart';
 import '../sidebar/sidebar.dart' show SidebarIconButton;
 import '../theme/app_theme.dart';
 import '../theme/codicons.dart';
+import '../theme/wb_motion.dart';
 import 'islands.dart';
 import 'terminal_deck.dart';
 
@@ -366,8 +367,8 @@ class _ChatTerminalAreaState extends State<ChatTerminalArea> {
           tween: Tween<double>(end: panel ? 1.0 : 0.0),
           duration: _dragging
               ? Duration.zero
-              : const Duration(milliseconds: 200),
-          curve: Curves.easeOutCubic,
+              : WbMotion.panelDuration(open: panel),
+          curve: WbMotion.panelCurve(open: panel),
           builder: (context, t, _) {
             final panelVisible =
                 (panel || t > 0.001) && terminalCard != null && fullHeight > 0;
@@ -393,7 +394,11 @@ class _ChatTerminalAreaState extends State<ChatTerminalArea> {
                             alignment: Alignment.topCenter,
                             minHeight: fullHeight,
                             maxHeight: fullHeight,
-                            child: terminalCard,
+                            child: Opacity(
+                              opacity: t.clamp(0.0, 1.0),
+                              alwaysIncludeSemantics: true,
+                              child: terminalCard,
+                            ),
                           ),
                         ),
                       ),

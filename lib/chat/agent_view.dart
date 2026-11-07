@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../keybindings/chat_keybindings.dart';
 import '../l10n/l10n.dart';
 import '../theme/app_theme.dart';
+import '../theme/wb_motion.dart';
 import 'chat_column.dart';
 import 'chat_keys.dart';
 import 'widgets/chat_minimap.dart';
@@ -44,8 +45,8 @@ class ConversationLayer extends StatelessWidget {
   static CurvedAnimation curve(AnimationController controller) =>
       CurvedAnimation(
         parent: controller,
-        curve: Curves.easeOutCubic,
-        reverseCurve: Curves.easeInCubic,
+        curve: WbMotion.emphasized,
+        reverseCurve: WbMotion.accelerate,
       );
 
   @override

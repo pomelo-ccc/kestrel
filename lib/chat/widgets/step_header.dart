@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 
 import '../../base/smooth_scroll.dart';
 import '../../theme/app_theme.dart';
+import '../../theme/wb_motion.dart';
 import 'finite_selection_edges.dart';
 import 'hover_builder.dart';
 import 'hover_scrollbar.dart';
@@ -181,7 +182,8 @@ class StepHeader extends StatelessWidget {
 
   Widget _chevron(bool hovered) => AnimatedRotation(
     turns: expanded ? 0.25 : 0,
-    duration: const Duration(milliseconds: 150),
+    duration: WbMotion.durationChevron,
+    curve: WbMotion.collapseIcon,
     child: Icon(
       Icons.chevron_right_rounded,
       size: 16,

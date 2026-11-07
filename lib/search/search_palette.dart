@@ -14,6 +14,7 @@ import '../platform/app_platform.dart';
 import '../sidebar/sidebar.dart' show StatusIndicator, relativeTime;
 import '../theme/app_theme.dart';
 import '../theme/material_file_icons.dart';
+import '../theme/wb_motion.dart';
 import '../theme/workbench_theme.dart' show themeColors;
 import '../workspace/window_controls.dart';
 import '../workspace/workspace.dart';
@@ -81,9 +82,22 @@ Future<void> showSearchPalette(
     barrierLabel: 'Dismiss',
     // Black, not the theme's: as upstream's modal backdrops.
     barrierColor: const Color(0x33000000),
-    transitionDuration: const Duration(milliseconds: 100),
-    transitionBuilder: (context, animation, _, child) =>
-        FadeTransition(opacity: animation, child: child),
+    transitionDuration: WbMotion.durationFast,
+    transitionBuilder: (context, animation, _, child) {
+      final curved = CurvedAnimation(
+        parent: animation,
+        curve: WbMotion.decelerate,
+        reverseCurve: WbMotion.accelerate,
+      );
+      return FadeTransition(
+        opacity: curved,
+        child: ScaleTransition(
+          alignment: const Alignment(0, -0.6),
+          scale: Tween<double>(begin: 0.97, end: 1.0).animate(curved),
+          child: child,
+        ),
+      );
+    },
     pageBuilder: (context, _, _) => SearchPalette(
       agents: agents,
       conversations: conversations,

@@ -17,6 +17,7 @@ import '../workspace/window_controls.dart';
 import '../workspace/window_header/window_header.dart' show WindowHeader;
 import '../theme/codicons.dart';
 import '../theme/app_theme.dart';
+import '../theme/wb_motion.dart';
 import '../ide/ide_back_button.dart';
 import '../ide/ide_modern_ui.dart' show IdeModernUI;
 import '../sidebar/sidebar.dart' show SidebarIconButton;
@@ -113,9 +114,21 @@ Future<void> showSettingsDialog(
   context: context,
   barrierLabel: 'Dismiss',
   barrierColor: const Color(0x00000000),
-  transitionDuration: const Duration(milliseconds: 120),
-  transitionBuilder: (context, animation, _, child) =>
-      FadeTransition(opacity: animation, child: child),
+  transitionDuration: WbMotion.durationFast,
+  transitionBuilder: (context, animation, _, child) {
+    final curved = CurvedAnimation(
+      parent: animation,
+      curve: WbMotion.emphasized,
+      reverseCurve: WbMotion.accelerate,
+    );
+    return FadeTransition(
+      opacity: curved,
+      child: ScaleTransition(
+        scale: Tween<double>(begin: 0.985, end: 1.0).animate(curved),
+        child: child,
+      ),
+    );
+  },
   pageBuilder: (context, _, _) => SettingsDialog(
     section: section,
     pageBuilder: pageBuilder,
@@ -158,7 +171,6 @@ class SettingsDialog extends StatefulWidget {
 }
 
 class SettingsDialogState extends State<SettingsDialog> {
-  static const _duration = Duration(milliseconds: 200);
   static const _toggleCommand = 'workbench.action.toggleSidebarVisibility';
 
   /// The list's border: a line at the left of a strip this wide, which
@@ -501,8 +513,10 @@ class SettingsDialogState extends State<SettingsDialog> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           AnimatedContainer(
-            duration: _dragging ? Duration.zero : _duration,
-            curve: Curves.easeOutCubic,
+            duration: _dragging
+                ? Duration.zero
+                : WbMotion.panelDuration(open: _docked),
+            curve: WbMotion.panelCurve(open: _docked),
             width: _docked ? _shownWidth : 0,
             child: ClipRect(
               child: OverflowBox(
@@ -552,7 +566,8 @@ class SettingsDialogState extends State<SettingsDialog> {
               onTap: _closeDrawer,
               child: AnimatedOpacity(
                 opacity: _drawerOpen ? 1 : 0,
-                duration: _duration,
+                duration: WbMotion.panelDuration(open: _drawerOpen),
+                curve: WbMotion.panelCurve(open: _drawerOpen),
                 child: const ColoredBox(color: Color(0x66000000)),
               ),
             ),
@@ -564,8 +579,8 @@ class SettingsDialogState extends State<SettingsDialog> {
           valueListenable: _width,
           builder: (context, _, list) => TweenAnimationBuilder<double>(
             tween: Tween(end: _drawerOpen ? 1 : 0),
-            duration: _duration,
-            curve: Curves.easeOutCubic,
+            duration: WbMotion.panelDuration(open: _drawerOpen),
+            curve: _drawerOpen ? WbMotion.emphasized : WbMotion.accelerate,
             onEnd: () {
               if (_drawerClosing) setState(() => _drawerClosing = false);
             },
