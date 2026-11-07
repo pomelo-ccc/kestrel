@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../base/smooth_scroll.dart';
 import '../../chat/chat_width.dart';
 import '../../chat/widgets/scroll_edge_fade.dart';
+import '../../ide/ide_motion.dart';
 import '../../ide/ide_step_slider.dart';
 import '../../ide/ide_switch.dart';
 import '../../theme/app_theme.dart';
@@ -313,8 +314,8 @@ class SettingsFolding extends StatelessWidget {
                     children: [
                       AnimatedRotation(
                         turns: open ? 0.25 : 0,
-                        duration: const Duration(milliseconds: 160),
-                        curve: Curves.easeOutCubic,
+                        duration: const Duration(milliseconds: 180),
+                        curve: IdeMotion.easeOut,
                         child: Icon(
                           Codicons.chevronRight,
                           size: 13,
@@ -336,33 +337,23 @@ class SettingsFolding extends StatelessWidget {
                       ],
                     ],
                   ),
-                  AnimatedSize(
-                    duration: const Duration(milliseconds: 180),
-                    curve: Curves.easeOutCubic,
-                    alignment: Alignment.topLeft,
-                    child: switch (description) {
-                      final description? when open => Padding(
+                  if (description case final description? when open)
+                    IdeReveal(
+                      child: Padding(
                         padding: const EdgeInsets.only(left: 17, top: 2),
                         child: Text(
                           description,
                           style: SettingsText.headingDescription,
                         ),
                       ),
-                      _ => const SizedBox.shrink(),
-                    },
-                  ),
+                    ),
                 ],
               ),
             ),
           ),
         ),
       ),
-      AnimatedSize(
-        duration: const Duration(milliseconds: 200),
-        curve: Curves.easeOutCubic,
-        alignment: Alignment.topCenter,
-        child: open ? SettingsCard(children: children) : const SizedBox.shrink(),
-      ),
+      if (open) IdeReveal(child: SettingsCard(children: children)),
     ],
   );
 }

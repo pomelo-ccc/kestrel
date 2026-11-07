@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
 import '../../ide/ide_hover.dart';
+import '../../ide/ide_motion.dart';
 import '../../l10n/l10n.dart';
 import '../../theme/app_theme.dart';
 import '../../theme/codicons.dart';
@@ -157,10 +158,8 @@ class _TurnFooterState extends State<TurnFooter> {
                 ..._stats(l10n),
               ]),
             ),
-            AnimatedSize(
-              duration: const Duration(milliseconds: 220),
-              curve: Curves.easeOutCubic,
-              alignment: Alignment.topCenter,
+            IdeExpandable(
+              expanded: _challenger != null && answer != null && summary != null,
               child: _challenger != null && answer != null && summary != null
                   ? ModelPkComparisonCard(
                       promptText: summary.promptText,
@@ -169,7 +168,7 @@ class _TurnFooterState extends State<TurnFooter> {
                       session: session,
                       onClose: () => setState(() => _challenger = null),
                     )
-                  : const SizedBox.shrink(),
+                  : null,
             ),
           ],
         ),

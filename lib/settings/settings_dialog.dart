@@ -19,6 +19,7 @@ import '../theme/codicons.dart';
 import '../theme/app_theme.dart';
 import '../ide/ide_back_button.dart';
 import '../ide/ide_modern_ui.dart' show IdeModernUI;
+import '../ide/ide_motion.dart';
 import '../sidebar/sidebar.dart' show SidebarIconButton;
 import '../theme/workbench_theme.dart' show themeColors;
 import 'pages/settings_widgets.dart' show SettingsColors;
@@ -113,21 +114,13 @@ Future<void> showSettingsDialog(
   context: context,
   barrierLabel: 'Dismiss',
   barrierColor: const Color(0x00000000),
-  transitionDuration: const Duration(milliseconds: 180),
-  transitionBuilder: (context, animation, _, child) {
-    final curved = CurvedAnimation(
-      parent: animation,
-      curve: Curves.easeOutCubic,
-      reverseCurve: Curves.easeInCubic,
-    );
-    return FadeTransition(
-      opacity: curved,
-      child: ScaleTransition(
-        scale: Tween<double>(begin: 0.985, end: 1.0).animate(curved),
-        child: child,
-      ),
-    );
-  },
+  transitionDuration: const Duration(milliseconds: 210),
+  transitionBuilder: (context, animation, _, child) => IdeMotion.enter(
+    animation,
+    child,
+    from: 0.985,
+    slideFrom: const Offset(0, 0.008),
+  ),
   pageBuilder: (context, _, _) => SettingsDialog(
     section: section,
     pageBuilder: pageBuilder,

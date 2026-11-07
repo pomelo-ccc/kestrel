@@ -22,6 +22,7 @@ import '../ide/ide_button.dart' show IdeButtonColors;
 import '../ide/ide_commands.dart' show ideUsesMacKeys;
 import '../ide/ide_hover.dart';
 import '../ide/ide_list.dart';
+import '../ide/ide_motion.dart';
 import '../ide/ide_speed_search.dart';
 import '../ide/ide_spinning.dart';
 import '../kernel/agent_kernel.dart' show KernelChoiceKind;
@@ -1192,31 +1193,71 @@ class _SidebarState extends State<Sidebar>
                           : const Color(0xFFE6E5E0),
                       borderRadius: BorderRadius.circular(7),
                     ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        _SegmentPill(
-                          label: activeLabel,
-                          selected: !_showArchived,
-                          onTap: () {
-                            if (_showArchived) _workspace.showArchived = false;
-                          },
-                        ),
-                        SidebarMenu(
-                          items: () => _archivedItems(context.l10n),
-                          placement: (
-                            side: FloatingSide.bottom,
-                            align: FloatingAlign.start,
+                    child: IntrinsicWidth(
+                      child: Stack(
+                        children: [
+                          Positioned.fill(
+                            child: AnimatedAlign(
+                              duration: const Duration(milliseconds: 220),
+                              curve: const Cubic(0.22, 1.0, 0.36, 1.0),
+                              alignment: _showArchived
+                                  ? Alignment.centerRight
+                                  : Alignment.centerLeft,
+                              child: FractionallySizedBox(
+                                widthFactor: 0.5,
+                                heightFactor: 1.0,
+                                child: DecoratedBox(
+                                  decoration: BoxDecoration(
+                                    color: themeColors.dark
+                                        ? const Color(0xFF333230)
+                                        : const Color(0xFFFFFFFF),
+                                    borderRadius: BorderRadius.circular(5),
+                                    boxShadow: const [
+                                      BoxShadow(
+                                        color: Color(0x14000000),
+                                        blurRadius: 2,
+                                        offset: Offset(0, 1),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
                           ),
-                          builder: (context, menu) => _SegmentPill(
-                            label: archivedLabel,
-                            selected: _showArchived,
-                            onTap: _toggleArchived,
-                            onSecondaryTap: (details) =>
-                                menu.open(details.globalPosition),
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Expanded(
+                                child: _SegmentPill(
+                                  label: activeLabel,
+                                  selected: !_showArchived,
+                                  onTap: () {
+                                    if (_showArchived) {
+                                      _workspace.showArchived = false;
+                                    }
+                                  },
+                                ),
+                              ),
+                              Expanded(
+                                child: SidebarMenu(
+                                  items: () => _archivedItems(context.l10n),
+                                  placement: (
+                                    side: FloatingSide.bottom,
+                                    align: FloatingAlign.start,
+                                  ),
+                                  builder: (context, menu) => _SegmentPill(
+                                    label: archivedLabel,
+                                    selected: _showArchived,
+                                    onTap: _toggleArchived,
+                                    onSecondaryTap: (details) =>
+                                        menu.open(details.globalPosition),
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
                 ),
@@ -2772,36 +2813,18 @@ class _SegmentPill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final dark = themeColors.dark;
     return HoverBuilder(
       cursor: SystemMouseCursors.click,
       builder: (context, hovered) => GestureDetector(
         behavior: HitTestBehavior.opaque,
         onTap: onTap,
         onSecondaryTapUp: onSecondaryTap,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 140),
-          curve: Curves.easeOutCubic,
+        child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
           alignment: Alignment.center,
-          decoration: BoxDecoration(
-            color: selected
-                ? (dark ? const Color(0xFF333230) : const Color(0xFFFFFFFF))
-                : Colors.transparent,
-            borderRadius: BorderRadius.circular(5),
-            boxShadow: selected
-                ? const [
-                    BoxShadow(
-                      color: Color(0x14000000),
-                      blurRadius: 2,
-                      offset: Offset(0, 1),
-                    ),
-                  ]
-                : null,
-          ),
           child: AnimatedDefaultTextStyle(
-            duration: const Duration(milliseconds: 140),
-            curve: Curves.easeOutCubic,
+            duration: const Duration(milliseconds: 160),
+            curve: const Cubic(0.22, 1.0, 0.36, 1.0),
             style: TextStyle(
               color: selected || hovered
                   ? AppColors.textPrimary
@@ -4504,27 +4527,30 @@ class SidebarIconButton extends StatelessWidget {
         label: tooltip,
         child: HoverBuilder(
           cursor: SystemMouseCursors.click,
-          builder: (context, hovered) => GestureDetector(
-            onTap: onTap,
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 110),
-              curve: Curves.easeOutCubic,
-              width: size,
-              height: size,
-              decoration: BoxDecoration(
-                color: hovered
-                    ? themeColors['toolbar.hoverBackground']
-                    : Colors.transparent,
-                borderRadius: BorderRadius.circular(5),
+          builder: (context, hovered) => IdePressScale(
+            pressedScale: 0.92,
+            child: GestureDetector(
+              onTap: onTap,
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 110),
+                curve: IdeMotion.easeOut,
+                width: size,
+                height: size,
+                decoration: BoxDecoration(
+                  color: hovered
+                      ? themeColors['toolbar.hoverBackground']
+                      : Colors.transparent,
+                  borderRadius: BorderRadius.circular(5),
+                ),
+                child: switch (AppIcon(
+                  icon,
+                  size: size * 0.65,
+                  color: hovered ? AppColors.text : AppColors.textMuted,
+                )) {
+                  final icon when spinning => IdeSpinning(icon),
+                  final icon => icon,
+                },
               ),
-              child: switch (AppIcon(
-                icon,
-                size: size * 0.65,
-                color: hovered ? AppColors.text : AppColors.textMuted,
-              )) {
-                final icon when spinning => IdeSpinning(icon),
-                final icon => icon,
-              },
             ),
           ),
         ),

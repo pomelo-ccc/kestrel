@@ -15,6 +15,7 @@ import 'package:flutter/material.dart';
 import '../theme/codicons.dart';
 import '../theme/workbench_theme.dart' show themeColors;
 import 'ide_hover.dart';
+import 'ide_motion.dart';
 import 'ide_spinning.dart';
 
 /// The color theme's `button.*` colors.
@@ -173,20 +174,24 @@ class _IdeButtonState extends State<IdeButton> {
         cursor: enabled ? SystemMouseCursors.click : MouseCursor.defer,
         onEnter: (_) => setState(() => _hover = true),
         onExit: (_) => setState(() => _hover = false),
-        child: GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          onTap: widget.onPressed,
-          child: AnimatedOpacity(
-            duration: const Duration(milliseconds: 120),
-            curve: Curves.easeOutCubic,
-            opacity: enabled ? 1 : 0.4,
-            child: AnimatedContainer(
+        child: IdePressScale(
+          enabled: enabled,
+          pressedScale: 0.96,
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: widget.onPressed,
+            child: AnimatedOpacity(
               duration: const Duration(milliseconds: 120),
-              curve: Curves.easeOutCubic,
-              padding: widget.padding,
-              alignment: widget.expand ? Alignment.center : null,
-              decoration: decoration,
-              child: label,
+              curve: IdeMotion.easeOut,
+              opacity: enabled ? 1 : 0.4,
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 120),
+                curve: IdeMotion.easeOut,
+                padding: widget.padding,
+                alignment: widget.expand ? Alignment.center : null,
+                decoration: decoration,
+                child: label,
+              ),
             ),
           ),
         ),

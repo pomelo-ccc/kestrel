@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../ide/ide_motion.dart';
 import '../../l10n/l10n.dart';
 import '../../sidebar/sidebar_menu.dart';
 import '../../theme/app_theme.dart';
@@ -80,10 +81,8 @@ class CommandStep extends StatelessWidget {
           expanded: expanded,
           onToggle: _opens ? onToggle : null,
         ),
-        AnimatedSize(
-          duration: const Duration(milliseconds: 180),
-          curve: Curves.easeOutCubic,
-          alignment: Alignment.topCenter,
+        IdeStepBody(
+          expanded: expanded && _opens,
           child: expanded && _opens
               ? StepBody(
                   followEnd: _running,
@@ -119,7 +118,7 @@ class CommandStep extends StatelessWidget {
                     ],
                   ),
                 )
-              : const SizedBox.shrink(),
+              : null,
         ),
       ],
     );

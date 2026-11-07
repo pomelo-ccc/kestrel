@@ -4,6 +4,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 import '../../base/smooth_scroll.dart';
+import '../../ide/ide_motion.dart';
 import '../../l10n/l10n.dart';
 import '../../theme/app_theme.dart';
 import 'agent_step.dart' show AgentStep;
@@ -181,21 +182,25 @@ class _ThinkingSectionState extends State<ThinkingSection> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _buildHeader(),
-          AnimatedSize(
-            duration: const Duration(milliseconds: 180),
-            curve: Curves.easeOutCubic,
+          IdeExpandable(
+            expanded: widget.expanded && _text.isNotEmpty,
             alignment: Alignment.topLeft,
             // Nothing to show until its first words (a summarized thought
             // may bring them only at its end).
-            child: widget.expanded && _text.isNotEmpty
-                ? Container(
-                    width: double.infinity,
-                    margin: const EdgeInsets.only(top: 6, bottom: 2),
-                    child: _streaming
-                        ? _buildLiveText()
-                        : Text(_text, style: _textStyle),
+            child: _text.isNotEmpty
+                ? AnimatedSize(
+                    duration: const Duration(milliseconds: 180),
+                    curve: IdeMotion.easeOut,
+                    alignment: Alignment.topLeft,
+                    child: Container(
+                      width: double.infinity,
+                      margin: const EdgeInsets.only(top: 6, bottom: 2),
+                      child: _streaming
+                          ? _buildLiveText()
+                          : Text(_text, style: _textStyle),
+                    ),
                   )
-                : const SizedBox(width: double.infinity),
+                : null,
           ),
         ],
       ),

@@ -7,6 +7,7 @@ import 'package:path/path.dart' as p;
 
 import '../chat/widgets/hover_builder.dart';
 import '../ide/ide_fuzzy.dart';
+import '../ide/ide_motion.dart';
 import '../ide/ide_quick_input.dart' show IdeKeycap, IdeQuickInput;
 import '../ide/ide_quick_open.dart';
 import '../l10n/l10n.dart';
@@ -81,28 +82,14 @@ Future<void> showSearchPalette(
     barrierLabel: 'Dismiss',
     // Black, not the theme's: as upstream's modal backdrops.
     barrierColor: const Color(0x33000000),
-    transitionDuration: const Duration(milliseconds: 160),
-    transitionBuilder: (context, animation, _, child) {
-      final curved = CurvedAnimation(
-        parent: animation,
-        curve: Curves.easeOutCubic,
-        reverseCurve: Curves.easeInCubic,
-      );
-      return FadeTransition(
-        opacity: curved,
-        child: SlideTransition(
-          position: Tween<Offset>(
-            begin: const Offset(0, -0.012),
-            end: Offset.zero,
-          ).animate(curved),
-          child: ScaleTransition(
-            alignment: Alignment.topCenter,
-            scale: Tween<double>(begin: 0.98, end: 1.0).animate(curved),
-            child: child,
-          ),
-        ),
-      );
-    },
+    transitionDuration: const Duration(milliseconds: 200),
+    transitionBuilder: (context, animation, _, child) => IdeMotion.enter(
+      animation,
+      child,
+      alignment: Alignment.topCenter,
+      from: 0.97,
+      slideFrom: const Offset(0, -0.014),
+    ),
     pageBuilder: (context, _, _) => SearchPalette(
       agents: agents,
       conversations: conversations,
@@ -679,12 +666,7 @@ class _SearchPaletteState extends State<SearchPalette> {
                       _buildFilters(l10n),
                       ConstrainedBox(
                         constraints: BoxConstraints(maxHeight: maxListHeight),
-                        child: AnimatedSize(
-                          duration: const Duration(milliseconds: 140),
-                          curve: Curves.easeOutCubic,
-                          alignment: Alignment.topCenter,
-                          child: _buildList(l10n),
-                        ),
+                        child: _buildList(l10n),
                       ),
                       _buildFooter(l10n),
                     ],
