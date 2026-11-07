@@ -3503,7 +3503,7 @@ class _InlineAction extends StatelessWidget {
 }
 
 /// The welcome content of a view with nothing to show: paragraphs, and a
-/// button up to 300px wide.
+/// button up to 220px wide.
 class _Welcome extends StatelessWidget {
   const _Welcome(this.paragraphs, {this.button, this.onPressed});
 
@@ -3513,7 +3513,7 @@ class _Welcome extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => ListView(
-    padding: const EdgeInsets.fromLTRB(20, 0, 20, 13),
+    padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
     children: [
       for (final text in paragraphs)
         Padding(
@@ -3521,18 +3521,18 @@ class _Welcome extends StatelessWidget {
           child: Text(
             text,
             style: TextStyle(
-              fontSize: 13,
-              height: 1.4,
-              color: themeColors['sideBar.foreground'],
+              fontSize: 12.5,
+              height: 1.5,
+              color: themeColors['sideBar.foreground'].withValues(alpha: 0.85),
             ),
           ),
         ),
       if (button case final label?)
         Padding(
-          padding: const EdgeInsets.only(top: 6.5),
+          padding: const EdgeInsets.only(top: 10),
           child: Center(
             child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 300),
+              constraints: const BoxConstraints(maxWidth: 210),
               child: _SplitButton(
                 label: label,
                 tooltip: label,

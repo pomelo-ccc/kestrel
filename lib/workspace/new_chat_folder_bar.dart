@@ -287,22 +287,37 @@ class _Button extends StatelessWidget {
           onTap: onTap,
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 120),
-            height: 22,
-            padding: const EdgeInsets.symmetric(horizontal: 6),
+            height: 24,
+            padding: const EdgeInsets.symmetric(horizontal: 8),
             decoration: BoxDecoration(
               color: hovered
                   ? themeColors['toolbar.hoverBackground']
                   : Colors.transparent,
-              borderRadius: BorderRadius.circular(11),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: hovered
+                    ? AppColors.partBorder.withValues(alpha: 0.55)
+                    : Colors.transparent,
+              ),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(icon, size: 13, color: AppColors.textMuted),
+                Icon(
+                  icon,
+                  size: 13,
+                  color: hovered ? AppColors.textPrimary : AppColors.textMuted,
+                ),
                 const SizedBox(width: 4),
                 Text(
                   label,
-                  style: TextStyle(color: AppColors.textMuted, fontSize: 12),
+                  style: TextStyle(
+                    color: hovered
+                        ? AppColors.textPrimary
+                        : AppColors.textMuted,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                  ),
                 ),
               ],
             ),

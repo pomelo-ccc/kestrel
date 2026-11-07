@@ -271,15 +271,24 @@ class _MarkdownQuoteBlockState extends State<MarkdownQuoteBlock> {
       child: Container(
         decoration: BoxDecoration(
           color: background,
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(10),
           border: Border.all(color: colors['chat.requestBorder']),
         ),
         clipBehavior: Clip.antiAlias,
         child: Stack(
           children: [
+            Positioned(
+              left: 0,
+              top: 0,
+              bottom: 0,
+              width: 3,
+              child: ColoredBox(
+                color: AppColors.claude.withValues(alpha: 0.55),
+              ),
+            ),
             // Clear of the copy button on the right.
             Padding(
-              padding: const EdgeInsets.fromLTRB(12, 8, 36, 8),
+              padding: const EdgeInsets.fromLTRB(14, 8, 36, 8),
               child: widget.child,
             ),
             Positioned(
@@ -459,7 +468,7 @@ class _CodeCardState extends State<_CodeCard> {
       child: Container(
         decoration: BoxDecoration(
           color: background,
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(10),
           border: Border.all(color: line),
         ),
         clipBehavior: Clip.antiAlias,

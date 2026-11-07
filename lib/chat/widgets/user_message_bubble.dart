@@ -237,20 +237,27 @@ class _UserMessageBubbleState extends State<UserMessageBubble> {
                   borderRadius: BorderRadius.circular(UserMessageBubble.radius),
                   border: Border.all(color: AppColors.bubbleBorder()),
                 ),
-          child: SelectionContainer(
-            delegate: _selection,
-            child: _Collapsed(
-              shrinkWrap: fitted,
-              collapsedHeight: _lineHeight * _collapsedLines,
-              // All of it while it holds the find's match at hand, which
-              // may be in the lines it hides.
-              collapseAbove: ChatFindRow.holdsCurrent(context)
-                  ? double.infinity
-                  : _lineHeight * (_collapsedLines + 1),
-              content: InlineCodeText(
-                _messageSpan(widget.text, vocabulary, widget.images),
+          child: CustomPaint(
+            painter: fitted
+                ? null
+                : _PromptAccentBarPainter(
+                    color: AppColors.claude.withValues(alpha: 0.65),
+                  ),
+            child: SelectionContainer(
+              delegate: _selection,
+              child: _Collapsed(
+                shrinkWrap: fitted,
+                collapsedHeight: _lineHeight * _collapsedLines,
+                // All of it while it holds the find's match at hand, which
+                // may be in the lines it hides.
+                collapseAbove: ChatFindRow.holdsCurrent(context)
+                    ? double.infinity
+                    : _lineHeight * (_collapsedLines + 1),
+                content: InlineCodeText(
+                  _messageSpan(widget.text, vocabulary, widget.images),
+                ),
+                overlay: const _CollapsedOverlay(),
               ),
-              overlay: const _CollapsedOverlay(),
             ),
           ),
         ),
@@ -1139,4 +1146,24 @@ class _RenderEditMorph extends RenderProxyBox {
     _opacity.layer = null;
     super.dispose();
   }
+}
+
+/// Draws a delicate vertical terracotta signature pill inside the left
+/// padding of a full-width prompt card.
+class _PromptAccentBarPainter extends CustomPainter {
+  const _PromptAccentBarPainter({required this.color});
+
+  final Color color;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (size.height < 12) return;
+    final rect = Rect.fromLTWH(-7.5, 2, 2.5, size.height - 4);
+    final rrect = RRect.fromRectAndRadius(rect, const Radius.circular(1.25));
+    canvas.drawRRect(rrect, Paint()..color = color);
+  }
+
+  @override
+  bool shouldRepaint(_PromptAccentBarPainter oldDelegate) =>
+      oldDelegate.color != color;
 }

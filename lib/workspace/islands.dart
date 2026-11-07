@@ -18,7 +18,7 @@ abstract final class Islands {
   static const gap = 6.0;
 
   /// A card's corners.
-  static const radius = 12.0;
+  static const radius = 14.0;
 
   /// What is on a card from its edges: its toolbar, its input, its
   /// buttons; the composer from the conversation's.
@@ -29,7 +29,7 @@ abstract final class Islands {
   static const listInset = 4.0;
 
   /// A list's row: its corners, in from the card's edges by [listInset].
-  static const rowRadius = 6.0;
+  static const rowRadius = 7.0;
 
   /// An input, a button on a card: as high, their corners.
   static const controlHeight = 30.0;
@@ -132,16 +132,35 @@ class Island extends StatelessWidget {
   Widget build(BuildContext context) {
     if (!Islands.on(context)) return ColoredBox(color: color, child: child);
     final radius = radiusOf(topLeft: topLeft);
+    final isDark = ThemeData.estimateBrightnessForColor(color) == Brightness.dark;
     return DecoratedBox(
-      // The outline over what is in it, at its edge.
-      position: DecorationPosition.foreground,
       decoration: BoxDecoration(
         borderRadius: radius,
-        border: Border.all(color: borderColor ?? Islands.border),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: isDark ? 0.22 : 0.045),
+            blurRadius: 16,
+            spreadRadius: -2,
+            offset: const Offset(0, 4),
+          ),
+          BoxShadow(
+            color: Colors.black.withValues(alpha: isDark ? 0.12 : 0.02),
+            blurRadius: 3,
+            offset: const Offset(0, 1),
+          ),
+        ],
       ),
-      child: ClipRRect(
-        borderRadius: radius,
-        child: ColoredBox(color: color, child: child),
+      child: DecoratedBox(
+        // The outline over what is in it, at its edge.
+        position: DecorationPosition.foreground,
+        decoration: BoxDecoration(
+          borderRadius: radius,
+          border: Border.all(color: borderColor ?? Islands.border),
+        ),
+        child: ClipRRect(
+          borderRadius: radius,
+          child: ColoredBox(color: color, child: child),
+        ),
       ),
     );
   }
@@ -392,10 +411,10 @@ class IslandTab extends StatefulWidget {
   final Widget Function(BuildContext context, Color foreground) builder;
 
   /// How far its foot flares out on either side, past its box.
-  static const flare = 6.0;
+  static const flare = 7.0;
 
   /// Its top corners.
-  static const radius = 6.0;
+  static const radius = 8.0;
 
   /// From the card's edge to the first tab: clear of the card's corner,
   /// its foot too.

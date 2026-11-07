@@ -792,7 +792,7 @@ class ComposerPickerState extends State<ComposerPicker> {
     return AnimatedContainer(
       duration: const Duration(milliseconds: 120),
       height: 22,
-      padding: const EdgeInsets.only(left: 6, right: 3),
+      padding: const EdgeInsets.only(left: 7, right: 4),
       // Emphasized, a secondary button, as the agents window's pickers in
       // its chat input; else a toolbar item.
       decoration: BoxDecoration(
@@ -818,14 +818,18 @@ class ComposerPickerState extends State<ComposerPicker> {
         children: [
           widget.selected.iconBuilder?.call(13, color) ??
               Icon(widget.selected.icon, size: 13, color: color),
-          const SizedBox(width: 4),
+          const SizedBox(width: 4.5),
           // Cut short where the input is narrow, not over its edge.
           Flexible(
             child: Text(
               widget.label ?? widget.selected.label,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: TextStyle(color: color, fontSize: 12),
+              style: TextStyle(
+                color: color,
+                fontSize: 12,
+                fontWeight: emphasized ? FontWeight.w600 : FontWeight.w500,
+              ),
             ),
           ),
           Icon(

@@ -2885,7 +2885,8 @@ class _Check extends StatelessWidget {
   }
 }
 
-/// What shows instead of the changes: a message, and a button under it.
+/// What shows instead of the changes: a centered studio empty-state card
+/// with a source-control emblem, message, and a well-proportioned button.
 class _Welcome extends StatelessWidget {
   const _Welcome(this.message, {this.button, this.onPressed});
 
@@ -2894,24 +2895,65 @@ class _Welcome extends StatelessWidget {
   final VoidCallback? onPressed;
 
   @override
-  Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.all(16),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Text(
-          message,
-          style: TextStyle(
-            fontSize: 13,
-            height: 1.4,
-            color: IdeListColors.foreground,
+  Widget build(BuildContext context) => Align(
+    alignment: const Alignment(0, -0.25),
+    child: SingleChildScrollView(
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 28),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 320),
+        child: Container(
+          padding: const EdgeInsets.fromLTRB(24, 24, 24, 22),
+          decoration: BoxDecoration(
+            color: IdeListColors.foreground.withValues(alpha: 0.025),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(
+              color: IdeListColors.foreground.withValues(alpha: 0.08),
+            ),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: IdeListColors.foreground.withValues(alpha: 0.06),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Codicons.sourceControl,
+                  size: 18,
+                  color: IdeListColors.foreground.withValues(alpha: 0.72),
+                ),
+              ),
+              const SizedBox(height: 14),
+              Text(
+                message,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 12.5,
+                  height: 1.5,
+                  color: IdeListColors.foreground.withValues(alpha: 0.82),
+                ),
+              ),
+              if (button case final button?) ...[
+                const SizedBox(height: 16),
+                ConstrainedBox(
+                  constraints: const BoxConstraints(
+                    minWidth: 148,
+                    maxWidth: 210,
+                  ),
+                  child: IdeButton(
+                    label: button,
+                    expand: true,
+                    onPressed: onPressed,
+                  ),
+                ),
+              ],
+            ],
           ),
         ),
-        if (button case final button?) ...[
-          const SizedBox(height: 12),
-          IdeButton(label: button, expand: true, onPressed: onPressed),
-        ],
-      ],
+      ),
     ),
   );
 }

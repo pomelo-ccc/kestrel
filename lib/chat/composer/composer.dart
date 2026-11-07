@@ -1709,19 +1709,36 @@ class ChatComposerState extends State<ChatComposer>
   }
 
   Widget _buildBox({required bool focused}) {
+    final dark = themeColors.dark;
     return GestureDetector(
       behavior: HitTestBehavior.translucent,
       onTap: _focusNode.requestFocus,
       child: AnimatedContainer(
         key: _boxKey,
-        duration: const Duration(milliseconds: 150),
+        duration: const Duration(milliseconds: 160),
+        curve: Curves.easeOutCubic,
         decoration: BoxDecoration(
           // The agents window's chat input, editing a sent message too:
           // the color of every bubble, and their line; typed into, the line
           // turns a little towards the accent.
           color: AppColors.bubbleFill,
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(14),
           border: Border.all(color: AppColors.bubbleBorder(focused: focused)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(
+                alpha: focused ? (dark ? 0.28 : 0.065) : (dark ? 0.16 : 0.035),
+              ),
+              blurRadius: focused ? 14 : 8,
+              offset: Offset(0, focused ? 4 : 2),
+            ),
+            if (focused)
+              BoxShadow(
+                color: AppColors.accent.withValues(alpha: dark ? 0.12 : 0.08),
+                blurRadius: 6,
+                spreadRadius: 0.5,
+              ),
+          ],
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -2232,11 +2249,22 @@ class _SendButton extends StatelessWidget {
             height: 24,
             decoration: BoxDecoration(
               color: !active
-                  ? Colors.transparent
+                  ? AppColors.textFaint.withValues(alpha: 0.10)
                   : hovered
                   ? colors['button.hoverBackground']
                   : colors['button.background'],
               shape: BoxShape.circle,
+              boxShadow: active
+                  ? [
+                      BoxShadow(
+                        color: colors['button.background'].withValues(
+                          alpha: 0.32,
+                        ),
+                        blurRadius: 6,
+                        offset: const Offset(0, 2),
+                      ),
+                    ]
+                  : null,
             ),
             child: AnimatedSwitcher(
               duration: const Duration(milliseconds: 150),

@@ -925,10 +925,10 @@ class _TableState extends State<_Table> {
       child: Container(
         // The edge over the cells, the header's color clipped to the corners.
         foregroundDecoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(10),
           border: Border.fromBorderSide(line),
         ),
-        decoration: BoxDecoration(borderRadius: BorderRadius.circular(8)),
+        decoration: BoxDecoration(borderRadius: BorderRadius.circular(10)),
         clipBehavior: Clip.antiAlias,
         child: HoverScrollbar(
           controller: _scroll,

@@ -2273,11 +2273,18 @@ class _EmptySection extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Center(
     child: Padding(
-      padding: const EdgeInsets.all(24),
-      child: Text(
-        text,
-        textAlign: TextAlign.center,
-        style: TextStyle(fontSize: 12, color: AppColors.textMuted),
+      padding: const EdgeInsets.all(28),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 280),
+        child: Text(
+          text,
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontSize: 12.5,
+            height: 1.5,
+            color: AppColors.textMuted,
+          ),
+        ),
       ),
     ),
   );
@@ -2289,11 +2296,51 @@ class _NoRepository extends StatelessWidget {
   const _NoRepository();
 
   @override
-  Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-    child: Text(
-      context.l10n.scmNoRepository,
-      style: TextStyle(fontSize: 12, height: 1.5, color: AppColors.textMuted),
+  Widget build(BuildContext context) => Align(
+    alignment: const Alignment(0, -0.25),
+    child: Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 28),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 300),
+        child: Container(
+          padding: const EdgeInsets.all(22),
+          decoration: BoxDecoration(
+            color: AppColors.textMuted.withValues(alpha: 0.03),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(
+              color: AppColors.partBorder.withValues(alpha: 0.6),
+            ),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 38,
+                height: 38,
+                decoration: BoxDecoration(
+                  color: AppColors.textMuted.withValues(alpha: 0.08),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Codicons.sourceControl,
+                  size: 17,
+                  color: AppColors.textMuted,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                context.l10n.scmNoRepository,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 12.5,
+                  height: 1.5,
+                  color: AppColors.textMuted,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     ),
   );
 }

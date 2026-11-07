@@ -33,7 +33,7 @@ class _WheelLatchState extends State<WheelLatch> {
   static bool _watching = false;
 
   VelocityTracker? _panTracker;
-  double _panForwarded = 0;
+  Drag? _outerDrag;
 
   /// Sees every wheel event, after the views under the pointer have: a
   /// gesture started anywhere else belongs to no inner view.
@@ -111,7 +111,9 @@ class _WheelLatchState extends State<WheelLatch> {
 
   void _handlePanZoomStart(PointerPanZoomStartEvent event) {
     _panTracker = VelocityTracker.withKind(event.kind);
-    _panForwarded = 0;
+    _panTracker?.addPosition(event.timeStamp, Offset.zero);
+    _outerDrag?.cancel();
+    _outerDrag = null;
   }
 
   void _handlePanZoomUpdate(PointerPanZoomUpdateEvent event) {
@@ -130,35 +132,50 @@ class _WheelLatchState extends State<WheelLatch> {
     // the trackpad pan directly to the outer conversation scrollable.
     if (_canMove(inner.position, innerDelta)) return;
 
-    final outerDelta = axisDirectionIsReversed(outer.axisDirection)
-        ? event.panDelta.dy
-        : -event.panDelta.dy;
-    final outerPos = outer.position;
-    final next = (outerPos.pixels + outerDelta).clamp(
-      outerPos.minScrollExtent,
-      outerPos.maxScrollExtent,
+    _outerDrag ??= outer.position.drag(
+      DragStartDetails(
+        globalPosition: event.position,
+        localPosition: event.localPosition,
+        sourceTimeStamp: event.timeStamp,
+      ),
+      () => _outerDrag = null,
     );
-    if (next != outerPos.pixels) {
-      outerPos.jumpTo(next);
-    }
-    _panForwarded += outerDelta;
-    _panTracker?.addPosition(event.timeStamp, Offset(0, _panForwarded));
+    _panTracker?.addPosition(event.timeStamp, event.pan);
+    final primaryDelta = axisDirectionIsReversed(outer.axisDirection)
+        ? -event.panDelta.dy
+        : event.panDelta.dy;
+    _outerDrag?.update(
+      DragUpdateDetails(
+        sourceTimeStamp: event.timeStamp,
+        delta: Offset(0, primaryDelta),
+        primaryDelta: primaryDelta,
+        globalPosition: event.position,
+        localPosition: event.localPosition,
+      ),
+    );
   }
 
   void _handlePanZoomEnd(PointerPanZoomEndEvent event) {
+    final drag = _outerDrag;
     final tracker = _panTracker;
+    _outerDrag = null;
     _panTracker = null;
-    if (tracker == null || _panForwarded == 0) return;
-    final inner = Scrollable.maybeOf(context);
-    if (inner == null) return;
-    final outer = Scrollable.maybeOf(inner.context);
-    if (outer == null) return;
-    final velocity = -tracker.getVelocity().pixelsPerSecond.dy;
-    final outerPos = outer.position;
-    if (velocity.abs() > kMinFlingVelocity &&
-        outerPos is ScrollPositionWithSingleContext) {
-      outerPos.goBallistic(velocity);
-    }
+    if (drag == null) return;
+    final outer = switch (Scrollable.maybeOf(context)) {
+      final inner? => Scrollable.maybeOf(inner.context),
+      null => null,
+    };
+    final rawVy = tracker?.getVelocity().pixelsPerSecond.dy ?? 0.0;
+    final primaryVelocity =
+        outer != null && axisDirectionIsReversed(outer.axisDirection)
+        ? -rawVy
+        : rawVy;
+    drag.end(
+      DragEndDetails(
+        velocity: Velocity(pixelsPerSecond: Offset(0, primaryVelocity)),
+        primaryVelocity: primaryVelocity,
+      ),
+    );
   }
 
   @override

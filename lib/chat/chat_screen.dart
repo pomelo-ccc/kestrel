@@ -665,9 +665,10 @@ class _ChatScreenState extends State<ChatScreen>
   /// [ChatScreen.subtitle] after it, or [ChatScreen.titleTabs] instead.
   Widget _buildTitle() {
     final style = TextStyle(
-      color: widget.focused ? AppColors.textMuted : AppColors.textFaint,
-      fontSize: 12.5,
-      fontWeight: FontWeight.w500,
+      color: widget.focused ? AppColors.textPrimary : AppColors.textMuted,
+      fontSize: 13,
+      fontWeight: FontWeight.w600,
+      letterSpacing: -0.15,
     );
     final onRename = widget.onRename;
     Widget title;
@@ -1462,7 +1463,8 @@ class _ChatScreenState extends State<ChatScreen>
                       },
                     ),
                   ),
-                  // The start hint, before the first message.
+                  // The start hint, before the first message; or the studio
+                  // centerpiece emblem when starting a fresh conversation.
                   ListenableBuilder(
                     listenable: _session,
                     builder: (context, _) => switch (widget.startHint) {
@@ -1478,6 +1480,8 @@ class _ChatScreenState extends State<ChatScreen>
                           ),
                         ),
                       ),
+                      null when _starting && !_session.loadingHistory =>
+                        const _StudioWelcomeEmblem(),
                       _ => const SizedBox.shrink(),
                     },
                   ),
@@ -2338,4 +2342,170 @@ class _StatusBarIconButton extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Sculptural gallery centerpiece shown in the upper canvas of a fresh
+/// conversation before the first prompt is sent.
+class _StudioWelcomeEmblem extends StatelessWidget {
+  const _StudioWelcomeEmblem();
+
+  @override
+  Widget build(BuildContext context) {
+    final dark = themeColors.dark;
+    return IgnorePointer(
+      child: ExcludeSemantics(
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            if (constraints.maxHeight < 140 || constraints.maxWidth < 200) {
+              return const SizedBox.shrink();
+            }
+            return Align(
+              alignment: const Alignment(0, 0.58),
+              child: SizedBox(
+                width: 180,
+                height: 112,
+                child: CustomPaint(
+                  painter: _ByteStudioGlyphPainter(
+                    dark: dark,
+                    textColor: AppColors.textMuted,
+                    faintColor: AppColors.textFaint,
+                    borderColor: AppColors.partBorder,
+                    surfaceColor: AppColors.bubbleFill,
+                  ),
+                ),
+              ),
+            );
+          },
+        ),
+      ),
+    );
+  }
+}
+
+class _ByteStudioGlyphPainter extends CustomPainter {
+  const _ByteStudioGlyphPainter({
+    required this.dark,
+    required this.textColor,
+    required this.faintColor,
+    required this.borderColor,
+    required this.surfaceColor,
+  });
+
+  final bool dark;
+  final Color textColor;
+  final Color faintColor;
+  final Color borderColor;
+  final Color surfaceColor;
+
+  static const _heights = <double>[0.46, 1.00, 0.62, 0.78];
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = Offset(size.width / 2, 36);
+
+    // Subtle concentric architectural rings & warm ambient aura.
+    final auraPaint = Paint()
+      ..shader = RadialGradient(
+        colors: [
+          const Color(0xFFD97757).withValues(alpha: dark ? 0.14 : 0.10),
+          const Color(0xFF2860E8).withValues(alpha: dark ? 0.06 : 0.04),
+          Colors.transparent,
+        ],
+        stops: const [0.0, 0.55, 1.0],
+      ).createShader(Rect.fromCircle(center: center, radius: 54));
+    canvas.drawCircle(center, 54, auraPaint);
+
+    final outerRing = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 0.75
+      ..color = borderColor.withValues(alpha: dark ? 0.28 : 0.35);
+    canvas.drawCircle(center, 36, outerRing);
+
+    // Sculptural squircle studio tile.
+    final tileRect = Rect.fromCenter(center: center, width: 48, height: 48);
+    final tileRRect = RRect.fromRectAndRadius(
+      tileRect,
+      const Radius.circular(14),
+    );
+    canvas.drawRRect(
+      tileRRect.shift(const Offset(0, 3)),
+      Paint()
+        ..color = Colors.black.withValues(alpha: dark ? 0.28 : 0.07)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 6),
+    );
+    canvas.drawRRect(
+      tileRRect,
+      Paint()
+        ..color = dark
+            ? Color.alphaBlend(const Color(0x14FFFFFF), surfaceColor)
+            : Color.alphaBlend(const Color(0xB8FFFFFF), surfaceColor),
+    );
+    canvas.drawRRect(
+      tileRRect,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1
+        ..color = borderColor.withValues(alpha: dark ? 0.55 : 0.7),
+    );
+
+    // 4-Bar Byte Golden-Slender Emblem (`S4-P1`).
+    const barW = 3.6;
+    const gap = 3.2;
+    const maxH = 24.0;
+    const totalW = 4 * barW + 3 * gap;
+    final startX = center.dx - totalW / 2;
+
+    for (var i = 0; i < 4; i++) {
+      final h = maxH * _heights[i];
+      final x = startX + i * (barW + gap);
+      final rect = Rect.fromCenter(
+        center: Offset(x + barW / 2, center.dy),
+        width: barW,
+        height: h,
+      );
+      final rrect = RRect.fromRectAndRadius(
+        rect,
+        const Radius.circular(barW / 2),
+      );
+      final paint = Paint()
+        ..shader = LinearGradient(
+          begin: Alignment.bottomCenter,
+          end: Alignment.topCenter,
+          colors: i == 1
+              ? const [Color(0xFFD95B2B), Color(0xFFFF8F66)]
+              : const [Color(0xFF2860E8), Color(0xFF5A92FF)],
+        ).createShader(rect);
+      canvas.drawRRect(rrect, paint);
+    }
+
+    // Editorial horizontal hair-line rule below the badge.
+    final ruleY = 76.0;
+    final rulePaint = Paint()
+      ..shader = LinearGradient(
+        colors: [
+          Colors.transparent,
+          borderColor.withValues(alpha: 0.65),
+          Colors.transparent,
+        ],
+      ).createShader(Rect.fromLTWH(size.width / 2 - 44, ruleY, 88, 1));
+    canvas.drawRect(Rect.fromLTWH(size.width / 2 - 44, ruleY, 88, 1), rulePaint);
+
+    // Subtle diamond ornament at center of rule.
+    final diamond = Path()
+      ..moveTo(size.width / 2, ruleY - 2.5)
+      ..lineTo(size.width / 2 + 2.5, ruleY)
+      ..lineTo(size.width / 2, ruleY + 2.5)
+      ..lineTo(size.width / 2 - 2.5, ruleY)
+      ..close();
+    canvas.drawPath(
+      diamond,
+      Paint()..color = const Color(0xFFD97757).withValues(alpha: 0.75),
+    );
+  }
+
+  @override
+  bool shouldRepaint(_ByteStudioGlyphPainter oldDelegate) =>
+      oldDelegate.dark != dark ||
+      oldDelegate.surfaceColor != surfaceColor ||
+      oldDelegate.borderColor != borderColor;
 }

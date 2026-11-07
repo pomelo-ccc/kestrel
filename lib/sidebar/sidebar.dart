@@ -1300,6 +1300,7 @@ class _SidebarState extends State<Sidebar>
                           maxHeight: 20,
                           child: Opacity(
                             opacity: 0,
+                            alwaysIncludeSemantics: true,
                             child: Text(
                               _grouping.localizedBy(context.l10n),
                               style: const TextStyle(fontSize: 10),
@@ -1345,6 +1346,7 @@ class _SidebarState extends State<Sidebar>
                           maxHeight: 20,
                           child: Opacity(
                             opacity: 0,
+                            alwaysIncludeSemantics: true,
                             child: Text(
                               context.l10n.sidebarOpenProject,
                               style: const TextStyle(fontSize: 10),
@@ -2495,7 +2497,11 @@ class _SidebarState extends State<Sidebar>
           Expanded(
             child: count == 0
                 ? const SizedBox.shrink()
-                : Opacity(opacity: 0, child: _buildArchivedToggle(count)),
+                : Opacity(
+                    opacity: 0,
+                    alwaysIncludeSemantics: true,
+                    child: _buildArchivedToggle(count),
+                  ),
           ),
         ],
       ),
@@ -2665,26 +2671,28 @@ class _SearchBox extends StatelessWidget {
             padding: const EdgeInsets.only(left: 10, right: 6),
             decoration: BoxDecoration(
               color: dark
-                  ? (hovered ? const Color(0xFF252523) : const Color(0xFF1E1E1C))
+                  ? (hovered ? const Color(0xFF262624) : const Color(0xFF1F1F1D))
                   : const Color(0xFFFFFFFF),
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(9),
               border: Border.all(
                 color: dark
-                    ? const Color(0xFF333230)
+                    ? (hovered
+                          ? const Color(0xFF3E3D3A)
+                          : const Color(0xFF333230))
                     : (hovered
-                          ? const Color(0xFFD5D4CE)
-                          : const Color(0xFFE4E3DE)),
+                          ? const Color(0xFFD2D0C8)
+                          : const Color(0xFFE2E0D8)),
                 width: 1,
               ),
-              boxShadow: dark
-                  ? null
-                  : const [
-                      BoxShadow(
-                        color: Color(0x06000000),
-                        blurRadius: 2,
-                        offset: Offset(0, 1),
-                      ),
-                    ],
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(
+                    alpha: dark ? 0.18 : (hovered ? 0.05 : 0.03),
+                  ),
+                  blurRadius: hovered ? 6 : 3,
+                  offset: const Offset(0, 1),
+                ),
+              ],
             ),
             child: ExcludeSemantics(
               child: Row(
@@ -2793,11 +2801,17 @@ class _SegmentPill extends StatelessWidget {
                   color: dark
                       ? const Color(0xFF333230)
                       : const Color(0xFFFFFFFF),
-                  borderRadius: BorderRadius.circular(5),
+                  borderRadius: BorderRadius.circular(6),
+                  border: Border.all(
+                    color: dark
+                        ? const Color(0xFF42413E)
+                        : const Color(0xFFE5E4DF),
+                    width: 0.5,
+                  ),
                   boxShadow: const [
                     BoxShadow(
-                      color: Color(0x14000000),
-                      blurRadius: 2,
+                      color: Color(0x12000000),
+                      blurRadius: 3,
                       offset: Offset(0, 1),
                     ),
                   ],
@@ -2830,9 +2844,6 @@ class _NewAgentButton extends StatelessWidget {
     // Styled after dsh-claude-style's "+ 新会话" row: a flat nav row
     // with a 20x20 circular "+" badge and 13.5px semi-bold label.
     final foreground = AppColors.textPrimary;
-    final badgeBackground = themeColors.dark
-        ? const Color(0xFF2C2B29)
-        : const Color(0xFFE4E3DE);
     final isZh = Localizations.localeOf(context).languageCode == 'zh';
     final label = isZh ? '新会话' : context.l10n.sidebarNewAgent;
     return IdeHover(
@@ -2861,14 +2872,16 @@ class _NewAgentButton extends StatelessWidget {
                   dimension: 20,
                   child: DecoratedBox(
                     decoration: BoxDecoration(
-                      color: badgeBackground,
+                      color: AppColors.claude.withValues(
+                        alpha: hovered ? 0.22 : 0.14,
+                      ),
                       shape: BoxShape.circle,
                     ),
                     child: Center(
                       child: Icon(
                         Icons.add_rounded,
                         size: 14,
-                        color: foreground,
+                        color: AppColors.claude,
                       ),
                     ),
                   ),
@@ -3868,6 +3881,19 @@ class _ThreadRow extends StatelessWidget {
           return Stack(
             fit: StackFit.expand,
             children: [
+              if (selected)
+                Positioned(
+                  left: 2.5,
+                  top: 6,
+                  bottom: 6,
+                  width: 2.5,
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      color: AppColors.claude.withValues(alpha: 0.85),
+                      borderRadius: BorderRadius.circular(1.5),
+                    ),
+                  ),
+                ),
               Padding(
                 // An aside under the one it was asked beside.
                 padding: EdgeInsets.only(
