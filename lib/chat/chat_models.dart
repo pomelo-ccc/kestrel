@@ -139,9 +139,12 @@ final imageReferencePattern = RegExp(r'\[Image #(\d+)\]');
 
 /// Plain assistant prose. Supports `inline code` and `- ` bullet lines.
 class AssistantTextItem extends ChatItem {
-  const AssistantTextItem(this.text);
+  const AssistantTextItem(this.text, {this.duration});
 
   final String text;
+
+  /// How long generating this reply block took, when known.
+  final Duration? duration;
 }
 
 /// [text] (what an agent said, or asks) on one line, its markup's marks
@@ -161,6 +164,7 @@ class ThinkingItem extends ChatItem {
     required this.tokens,
     this.seconds,
     this.startedAt,
+    this.duration,
   });
 
   final String text;
@@ -170,6 +174,9 @@ class ThinkingItem extends ChatItem {
 
   /// How long the thought took; null while it is still streaming.
   final int? seconds;
+
+  /// Exact sub-second duration when known.
+  final Duration? duration;
 
   /// When it began, while it streams: its time so far shows live.
   final DateTime? startedAt;
@@ -224,6 +231,7 @@ class ToolCallItem extends ChatItem {
     this.input = const {},
     this.images = const [],
     this.imageFiles = const [],
+    this.duration,
   });
 
   final ToolKind kind;
@@ -261,6 +269,9 @@ class ToolCallItem extends ChatItem {
   /// Where they were saved (absolute, on the project's host), as the CLI
   /// told the agent: files of the session, which its text may link to.
   final List<String> imageFiles;
+
+  /// How long the tool execution took, once completed.
+  final Duration? duration;
 }
 
 /// A subagent at work: its own conversation, one card in the history that
@@ -457,6 +468,7 @@ class TerminalItem extends ChatItem {
     this.status = CommandStatus.succeeded,
     this.background = false,
     this.startedAt,
+    this.duration,
   });
 
   final String command;
@@ -470,6 +482,9 @@ class TerminalItem extends ChatItem {
   /// Left running after its turn: shown as a background task too.
   final bool background;
   final DateTime? startedAt;
+
+  /// How long the command took to execute, once completed.
+  final Duration? duration;
 
   bool get succeeded => status != CommandStatus.failed;
 }
@@ -491,10 +506,14 @@ class CodeDiffItem extends ChatItem {
     required this.lines,
     this._added,
     this._removed,
+    this.duration,
   });
 
   final String fileName;
   final String directory;
+
+  /// How long the edit/write operation took, when known.
+  final Duration? duration;
 
   /// The file's path, as the agent gave it.
   String get path => directory.isEmpty ? fileName : '$directory/$fileName';

@@ -331,7 +331,12 @@ class ClaudeTranslator {
     return feedback.isEmpty ? null : feedback;
   }
 
+  DateTime? _currentMsgAt;
+  DateTime? _prevMsgAt;
+
   void translate(Map<String, Object?> message) {
+    final parsedAt = DateTime.tryParse('${message['timestamp']}');
+    _currentMsgAt = parsedAt ?? (replaying ? _currentMsgAt : DateTime.now());
     final parent = message['parent_tool_use_id'] as String?;
     switch (message['type']) {
       case 'stream_event' when parent == null:
@@ -339,9 +344,11 @@ class ClaudeTranslator {
       case 'assistant':
         _assistant(message, parent);
         _replayedAt(message);
+        if (parsedAt != null) _prevMsgAt = parsedAt;
       case 'user':
         _user(message, parent);
         _replayedAt(message);
+        if (parsedAt != null) _prevMsgAt = parsedAt;
       case 'system':
         _system(message);
       // Kept beside a session's messages: how its goal stood.
@@ -740,6 +747,12 @@ class ClaudeTranslator {
         }
       }
     }
+    final msgDelta =
+        (_currentMsgAt != null &&
+            _prevMsgAt != null &&
+            _currentMsgAt!.isAfter(_prevMsgAt!))
+        ? _currentMsgAt!.difference(_prevMsgAt!)
+        : null;
     for (final (index, raw) in _list(body['content']).indexed) {
       final block = _map(raw);
       final kind = block['type'] == 'text' ? 'text' : 'thinking';
@@ -757,18 +770,36 @@ class ClaudeTranslator {
               _put(id, NoticeItem(NoticeKind.command, text), parent: parent);
             }
           } else if (_textLength.remove(id) != null) {
-            emit(ItemCompleted(nextSeq(), id, item: AssistantTextItem(text)));
+            emit(
+              ItemCompleted(
+                nextSeq(),
+                id,
+                item: AssistantTextItem(text, duration: msgDelta),
+              ),
+            );
           } else if (text.trim().isNotEmpty) {
-            _put(id, AssistantTextItem(text), parent: parent);
+            _put(
+              id,
+              AssistantTextItem(text, duration: msgDelta),
+              parent: parent,
+            );
           }
         case 'thinking' || 'redacted_thinking':
           final text = block['thinking'] as String? ?? '';
           if (_thoughts.containsKey(id)) {
             _completeThought(id, text);
           } else if (parent == null && text.trim().isNotEmpty) {
+            final secs = msgDelta != null
+                ? math.max(1, (msgDelta.inMilliseconds / 1000).round())
+                : 1;
             _put(
               id,
-              ThinkingItem(text: text, tokens: text.length ~/ 4, seconds: 1),
+              ThinkingItem(
+                text: text,
+                tokens: text.length ~/ 4,
+                seconds: secs,
+                duration: msgDelta,
+              ),
             );
           }
         case 'tool_use':
@@ -957,7 +988,7 @@ class ClaudeTranslator {
       name,
       input,
       known?.parent ?? parent,
-      known?.startedAt,
+      known?.startedAt ?? _currentMsgAt,
     );
     _tools[id] = tool;
     if (tool.parent == null && _isPlanCall(name, input)) {
@@ -1001,12 +1032,28 @@ class ClaudeTranslator {
     );
   }
 
+  Duration? _toolDuration(_Tool tool, Map<String, Object?>? structured) {
+    if (claudeInt(
+          structured?['durationMs'] ??
+              structured?['duration_ms'] ??
+              structured?['totalDurationMs'],
+        )
+        case final ms? when ms > 0) {
+      return Duration(milliseconds: ms);
+    }
+    final end = _currentMsgAt ?? (replaying ? null : DateTime.now());
+    if (end == null) return null;
+    final diff = end.difference(tool.startedAt);
+    return diff > Duration.zero ? diff : null;
+  }
+
   ChatItem _toolItem(
     _Tool tool,
     _Outcome outcome, {
     String? output,
     List<ImageAttachment> images = const [],
     List<String> imageFiles = const [],
+    Duration? duration,
   }) {
     final input = tool.input;
     final status = switch (outcome) {
@@ -1045,6 +1092,7 @@ class ClaudeTranslator {
           (final files?, final output?) => files(output),
           _ => imageFiles,
         },
+        duration: duration,
       );
     }
     if (name.startsWith('mcp__')) {
@@ -1059,6 +1107,7 @@ class ClaudeTranslator {
         output: output,
         images: images,
         imageFiles: imageFiles,
+        duration: duration,
       );
     }
     return switch (name) {
@@ -1075,12 +1124,14 @@ class ClaudeTranslator {
         // An image file, as the agent saw it.
         images: images,
         imageFiles: imageFiles,
+        duration: duration,
       ),
       'Grep' => ToolCallItem(
         kind: ToolKind.grep,
         target: _string(input['pattern']) ?? '',
         status: status,
         output: output,
+        duration: duration,
       ),
       'Glob' => ToolCallItem(
         kind: ToolKind.search,
@@ -1088,12 +1139,14 @@ class ClaudeTranslator {
         target: _string(input['pattern']) ?? '',
         status: status,
         output: output,
+        duration: duration,
       ),
       'LS' => ToolCallItem(
         kind: ToolKind.listDir,
         target: base(path('path')),
         path: path('path'),
         status: status,
+        duration: duration,
       ),
       'Edit' || 'MultiEdit' || 'Write' || 'NotebookEdit' => ToolCallItem(
         kind: ToolKind.edit,
@@ -1104,6 +1157,7 @@ class ClaudeTranslator {
         path: path('file_path') ?? path('notebook_path'),
         status: status,
         output: output,
+        duration: duration,
       ),
       'Bash' => TerminalItem(
         command: _string(input['command']) ?? '',
@@ -1116,18 +1170,21 @@ class ClaudeTranslator {
         },
         background: input['run_in_background'] == true,
         startedAt: tool.startedAt,
+        duration: duration,
       ),
       'BashOutput' || 'TaskOutput' => ToolCallItem(
         kind: ToolKind.command,
         label: tense('Read output', 'Reading output'),
         target: _summary(input),
         status: status,
+        duration: duration,
       ),
       'KillShell' || 'KillBash' || 'TaskStop' => ToolCallItem(
         kind: ToolKind.command,
         label: tense('Stopped', 'Stopping'),
         target: _summary(input),
         status: status,
+        duration: duration,
       ),
       // Its verb the web kind's, in the app's language.
       'WebFetch' => ToolCallItem(
@@ -1135,6 +1192,7 @@ class ClaudeTranslator {
         target: _string(input['url']) ?? '',
         status: status,
         output: output,
+        duration: duration,
       ),
       'WebSearch' => ToolCallItem(
         kind: ToolKind.web,
@@ -1142,18 +1200,21 @@ class ClaudeTranslator {
         target: _string(input['query']) ?? '',
         status: status,
         output: output,
+        duration: duration,
       ),
       'Skill' => ToolCallItem(
         kind: ToolKind.other,
         label: tense('Used skill', 'Using skill'),
         target: _string(input['skill']) ?? _string(input['command']) ?? '',
         status: status,
+        duration: duration,
       ),
       'ToolSearch' => ToolCallItem(
         kind: ToolKind.search,
         label: tense('Looked up tools', 'Looking up tools'),
         target: _string(input['query']) ?? '',
         status: status,
+        duration: duration,
       ),
       // The list written, as text: not kept anywhere else. Its line says
       // what is in progress; what it does, by [tool] and [input] (see
@@ -1173,6 +1234,7 @@ class ClaudeTranslator {
         output: status == ToolStatus.failed
             ? output
             : _todoList(input['todos']),
+        duration: duration,
       ),
       // One item a call: named by its subject, the one it was created
       // with when the call gives only its id.
@@ -1188,6 +1250,7 @@ class ClaudeTranslator {
             },
         status: status,
         output: output,
+        duration: duration,
       ),
       // The questions, and once answered, the answers (see [_answers]),
       // for the history to show what was asked and said.
@@ -1201,6 +1264,7 @@ class ClaudeTranslator {
         output: output,
         tool: name,
         input: {'questions': input['questions'], 'answers': ?_answers[tool.id]},
+        duration: duration,
       ),
       // "Said …": what it says, on a line; opened, all of it (what sending
       // it returned only if it failed).
@@ -1210,6 +1274,7 @@ class ClaudeTranslator {
           target: message.replaceAll(RegExp(r'\s+'), ' '),
           status: status,
           output: status == ToolStatus.failed ? output : message,
+          duration: duration,
         ),
         // Not words (e.g. a request to shut down): what it is for.
         _ => ToolCallItem(
@@ -1217,6 +1282,7 @@ class ClaudeTranslator {
           target: _string(input['summary']) ?? _summary(input),
           status: status,
           output: output,
+          duration: duration,
         ),
       },
       // A goal the model proposes, for the user to set (Claude Code asks
@@ -1231,18 +1297,21 @@ class ClaudeTranslator {
             ? ToolStatus.running
             : ToolStatus.succeeded,
         output: _string(input['condition'])?.trim(),
+        duration: duration,
       ),
       'EnterPlanMode' => ToolCallItem(
         kind: ToolKind.other,
         label: tense('Entered plan mode', 'Entering plan mode'),
         target: '',
         status: status,
+        duration: duration,
       ),
       'ExitPlanMode' => ToolCallItem(
         kind: ToolKind.other,
         label: tense('Proposed a plan', 'Proposing a plan'),
         target: '',
         status: status,
+        duration: duration,
       ),
       _ => ToolCallItem(
         kind: ToolKind.other,
@@ -1252,6 +1321,7 @@ class ClaudeTranslator {
         output: output,
         images: images,
         imageFiles: imageFiles,
+        duration: duration,
       ),
     };
   }
@@ -1264,6 +1334,7 @@ class ClaudeTranslator {
     final error = block['is_error'] == true;
     final text = _resultText(block['content']);
     final structured = result is Map ? result.cast<String, Object?>() : null;
+    final duration = _toolDuration(tool, structured);
     final outcome =
         _denied.contains(id) ||
             (tool.name == 'AskUserQuestion' && text.contains(unattendedAnswer))
@@ -1305,7 +1376,7 @@ class ClaudeTranslator {
           toolUses: claudeInt(structured?['totalToolUseCount']),
           duration: switch (claudeInt(structured?['totalDurationMs'])) {
             final ms? => Duration(milliseconds: ms),
-            _ => null,
+            _ => duration,
           },
           model: agent.item.model == null
               ? _ownModelOf(_string(structured?['resolvedModel']))
@@ -1315,7 +1386,7 @@ class ClaudeTranslator {
         return;
       case 'Edit' || 'MultiEdit' || 'Write' || 'NotebookEdit'
           when outcome == _Outcome.done && structured != null:
-        if (_diff(id, tool, structured)) return;
+        if (_diff(id, tool, structured, duration: duration)) return;
       // A subagent's: its result has no patch, the input says what it did.
       case 'Edit' || 'MultiEdit' || 'Write' || 'NotebookEdit'
           when outcome == _Outcome.done && !replaying:
@@ -1331,7 +1402,7 @@ class ClaudeTranslator {
         }
       case 'Grep' || 'Glob' when outcome == _Outcome.done:
         final matches = _matches(tool.name, structured, text);
-        final item = _toolItem(tool, outcome) as ToolCallItem;
+        final item = _toolItem(tool, outcome, duration: duration) as ToolCallItem;
         _put(
           id,
           ToolCallItem(
@@ -1342,6 +1413,7 @@ class ClaudeTranslator {
                 '${matches.length} ${tool.name == 'Glob' ? 'files' : 'results'}',
             results: matches,
             status: item.status,
+            duration: duration,
           ),
           parent: tool.parent,
         );
@@ -1387,6 +1459,7 @@ class ClaudeTranslator {
             tool,
             interrupted ? _Outcome.failed : outcome,
             output: _tail(output),
+            duration: duration,
           ),
           parent: tool.parent,
         );
@@ -1411,6 +1484,7 @@ class ClaudeTranslator {
         output: outcome == _Outcome.done ? _short(text) : _tail(text),
         images: _resultImages(block['content']),
         imageFiles: _savedImages(block['content']),
+        duration: duration,
       ),
       parent: tool.parent,
     );
@@ -1467,7 +1541,12 @@ class ClaudeTranslator {
 
   /// An edit's result as a diff card and a pending change; false when it
   /// carries no patch to show.
-  bool _diff(String id, _Tool tool, Map<String, Object?> result) {
+  bool _diff(
+    String id,
+    _Tool tool,
+    Map<String, Object?> result, {
+    Duration? duration,
+  }) {
     final path =
         _string(result['filePath']) ??
         _string(tool.input['file_path']) ??
@@ -1544,6 +1623,7 @@ class ClaudeTranslator {
         lines: lines,
         added: added,
         removed: removed,
+        duration: duration,
       ),
       parent: tool.parent,
     );
