@@ -1457,7 +1457,7 @@ class _ChatScreenState extends State<ChatScreen>
                         : const SizedBox.shrink(),
                   ),
                   Positioned(
-                    right: 8,
+                    left: 8,
                     top: 42,
                     child: ChatMiniTocRail(
                       feed: _session,

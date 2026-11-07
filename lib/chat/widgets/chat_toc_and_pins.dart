@@ -584,6 +584,7 @@ class _ChatMiniTocRailState extends State<ChatMiniTocRail> {
                   )
                 : Column(
                     mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       for (final turn in turns.take(18))
                         Padding(
