@@ -5082,15 +5082,17 @@ class _WorkbenchState extends State<Workbench> implements WindowDelegate {
     // alone on macOS, or on the pane's card header when split.
     final atStart = !embedded && _sidePanel.atLeft;
     final ownInTitleBar = !inPane && !header;
+    final stashAction = [
+      if (cardTools && StashController.current != null && _agentThread == null)
+        Padding(
+          padding: const EdgeInsets.only(right: 4),
+          child: _StashSessionButton(
+            onTap: () => unawaited(_stashSession(thread)),
+          ),
+        ),
+    ];
     final own = [
       if (cardTools) ...[
-        if (StashController.current != null && _agentThread == null)
-          Padding(
-            padding: const EdgeInsets.only(right: 4),
-            child: _StashSessionButton(
-              onTap: () => unawaited(_stashSession(thread)),
-            ),
-          ),
         // Only once it was talked in elsewhere: nothing new to read before.
         if (_reloadable(thread))
           Padding(
@@ -5118,12 +5120,11 @@ class _WorkbenchState extends State<Workbench> implements WindowDelegate {
         ),
       ],
     ];
-    final cardOwn = ownInTitleBar ? const <Widget>[] : own;
+    final cardOwn = ownInTitleBar
+        ? const <Widget>[]
+        : [...stashAction, ...own];
     final tools = [
-      if (ownInTitleBar && own.isNotEmpty) ...[
-        ...own,
-        const SizedBox(width: 2),
-      ],
+      if (ownInTitleBar && stashAction.isNotEmpty) ...stashAction,
       if (paneTools && !inPane) ...[
         if (windowTools) ...[
           const SizedBox(width: 2),
@@ -5135,6 +5136,10 @@ class _WorkbenchState extends State<Workbench> implements WindowDelegate {
           project: thread.project,
           agent: thread,
         ),
+      ],
+      if (ownInTitleBar && own.isNotEmpty) ...[
+        const SizedBox(width: 2),
+        ...own,
       ],
       if (trailingToggle && !inPane) ...[
         const SizedBox(width: 6),
