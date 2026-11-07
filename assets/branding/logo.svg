@@ -1,3 +1,83 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 56 42">
-  <path fill="#141413" d="M26.5 7.5 L15.5 20.5 C14.4 21.8 14.5 23.4 15.8 24.6 L18.2 26.8 L19.1 28.8 L24.6 26.0 L26.2 20.8 L22.0 23.8 L26.4 16.5 L22.2 19.6 L26.8 11.2 C27.1 9.8 27.0 8.5 26.5 7.5 Z M43.5 3.5 L27.0 16.8 L23.8 28.0 L18.2 31.2 C16.0 32.5 14.8 34.8 14.8 37.2 L15.8 38.5 C16.2 37.2 17.5 36.2 19.5 35.6 L23.5 34.4 L32.2 35.2 L40.5 40.5 C42.0 41.2 43.8 41.2 45.2 40.8 L31.2 30.8 L38.5 21.5 L32.2 23.8 L41.5 15.2 L35.2 18.2 L42.5 9.2 C43.2 7.2 43.6 5.2 43.5 3.5 Z M29.8 35.8 L34.2 39.8 C35.5 40.8 37.2 41.0 38.6 40.8 L33.5 36.2 Z"/>
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024" fill="none">
+
+  <defs>
+    <clipPath id="squircleClip">
+      <rect x="100" y="100" width="824" height="824" rx="185" ry="185" />
+    </clipPath>
+    <linearGradient id="bgGrad" x1="100" y1="100" x2="550" y2="924" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#FFFFFF" />
+      <stop offset="55%" stop-color="#F6F9FF" />
+      <stop offset="100%" stop-color="#E5EEFC" />
+    </linearGradient>
+    <linearGradient id="discGrad" x1="512" y1="160" x2="512" y2="860" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.96" />
+      <stop offset="100%" stop-color="#EDF5FF" stop-opacity="0.86" />
+    </linearGradient>
+    <linearGradient id="wellGrad" x1="300" y1="180" x2="720" y2="840" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#E4EFFD" />
+      <stop offset="48%" stop-color="#F6FAFF" />
+      <stop offset="100%" stop-color="#FFFFFF" />
+    </linearGradient>
+    <linearGradient id="silkRimGrad" x1="160" y1="512" x2="860" y2="512" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#F97316" stop-opacity="0.38" />
+      <stop offset="48%" stop-color="#FFFFFF" stop-opacity="0.98" />
+      <stop offset="100%" stop-color="#2563EB" stop-opacity="0.38" />
+    </linearGradient>
+    <linearGradient id="bar1Grad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#60A5FA" />
+      <stop offset="48%" stop-color="#3B82F6" />
+      <stop offset="100%" stop-color="#1D4ED8" />
+    </linearGradient>
+    <linearGradient id="bar2Grad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#FF944D" />
+      <stop offset="42%" stop-color="#F96B16" />
+      <stop offset="78%" stop-color="#EA580C" />
+      <stop offset="100%" stop-color="#B93808" />
+    </linearGradient>
+    <linearGradient id="bar3Grad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#38BDF8" />
+      <stop offset="45%" stop-color="#2563EB" />
+      <stop offset="100%" stop-color="#1E3A8A" />
+    </linearGradient>
+    <linearGradient id="bar4Grad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#38BDF8" />
+      <stop offset="50%" stop-color="#2563EB" />
+      <stop offset="100%" stop-color="#1D4ED8" />
+    </linearGradient>
+  </defs>
+
+  <g id="Byte-S4-P1-Golden-Slender">
+    <rect id="Squircle-Base" x="100" y="100" width="824" height="824" rx="185" fill="url(#bgGrad)" stroke="#FFFFFF" stroke-width="4" />
+    <g id="Clipped-Content" clip-path="url(#squircleClip)">
+      <g id="Sculpted-Porcelain-Ripple-Steps">
+        <circle id="Ripple-Step-1" cx="503.0" cy="506.9" r="348" fill="url(#discGrad)" stroke="#FFFFFF" stroke-width="2.6" />
+        <circle id="Ripple-Step-2" cx="483.2" cy="495.7" r="254" fill="url(#discGrad)" stroke="#FFFFFF" stroke-width="2.6" />
+        <circle id="Ripple-Step-3" cx="462.8" cy="484.1" r="166" fill="url(#discGrad)" stroke="#FFFFFF" stroke-width="2.6" />
+      </g>
+
+      <g id="S4-Jewel-Wave-Bars">
+
+      <g id="Bar-1-Sky-Azure">
+        <rect id="Bar-1-Sky-Azure-Body" x="303.0" y="428.5" width="62.0" height="215.0" rx="31.0" fill="url(#bar1Grad)" />
+        <rect id="Bar-1-Sky-Azure-LeftFacetSheen" x="305.5" y="431.0" width="29.8" height="210.0" rx="14.9" fill="#FFFFFF" fill-opacity="0.24" />
+        <rect id="Bar-1-Sky-Azure-SpecularRim" x="304.2" y="429.7" width="59.6" height="212.6" rx="29.8" fill="none" stroke="#FFFFFF" stroke-opacity="0.58" stroke-width="2.2" />
+      </g>
+      <g id="Bar-2-Primary-Orange-Peak">
+        <rect id="Bar-2-Primary-Orange-Peak-Body" x="419.0" y="247.0" width="66.0" height="462.0" rx="33.0" fill="url(#bar2Grad)" />
+        <rect id="Bar-2-Primary-Orange-Peak-LeftFacetSheen" x="421.5" y="249.5" width="31.7" height="457.0" rx="15.8" fill="#FFFFFF" fill-opacity="0.24" />
+        <rect id="Bar-2-Primary-Orange-Peak-SpecularRim" x="420.2" y="248.2" width="63.6" height="459.6" rx="31.8" fill="none" stroke="#FFFFFF" stroke-opacity="0.58" stroke-width="2.2" />
+      </g>
+      <g id="Bar-3-Sapphire-Trough">
+        <rect id="Bar-3-Sapphire-Trough-Body" x="539.0" y="395.0" width="62.0" height="278.0" rx="31.0" fill="url(#bar3Grad)" />
+        <rect id="Bar-3-Sapphire-Trough-LeftFacetSheen" x="541.5" y="397.5" width="29.8" height="273.0" rx="14.9" fill="#FFFFFF" fill-opacity="0.24" />
+        <rect id="Bar-3-Sapphire-Trough-SpecularRim" x="540.2" y="396.2" width="59.6" height="275.6" rx="29.8" fill="none" stroke="#FFFFFF" stroke-opacity="0.58" stroke-width="2.2" />
+      </g>
+      <g id="Bar-4-Secondary-Blue-Crest">
+        <rect id="Bar-4-Secondary-Blue-Crest-Body" x="657.0" y="296.0" width="62.0" height="376.0" rx="31.0" fill="url(#bar4Grad)" />
+        <rect id="Bar-4-Secondary-Blue-Crest-LeftFacetSheen" x="659.5" y="298.5" width="29.8" height="371.0" rx="14.9" fill="#FFFFFF" fill-opacity="0.24" />
+        <rect id="Bar-4-Secondary-Blue-Crest-SpecularRim" x="658.2" y="297.2" width="59.6" height="373.6" rx="29.8" fill="none" stroke="#FFFFFF" stroke-opacity="0.58" stroke-width="2.2" />
+      </g>
+      </g>
+    </g>
+  </g>
 </svg>
