@@ -336,6 +336,10 @@ class MacUpdateInstaller implements UpdateInstaller {
     if (await staging.exists()) await staging.delete(recursive: true);
     await staging.create(recursive: true);
     final kestrelArchive = File('$file.kestrel.zip');
+    if (!await kestrelArchive.exists() &&
+        await File(_kestrelPatchScript).exists()) {
+      await _patchMacUpdateWithKestrel(file, release);
+    }
     final archiveToUnpack = await kestrelArchive.exists()
         ? kestrelArchive.path
         : file;
