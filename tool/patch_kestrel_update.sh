@@ -66,11 +66,13 @@ if [[ -f "$APP/Contents/MacOS/BaoCode" ]]; then
   mv "$APP/Contents/MacOS/BaoCode" "$APP/Contents/MacOS/Kestrel"
 fi
 
-# 4. Patch binary strings and menu bar tray icon (logoCells)
-python3 - "$APP/Contents/MacOS/Kestrel" << 'EOF'
-import struct, sys
+# 4. Patch binary strings, MainMenu.nib class names, and menu bar tray icon (logoCells)
+python3 - "$APP/Contents/MacOS/Kestrel" "$APP/Contents/Resources/Base.lproj/MainMenu.nib" << 'EOF'
+import struct, sys, os
 
 path = sys.argv[1]
+nib_path = sys.argv[2]
+
 with open(path, "rb") as f:
     data = bytearray(f.read())
 
@@ -104,6 +106,13 @@ if idx != -1:
 
 with open(path, "wb") as f:
     f.write(data)
+
+if os.path.isfile(nib_path):
+    with open(nib_path, "rb") as f:
+        nib_data = f.read()
+    nib_data = nib_data.replace(b"7BaoCode", b"7Kestrel").replace(b"BaoCode", b"Kestrel")
+    with open(nib_path, "wb") as f:
+        f.write(nib_data)
 EOF
 
 # 5. Update Info.plist and FinderExtension Info.plist
@@ -124,7 +133,8 @@ if [[ -f "$EXT_PLIST" ]]; then
   /usr/libexec/PlistBuddy -c "Set :CFBundleIdentifier dev.kestrel.desktop.FinderExtension" "$EXT_PLIST" 2>/dev/null || true
 fi
 
-# 6. Build and inject Byte AppIcon.icns and newly compiled App.framework
+# 6. Build and inject Byte AppIcon.icns (remove upstream Assets.car so macOS uses AppIcon.icns) and newly compiled App.framework
+rm -f "$APP/Contents/Resources/Assets.car"
 ICONSET_DIR="$WORK_DIR/AppIcon.iconset"
 mkdir -p "$ICONSET_DIR"
 APPICON_SRC="$REPO/macos/Runner/Assets.xcassets/AppIcon.appiconset"
