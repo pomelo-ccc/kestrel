@@ -7,9 +7,14 @@ static NSString *gStatusPath = nil;
 static NSPanel *gNotchPanel = nil;
 static NSView *gDropContainer = nil;
 static NSTextField *gLabelField = nil;
+static NSButton *gNotchMinBtn = nil;
+static NSButton *gNotchCloseBtn = nil;
 static BOOL gNotchVisible = NO;
 static BOOL gDraggingNearTop = NO;
 static BOOL gIslandActive = NO;
+static BOOL gIslandMinimized = NO;
+static NSString *gLastIslandFullText = @"";
+static NSString *gLastIslandShortText = @"🏝️ 执行中";
 static EventHotKeyRef gHotKeyScreenshotRef = NULL;
 static EventHotKeyRef gHotKeySelectionRef = NULL;
 
@@ -153,6 +158,10 @@ static OSStatus KestrelHotKeyHandler(EventHandlerCallRef nextHandler,
   return self;
 }
 
+- (BOOL)acceptsFirstMouse:(NSEvent *)event {
+  return YES;
+}
+
 - (void)mouseDown:(NSEvent *)event {
   KestrelActivateMainWindow();
   KestrelAppendEvent(@{@"type": @"focus_active"});
@@ -161,7 +170,8 @@ static OSStatus KestrelHotKeyHandler(EventHandlerCallRef nextHandler,
 - (void)drawRect:(NSRect)dirtyRect {
   [super drawRect:dirtyRect];
   NSRect bounds = NSInsetRect(self.bounds, 1.5, 1.5);
-  NSBezierPath *path = [NSBezierPath bezierPathWithRoundedRect:bounds xRadius:18 yRadius:18];
+  CGFloat radius = bounds.size.height / 2.0;
+  NSBezierPath *path = [NSBezierPath bezierPathWithRoundedRect:bounds xRadius:radius yRadius:radius];
   if (self.highlight) {
     [[NSColor colorWithSRGBRed:0.85 green:0.46 blue:0.34 alpha:0.96] setFill];
     [path fill];
@@ -271,7 +281,12 @@ static OSStatus KestrelHotKeyHandler(EventHandlerCallRef nextHandler,
 - (void)onApprove:(id)sender;
 - (void)onClosePip:(id)sender;
 - (void)onScreenshot:(id)sender;
+- (void)onToggleMinimizeIsland:(id)sender;
+- (void)onCloseIsland:(id)sender;
 @end
+
+static void KestrelUpdateNotchLayout(BOOL animate);
+static void KestrelShowNotch(BOOL show);
 
 @implementation KestrelPipActionTarget
 - (void)onFocusMain:(id)sender {
@@ -289,9 +304,78 @@ static OSStatus KestrelHotKeyHandler(EventHandlerCallRef nextHandler,
 - (void)onScreenshot:(id)sender {
   KestrelTriggerScreenshotAsk();
 }
+- (void)onToggleMinimizeIsland:(id)sender {
+  gIslandMinimized = !gIslandMinimized;
+  KestrelUpdateNotchLayout(YES);
+  KestrelAppendEvent(@{
+    @"type": @"minimize_island",
+    @"minimized": @(gIslandMinimized)
+  });
+}
+- (void)onCloseIsland:(id)sender {
+  gIslandActive = NO;
+  KestrelShowNotch(NO);
+  KestrelAppendEvent(@{@"type": @"close_island"});
+}
 @end
 
 static KestrelPipActionTarget *gPipTarget = nil;
+
+static void KestrelUpdateNotchLayout(BOOL animate) {
+  if (!gNotchPanel) return;
+  NSScreen *screen = [NSScreen mainScreen];
+  if (!screen) return;
+  NSRect visible = screen.visibleFrame;
+  BOOL compact = gIslandMinimized && !gDraggingNearTop;
+  CGFloat width = compact ? 132.0 : 340.0;
+  CGFloat height = compact ? 28.0 : 38.0;
+  CGFloat x = NSMidX(screen.frame) - width / 2.0;
+  CGFloat shownY = NSMaxY(visible) - height - (compact ? 4.0 : 6.0);
+
+  if (gDraggingNearTop) {
+    gNotchMinBtn.hidden = YES;
+    gNotchCloseBtn.hidden = YES;
+    gLabelField.alignment = NSTextAlignmentCenter;
+    gLabelField.font = [NSFont systemFontOfSize:12.0 weight:NSFontWeightSemibold];
+    gLabelField.frame = NSMakeRect(12, 9, width - 24, 20);
+  } else {
+    gNotchMinBtn.hidden = NO;
+    gNotchCloseBtn.hidden = NO;
+    gLabelField.alignment = NSTextAlignmentLeft;
+    if (compact) {
+      gLabelField.font = [NSFont systemFontOfSize:11.5 weight:NSFontWeightSemibold];
+      gLabelField.frame = NSMakeRect(10, 4, width - 52, 20);
+      gLabelField.stringValue = gLastIslandShortText.length > 0 ? gLastIslandShortText : @"🏝️ 执行中";
+      gNotchMinBtn.frame = NSMakeRect(width - 42, 3, 18, 22);
+      gNotchMinBtn.title = @"⤢";
+      gNotchMinBtn.toolTip = @"展开灵动岛详情";
+      gNotchCloseBtn.frame = NSMakeRect(width - 23, 3, 18, 22);
+    } else {
+      gLabelField.font = [NSFont systemFontOfSize:12.0 weight:NSFontWeightSemibold];
+      gLabelField.frame = NSMakeRect(14, 9, width - 64, 20);
+      if (gLastIslandFullText.length > 0) {
+        gLabelField.stringValue = gLastIslandFullText;
+      }
+      gNotchMinBtn.frame = NSMakeRect(width - 48, 8, 20, 22);
+      gNotchMinBtn.title = @"—";
+      gNotchMinBtn.toolTip = @"缩小为迷你胶囊";
+      gNotchCloseBtn.frame = NSMakeRect(width - 26, 8, 20, 22);
+    }
+  }
+
+  if (gNotchVisible) {
+    NSRect targetFrame = NSMakeRect(x, shownY, width, height);
+    if (animate) {
+      [NSAnimationContext runAnimationGroup:^(NSAnimationContext *context) {
+        context.duration = 0.16;
+        [[gNotchPanel animator] setFrame:targetFrame display:YES];
+      } completionHandler:nil];
+    } else {
+      [gNotchPanel setFrame:targetFrame display:YES];
+    }
+  }
+  [gDropContainer setNeedsDisplay:YES];
+}
 
 static void KestrelShowNotch(BOOL show) {
   if (!gNotchPanel || gNotchVisible == show) return;
@@ -299,13 +383,15 @@ static void KestrelShowNotch(BOOL show) {
   NSScreen *screen = [NSScreen mainScreen];
   if (!screen) return;
   NSRect visible = screen.visibleFrame;
-  CGFloat width = 310;
-  CGFloat height = 38;
+  BOOL compact = gIslandMinimized && !gDraggingNearTop;
+  CGFloat width = compact ? 132.0 : 340.0;
+  CGFloat height = compact ? 28.0 : 38.0;
   CGFloat x = NSMidX(screen.frame) - width / 2.0;
-  CGFloat shownY = NSMaxY(visible) - height - 6.0;
+  CGFloat shownY = NSMaxY(visible) - height - (compact ? 4.0 : 6.0);
   CGFloat hiddenY = NSMaxY(screen.frame) + 4.0;
 
   if (show) {
+    KestrelUpdateNotchLayout(NO);
     [gNotchPanel setFrame:NSMakeRect(x, hiddenY, width, height) display:NO];
     gNotchPanel.alphaValue = 0.0;
     gNotchPanel.ignoresMouseEvents = NO;
@@ -343,12 +429,14 @@ static void KestrelHandleDragEvent(void) {
     KestrelNotchDropView *dv = (KestrelNotchDropView *)gDropContainer;
     dv.isLiveActivity = NO;
     gLabelField.stringValue = @"📥 拖入提问 · ⌃⇧A 截图 · ⌃⇧S 划词";
-    [dv setNeedsDisplay:YES];
+    KestrelUpdateNotchLayout(NO);
     KestrelShowNotch(YES);
   } else if (gDraggingNearTop && mouse.y < topY - 150.0) {
     gDraggingNearTop = NO;
     if (!gIslandActive) {
       KestrelShowNotch(NO);
+    } else {
+      KestrelUpdateNotchLayout(YES);
     }
   }
 }
@@ -362,16 +450,31 @@ static void KestrelPollStatusFile(void) {
 
   // 1. Dynamic Island Live Activity (#22)
   NSString *islandText = status[@"islandText"];
+  NSString *islandShortText = status[@"islandShortText"];
   BOOL wantsIsland = [status[@"islandActive"] boolValue] &&
                      [islandText isKindOfClass:[NSString class]] &&
                      islandText.length > 0;
+  if ([status[@"islandMinimized"] isKindOfClass:[NSNumber class]]) {
+    BOOL nextMin = [status[@"islandMinimized"] boolValue];
+    if (nextMin != gIslandMinimized) {
+      gIslandMinimized = nextMin;
+      if (gNotchVisible) {
+        KestrelUpdateNotchLayout(YES);
+      }
+    }
+  }
+  if ([islandText isKindOfClass:[NSString class]]) {
+    gLastIslandFullText = [islandText copy];
+  }
+  if ([islandShortText isKindOfClass:[NSString class]] && islandShortText.length > 0) {
+    gLastIslandShortText = [islandShortText copy];
+  }
   gIslandActive = wantsIsland;
   if (!gDraggingNearTop) {
     KestrelNotchDropView *dv = (KestrelNotchDropView *)gDropContainer;
     if (wantsIsland) {
       dv.isLiveActivity = YES;
-      gLabelField.stringValue = islandText;
-      [dv setNeedsDisplay:YES];
+      KestrelUpdateNotchLayout(NO);
       KestrelShowNotch(YES);
     } else {
       dv.isLiveActivity = NO;
@@ -533,7 +636,9 @@ void KestrelNotchInit(const char *inboxPathCString) {
       }
     }
 
-    CGFloat width = 310;
+    KestrelSetupPipPanel();
+
+    CGFloat width = 340;
     CGFloat height = 38;
     gNotchPanel = [[NSPanel alloc]
         initWithContentRect:NSMakeRect(0, 0, width, height)
@@ -544,6 +649,7 @@ void KestrelNotchInit(const char *inboxPathCString) {
     gNotchPanel.backgroundColor = [NSColor clearColor];
     gNotchPanel.hasShadow = YES;
     gNotchPanel.level = NSStatusWindowLevel + 1;
+    gNotchPanel.movableByWindowBackground = YES;
     gNotchPanel.collectionBehavior =
         NSWindowCollectionBehaviorCanJoinAllSpaces |
         NSWindowCollectionBehaviorFullScreenAuxiliary |
@@ -555,23 +661,43 @@ void KestrelNotchInit(const char *inboxPathCString) {
         [[KestrelNotchDropView alloc] initWithFrame:NSMakeRect(0, 0, width, height)];
     dropView.autoresizingMask = NSViewWidthSizable | NSViewHeightSizable;
 
-    NSTextField *label = [[NSTextField alloc] initWithFrame:NSMakeRect(12, 9, width - 24, 20)];
+    NSTextField *label = [[NSTextField alloc] initWithFrame:NSMakeRect(14, 9, width - 64, 20)];
     label.stringValue = @"📥 拖入提问 · ⌃⇧A 截图 · ⌃⇧S 划词";
     label.editable = NO;
     label.selectable = NO;
     label.bezeled = NO;
     label.drawsBackground = NO;
-    label.alignment = NSTextAlignmentCenter;
+    label.alignment = NSTextAlignmentLeft;
     label.textColor = [NSColor whiteColor];
     label.font = [NSFont systemFontOfSize:12.0 weight:NSFontWeightSemibold];
     label.lineBreakMode = NSLineBreakByTruncatingTail;
     [dropView addSubview:label];
 
+    NSButton *minBtn = [[NSButton alloc] initWithFrame:NSMakeRect(width - 48, 8, 20, 22)];
+    minBtn.title = @"—";
+    minBtn.bordered = NO;
+    minBtn.font = [NSFont systemFontOfSize:11.0 weight:NSFontWeightBold];
+    minBtn.contentTintColor = [NSColor colorWithSRGBRed:0.78 green:0.80 blue:0.84 alpha:1.0];
+    minBtn.toolTip = @"缩小为迷你胶囊";
+    minBtn.target = gPipTarget;
+    minBtn.action = @selector(onToggleMinimizeIsland:);
+    [dropView addSubview:minBtn];
+
+    NSButton *closeBtn = [[NSButton alloc] initWithFrame:NSMakeRect(width - 26, 8, 20, 22)];
+    closeBtn.title = @"✕";
+    closeBtn.bordered = NO;
+    closeBtn.font = [NSFont systemFontOfSize:11.0 weight:NSFontWeightBold];
+    closeBtn.contentTintColor = [NSColor colorWithSRGBRed:0.78 green:0.80 blue:0.84 alpha:1.0];
+    closeBtn.toolTip = @"关闭顶部灵动岛悬浮窗";
+    closeBtn.target = gPipTarget;
+    closeBtn.action = @selector(onCloseIsland:);
+    [dropView addSubview:closeBtn];
+
     gDropContainer = dropView;
     gLabelField = label;
+    gNotchMinBtn = minBtn;
+    gNotchCloseBtn = closeBtn;
     gNotchPanel.contentView = dropView;
-
-    KestrelSetupPipPanel();
 
     gStatusPollTimer = [NSTimer scheduledTimerWithTimeInterval:0.4
                                                        repeats:YES

@@ -13,9 +13,10 @@ import '../../base/safe_selection_indexes.dart';
 
 /// A round of planning in the conversation: the plan's title over its
 /// text, the text fading out past a height; a click shows it in full beside
-/// the chat (see [FileOpenScope]). A plan sent back gives way to the next round's:
-/// it folds to one line, with what the user said should change.
-class PlanCard extends StatelessWidget {
+/// the chat (see [FileOpenScope]) or expands it in place. A plan sent back
+/// gives way to the next round's: it folds to one line, with what the user
+/// said should change.
+class PlanCard extends StatefulWidget {
   const PlanCard({super.key, required this.item});
 
   final PlanItem item;
@@ -40,6 +41,30 @@ class PlanCard extends StatelessWidget {
       ?item.feedback,
     ].join(' · ');
   }
+
+  /// How high the card's text goes when collapsed, past which it fades out.
+  static const maxBodyHeight = 240.0;
+
+  /// [item]'s text under its title: without the heading the title is.
+  static String? bodyOf(PlanItem item) {
+    final text = item.text;
+    if (text == null) return null;
+    final lines = text.trimLeft().split('\n');
+    if (lines.isNotEmpty && PlanItem.titleOf(lines.first) == item.title) {
+      lines.removeAt(0);
+    }
+    final body = lines.join('\n').trim();
+    return body.isEmpty ? null : body;
+  }
+
+  @override
+  State<PlanCard> createState() => _PlanCardState();
+}
+
+class _PlanCardState extends State<PlanCard> {
+  bool _expanded = false;
+
+  PlanItem get item => widget.item;
 
   @override
   Widget build(BuildContext context) {
@@ -104,41 +129,38 @@ class PlanCard extends StatelessWidget {
     );
   }
 
-  /// How high the card's text goes, past which it fades out: about twice
-  /// a card without it.
-  static const maxBodyHeight = 150.0;
-
   Widget _card(BuildContext context, VoidCallback? open) {
     final l10n = context.l10n;
-    final text = _body(item);
+    final text = PlanCard.bodyOf(item);
     // Put to the user: started from here, with the model picked.
     final session = item.status == PlanStatus.awaiting
         ? PlanStartScope.maybeOf(context)
         : null;
+    final primaryAction = open ?? (text != null ? () => setState(() => _expanded = !_expanded) : null);
     return HoverBuilder(
-      cursor: open == null ? MouseCursor.defer : SystemMouseCursors.click,
+      cursor: primaryAction == null ? MouseCursor.defer : SystemMouseCursors.click,
       builder: (context, hovered) => AnimatedContainer(
         duration: const Duration(milliseconds: 140),
-        margin: const EdgeInsets.symmetric(vertical: 4),
-        padding: const EdgeInsets.fromLTRB(14, 11, 14, 12),
-        decoration: BoxDecoration(
-          // Hovered, half a list row's hover over it: the whole of it is
-          // heavy on a card this big.
+        margin: const EdgeInsets.symmetric(vertical: 6),
+        padding: const EdgeInsets.fromLTRB(16, 13, 16, 14),
+        decoration: ShapeDecoration(
           color: hovered
               ? Color.alphaBlend(
-                  AppColors.hover.withValues(alpha: AppColors.hover.a * 0.5),
+                  AppColors.hover.withValues(alpha: AppColors.hover.a * 0.35),
                   AppColors.surface,
                 )
               : AppColors.surface,
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: AppColors.partBorder),
+          shape: ContinuousRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+            side: BorderSide(color: AppColors.partBorder),
+          ),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             GestureDetector(
               behavior: HitTestBehavior.opaque,
-              onTap: open,
+              onTap: primaryAction,
               child: _content(l10n, text),
             ),
             if (session != null)
@@ -159,7 +181,6 @@ class PlanCard extends StatelessWidget {
     children: [
       Row(
         children: [
-          // As the approvals that carry it out unasked show.
           Icon(Icons.checklist_rounded, size: 16, color: AppColors.caution),
           const SizedBox(width: 8),
           Expanded(
@@ -182,27 +203,37 @@ class PlanCard extends StatelessWidget {
               style: TextStyle(color: AppColors.textFaint, fontSize: 11.5),
             ),
           ],
+          if (text != null) ...[
+            const SizedBox(width: 6),
+            GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: () => setState(() => _expanded = !_expanded),
+              child: Padding(
+                padding: const EdgeInsets.all(2),
+                child: Icon(
+                  _expanded
+                      ? Icons.keyboard_arrow_up_rounded
+                      : Icons.keyboard_arrow_down_rounded,
+                  size: 16,
+                  color: AppColors.textMuted,
+                ),
+              ),
+            ),
+          ],
         ],
       ),
       if (text != null) ...[
-        const SizedBox(height: 6),
-        // Its text is the card's: a click on it opens the plan.
-        IgnorePointer(child: _PlanPreview(text)),
+        const SizedBox(height: 10),
+        if (_expanded)
+          MarkdownView(
+            text,
+            style: MarkdownView.baseStyle.copyWith(fontSize: 13),
+          )
+        else
+          IgnorePointer(child: _PlanPreview(text)),
       ],
     ],
   );
-
-  /// [item]'s text under its title: without the heading the title is.
-  static String? _body(PlanItem item) {
-    final text = item.text;
-    if (text == null) return null;
-    final lines = text.trimLeft().split('\n');
-    if (lines.isNotEmpty && PlanItem.titleOf(lines.first) == item.title) {
-      lines.removeAt(0);
-    }
-    final body = lines.join('\n').trim();
-    return body.isEmpty ? null : body;
-  }
 }
 
 /// One selectable bounded by the preview, not by the hidden plan below it.

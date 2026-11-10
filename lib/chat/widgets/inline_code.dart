@@ -65,7 +65,7 @@ class _InlineCodeBackdrop extends SingleChildRenderObjectWidget {
 class RenderInlineCodeBackdrop extends RenderProxyBox {
   RenderInlineCodeBackdrop(this._color);
 
-  static const radius = Radius.circular(3);
+  static const radius = Radius.circular(5);
 
   Color get color => _color;
   Color _color;
@@ -129,6 +129,10 @@ class RenderInlineCodeBackdrop extends RenderProxyBox {
       if (ranges.isNotEmpty) {
         final transform = paragraph.getTransformTo(this);
         final paint = Paint()..color = _color;
+        final borderPaint = Paint()
+          ..color = AppColors.border.withValues(alpha: 0.38)
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 0.75;
         final text = paragraph.text.toPlainText(includeSemanticsLabels: false);
         for (final range in ranges) {
           // A line may break after the code's leading space: that space alone
@@ -144,11 +148,19 @@ class RenderInlineCodeBackdrop extends RenderProxyBox {
           );
           for (final box in paragraph.getBoxesForSelection(range)) {
             if (!onCodeLine(box.toRect())) continue;
-            final rect = MatrixUtils.transformRect(transform, box.toRect());
-            context.canvas.drawRRect(
-              RRect.fromRectAndRadius(rect.shift(offset), radius),
-              paint,
+            final raw = MatrixUtils.transformRect(
+              transform,
+              box.toRect(),
+            ).shift(offset);
+            final rect = Rect.fromLTRB(
+              raw.left + 1.5,
+              raw.top + 1.5,
+              raw.right - 1.5,
+              raw.bottom - 1.5,
             );
+            final rrect = RRect.fromRectAndRadius(rect, radius);
+            context.canvas.drawRRect(rrect, paint);
+            context.canvas.drawRRect(rrect, borderPaint);
           }
         }
       }

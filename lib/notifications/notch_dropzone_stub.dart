@@ -6,6 +6,7 @@ import '../workspace/workspace.dart';
 abstract final class NotchDropzone {
   static final ValueNotifier<bool> pipEnabled = ValueNotifier<bool>(false);
   static final ValueNotifier<bool> islandEnabled = ValueNotifier<bool>(true);
+  static final ValueNotifier<bool> islandMinimized = ValueNotifier<bool>(false);
 
   static void start({
     required Workspace workspace,

@@ -155,10 +155,10 @@ class StepHeader extends StatelessWidget {
                 ),
               ),
             ],
-            if (toggle != null && (hovered || expanded)) ...[
+            if (toggle != null) ...[
               const SizedBox(width: 2),
-              // Comes and goes with the hover: kept out of the selection,
-              // which would otherwise re-resolve its edges each time.
+              // Kept out of the selection, which would otherwise re-resolve
+              // its edges each time.
               SelectionContainer.disabled(child: _chevron(hovered)),
             ],
           ],
@@ -186,8 +186,10 @@ class StepHeader extends StatelessWidget {
     curve: WbMotion.collapseIcon,
     child: Icon(
       Icons.chevron_right_rounded,
-      size: 16,
-      color: hovered ? AppColors.text : AppColors.textMuted,
+      size: 15,
+      color: hovered
+          ? AppColors.text
+          : AppColors.textMuted.withValues(alpha: 0.72),
     ),
   );
 }

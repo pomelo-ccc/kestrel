@@ -16,10 +16,15 @@ unset HTTP_PROXY HTTPS_PROXY http_proxy https_proxy ALL_PROXY all_proxy
 
 cd "$REPO"
 
-# 1. Fetch & merge upstream changes while keeping Kestrel customizations (-X ours on conflicts)
-git fetch upstream --tags 2>/dev/null || true
+# 1. Auto-save any uncommitted tracked changes, then fetch & merge upstream changes (-X ours on conflicts)
+if [[ -n "$(git status --porcelain -uno)" ]]; then
+  git commit -am "chore(local): save working tree changes before upstream update" >/dev/null 2>&1 || true
+fi
+git fetch upstream --tags >/dev/null 2>&1 || true
 if git rev-parse --verify upstream/main >/dev/null 2>&1; then
-  git merge --no-edit -X ours upstream/main || true
+  git merge --no-edit -X ours upstream/main >/dev/null 2>&1 || {
+    git merge --abort >/dev/null 2>&1 || true
+  }
 fi
 
 # 2. Rebuild App.framework with merged upstream + Kestrel customizations
@@ -39,19 +44,21 @@ fi
   -dXcodeBuildScript=prepare \
   release_macos_bundle_flutter_assets
 
-# 3. Unpack downloaded upstream zip and transform BaoCode.app -> Kestrel.app
+# 3. Unpack downloaded upstream zip and transform BaoCode.app -> Byte.app
 WORK_DIR="$(mktemp -d)"
 trap 'rm -rf "$WORK_DIR"' EXIT
 
 /usr/bin/ditto -x -k "$ZIP_PATH" "$WORK_DIR"
 
 if [[ -d "$WORK_DIR/BaoCode.app" ]]; then
-  mv "$WORK_DIR/BaoCode.app" "$WORK_DIR/Kestrel.app"
+  mv "$WORK_DIR/BaoCode.app" "$WORK_DIR/Byte.app"
+elif [[ -d "$WORK_DIR/Kestrel.app" ]]; then
+  mv "$WORK_DIR/Kestrel.app" "$WORK_DIR/Byte.app"
 fi
 
-APP="$WORK_DIR/Kestrel.app"
+APP="$WORK_DIR/Byte.app"
 if [[ ! -d "$APP" ]]; then
-  echo "Error: Kestrel.app not found in $WORK_DIR" >&2
+  echo "Error: Byte.app not found in $WORK_DIR" >&2
   exit 1
 fi
 
@@ -101,27 +108,46 @@ EOF
 
 # 5. Update Info.plist and FinderExtension Info.plist
 PLIST="$APP/Contents/Info.plist"
-/usr/libexec/PlistBuddy -c "Set :CFBundleName Kestrel" "$PLIST" || true
-/usr/libexec/PlistBuddy -c "Set :CFBundleDisplayName Kestrel" "$PLIST" || true
-/usr/libexec/PlistBuddy -c "Set :CFBundleExecutable Kestrel" "$PLIST" || true
-/usr/libexec/PlistBuddy -c "Set :CFBundleIdentifier dev.kestrel.desktop" "$PLIST" || true
+/usr/libexec/PlistBuddy -c "Set :CFBundleName Byte" "$PLIST" 2>/dev/null || true
+/usr/libexec/PlistBuddy -c "Set :CFBundleDisplayName Byte" "$PLIST" 2>/dev/null || \
+  /usr/libexec/PlistBuddy -c "Add :CFBundleDisplayName string Byte" "$PLIST" 2>/dev/null || true
+/usr/libexec/PlistBuddy -c "Set :CFBundleExecutable Kestrel" "$PLIST" 2>/dev/null || true
+/usr/libexec/PlistBuddy -c "Set :CFBundleIdentifier dev.kestrel.desktop" "$PLIST" 2>/dev/null || true
+/usr/libexec/PlistBuddy -c "Set :NSHumanReadableCopyright 'Copyright © 2026 Byte. All rights reserved.'" "$PLIST" 2>/dev/null || true
 /usr/libexec/PlistBuddy -c "Set :CFBundleURLTypes:0:CFBundleURLName dev.kestrel.desktop" "$PLIST" 2>/dev/null || true
 /usr/libexec/PlistBuddy -c "Set :CFBundleURLTypes:0:CFBundleURLSchemes:0 kestrel" "$PLIST" 2>/dev/null || true
 
 EXT_PLIST="$APP/Contents/PlugIns/FinderExtension.appex/Contents/Info.plist"
 if [[ -f "$EXT_PLIST" ]]; then
-  /usr/libexec/PlistBuddy -c "Set :CFBundleDisplayName Kestrel" "$EXT_PLIST" || true
-  /usr/libexec/PlistBuddy -c "Set :CFBundleIdentifier dev.kestrel.desktop.FinderExtension" "$EXT_PLIST" || true
+  /usr/libexec/PlistBuddy -c "Set :CFBundleDisplayName Byte" "$EXT_PLIST" 2>/dev/null || \
+    /usr/libexec/PlistBuddy -c "Add :CFBundleDisplayName string Byte" "$EXT_PLIST" 2>/dev/null || true
+  /usr/libexec/PlistBuddy -c "Set :CFBundleIdentifier dev.kestrel.desktop.FinderExtension" "$EXT_PLIST" 2>/dev/null || true
 fi
 
-# 6. Inject Kestrel AppIcon.icns and newly compiled App.framework
-cp "$REPO/build/macos/Build/Products/Release/Kestrel.app/Contents/Resources/AppIcon.icns" \
-   "$APP/Contents/Resources/AppIcon.icns"
+# 6. Build and inject Byte AppIcon.icns and newly compiled App.framework
+ICONSET_DIR="$WORK_DIR/AppIcon.iconset"
+mkdir -p "$ICONSET_DIR"
+APPICON_SRC="$REPO/macos/Runner/Assets.xcassets/AppIcon.appiconset"
+if [[ -d "$APPICON_SRC" ]]; then
+  cp "$APPICON_SRC/app_icon_16.png"   "$ICONSET_DIR/icon_16x16.png"
+  cp "$APPICON_SRC/app_icon_32.png"   "$ICONSET_DIR/icon_16x16@2x.png"
+  cp "$APPICON_SRC/app_icon_32.png"   "$ICONSET_DIR/icon_32x32.png"
+  cp "$APPICON_SRC/app_icon_64.png"   "$ICONSET_DIR/icon_32x32@2x.png"
+  cp "$APPICON_SRC/app_icon_128.png"  "$ICONSET_DIR/icon_128x128.png"
+  cp "$APPICON_SRC/app_icon_256.png"  "$ICONSET_DIR/icon_128x128@2x.png"
+  cp "$APPICON_SRC/app_icon_256.png"  "$ICONSET_DIR/icon_256x256.png"
+  cp "$APPICON_SRC/app_icon_512.png"  "$ICONSET_DIR/icon_256x256@2x.png"
+  cp "$APPICON_SRC/app_icon_512.png"  "$ICONSET_DIR/icon_512x512.png"
+  cp "$APPICON_SRC/app_icon_1024.png" "$ICONSET_DIR/icon_512x512@2x.png"
+  iconutil -c icns "$ICONSET_DIR" -o "$APP/Contents/Resources/AppIcon.icns"
+elif [[ -f "/Applications/Byte.app/Contents/Resources/AppIcon.icns" ]]; then
+  cp "/Applications/Byte.app/Contents/Resources/AppIcon.icns" "$APP/Contents/Resources/AppIcon.icns"
+fi
 
 rm -rf "$APP/Contents/Frameworks/App.framework"
 cp -R "$REPO/build/macos/Build/Products/Release/App.framework" "$APP/Contents/Frameworks/"
-cp "$REPO/assets/branding/app_icon.png" \
-   "$APP/Contents/Frameworks/App.framework/Versions/A/Resources/flutter_assets/assets/branding/app_icon.png"
+cp -f "$REPO/assets/branding/app_icon.png" \
+   "$APP/Contents/Frameworks/App.framework/Resources/flutter_assets/assets/branding/app_icon.png" 2>/dev/null || true
 
 if [[ -f "$REPO/macos/Runner/KestrelNotch.m" ]]; then
   /Library/Developer/CommandLineTools/usr/bin/clang \

@@ -3007,6 +3007,7 @@ class _WorkbenchState extends State<Workbench> implements WindowDelegate {
             showsTerminals: _terminals != null,
           ),
           thread,
+          foot: false,
         ),
         showToggle: showToggle,
       );
@@ -4162,43 +4163,46 @@ class _WorkbenchState extends State<Workbench> implements WindowDelegate {
   /// [showToggle]: the window's sidebar hidden, the panel at the
   /// conversations' left is at the window's, under the traffic lights.
   Widget _withSidePanel(Widget child, {required bool showToggle}) =>
-      AgentSidePanelArea(
-        panel: _sidePanel,
-        bottom: Islands.on(context) ? Islands.belowHeight : 0,
-        // Customize, in place of the conversations, isn't one of theirs.
-        hidden: _sidePanelHidden || _replacingChat,
-        roomComing: _sidebarGivingWay,
-        animate: true,
-        // Just under the row along the top of the conversation's card (see
-        // [AgentSidePanelArea.defaultRailTop]).
-        // Not in a narrow window, where the conversation has no room to spare
-        // (the title bar's toggle shows the panel). Agents side by side have
-        // one each, over their own pane (see [_paneRail]).
-        rail: switch (_agentThread ?? _workspace.current) {
-          final thread?
-              when _agentThread != null || _workspace.grid.length < 2 =>
-            _railFor(thread),
-          _ => null,
-        },
-        // At the window's left (no sidebar docked there), under the
-        // traffic lights; the sidebar's toggle by them where it is at the
-        // left, hidden.
-        builder: (context) => switch (_agentThread ?? _workspace.current) {
-          final thread?
-              when (showToggle || _sidebarAtRight) &&
-                  _sidePanel.atLeft &&
-                  !WindowControls.drawsHeader =>
-            _buildSidePanel(
-              thread,
-              titleBarInset: AppMetrics.trafficLightsWidth,
-              leading: showToggle && !_sidebarAtRight
-                  ? _showSidebarButton()
-                  : null,
-            ),
-          final thread? => _buildSidePanel(thread),
-          null => const SizedBox.shrink(),
-        },
-        child: child,
+      _footless(
+        context,
+        AgentSidePanelArea(
+          panel: _sidePanel,
+          bottom: 0,
+          // Customize, in place of the conversations, isn't one of theirs.
+          hidden: _sidePanelHidden || _replacingChat,
+          roomComing: _sidebarGivingWay,
+          animate: true,
+          // Just under the row along the top of the conversation's card (see
+          // [AgentSidePanelArea.defaultRailTop]).
+          // Not in a narrow window, where the conversation has no room to spare
+          // (the title bar's toggle shows the panel). Agents side by side have
+          // one each, over their own pane (see [_paneRail]).
+          rail: switch (_agentThread ?? _workspace.current) {
+            final thread?
+                when _agentThread != null || _workspace.grid.length < 2 =>
+              _railFor(thread),
+            _ => null,
+          },
+          // At the window's left (no sidebar docked there), under the
+          // traffic lights; the sidebar's toggle by them where it is at the
+          // left, hidden.
+          builder: (context) => switch (_agentThread ?? _workspace.current) {
+            final thread?
+                when (showToggle || _sidebarAtRight) &&
+                    _sidePanel.atLeft &&
+                    !WindowControls.drawsHeader =>
+              _buildSidePanel(
+                thread,
+                titleBarInset: AppMetrics.trafficLightsWidth,
+                leading: showToggle && !_sidebarAtRight
+                    ? _showSidebarButton()
+                    : null,
+              ),
+            final thread? => _buildSidePanel(thread),
+            null => const SizedBox.shrink(),
+          },
+          child: child,
+        ),
       );
 
   /// [_sidePanelRail] for [thread], where it has one: not in a narrow
@@ -4754,7 +4758,7 @@ class _WorkbenchState extends State<Workbench> implements WindowDelegate {
           showsTerminals: showsTerminals,
         );
         return showsTerminals
-            ? _withTerminal(chat, thread, foot: place.alone)
+            ? _withTerminal(chat, thread, foot: false)
             : chat;
       },
       onLinesMoved: _workspace.keepGridLines,
@@ -5188,7 +5192,7 @@ class _WorkbenchState extends State<Workbench> implements WindowDelegate {
         titleBarEnd: _titleBarEnd,
         leading: inPane ? null : leading,
         rowOverCard: !inPane,
-        footOnCard: inPane,
+        footOnCard: !embedded,
         trailing: tools.isEmpty
             ? null
             : KeepPaneFocus(
@@ -5873,14 +5877,9 @@ class _EmptyWorkspace extends StatelessWidget {
             ),
           ),
         Expanded(
-          // No row under it: a gap from the window's bottom.
-          child: Padding(
-            padding: EdgeInsets.only(
-              bottom: Islands.on(context) ? Islands.gap : 0,
-            ),
-            child: Island(
-              color: AppColors.conversationSurface,
-              child: Center(
+          child: Island(
+            color: AppColors.conversationSurface,
+            child: Center(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
@@ -5947,7 +5946,6 @@ class _EmptyWorkspace extends StatelessWidget {
               ),
             ),
           ),
-        ),
       ],
     );
   }

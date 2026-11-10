@@ -281,6 +281,7 @@ bool isQuickStep(ChatItem item) => switch (item) {
           ToolKind.message ||
           ToolKind.question ||
           ToolKind.goal ||
+          ToolKind.todo ||
           ToolKind.image => false,
           _ => true,
         },

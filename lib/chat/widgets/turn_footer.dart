@@ -170,8 +170,6 @@ class _TurnFooterState extends State<TurnFooter> {
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
-            if (summary != null && summary.hasNotableActivity)
-              TurnSummaryCard(summary: summary),
             Padding(
               padding: const EdgeInsets.only(top: 6),
               child: TurnFooter._line([

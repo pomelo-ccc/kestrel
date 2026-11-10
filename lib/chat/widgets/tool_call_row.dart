@@ -84,7 +84,10 @@ class ToolCallRow extends StatelessWidget {
 
   bool get _opens =>
       _answered == null &&
-      (results.isNotEmpty || _shown != null || images.isNotEmpty);
+      (_todos != null ||
+          results.isNotEmpty ||
+          _shown != null ||
+          images.isNotEmpty);
 
   /// The questions asked and what the user answered, once they have
   /// (AskUserQuestion): shown under it as they are, not folded in what it
@@ -202,7 +205,22 @@ class ToolCallRow extends StatelessWidget {
         if (_answered case final answered?)
           StepBody(child: _QuestionAnswers(answered: answered))
         else if (_todos case final todos? when expanded)
-          StepBody(child: _TodoList(todos: todos))
+          Container(
+            width: double.infinity,
+            margin: const EdgeInsets.only(top: 4, bottom: 6),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            decoration: ShapeDecoration(
+              color: Color.alphaBlend(
+                AppColors.text.withValues(alpha: 0.025),
+                AppColors.conversationSurface,
+              ),
+              shape: ContinuousRectangleBorder(
+                borderRadius: BorderRadius.circular(18),
+                side: BorderSide(color: AppColors.partBorder),
+              ),
+            ),
+            child: _TodoList(todos: todos),
+          )
         else if (expanded && (results.isNotEmpty || _shown != null))
           StepBody(
             child: results.isNotEmpty && files != null
@@ -312,12 +330,18 @@ class _TodoList extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
-      children: [for (final todo in todos) _item(todo)],
+      children: [
+        for (final (i, todo) in todos.indexed) ...[
+          if (i > 0) const SizedBox(height: 5),
+          _item(todo),
+        ],
+      ],
     );
   }
 
   Widget _item(TodoItem todo) {
     final done = todo.status == 'completed';
+    final doing = todo.status == 'in_progress';
     final (icon, color) = switch (todo.status) {
       'completed' => (todoDoneIcon, themeColors['charts.green']),
       'in_progress' => (todoDoingIcon, themeColors['charts.blue']),
@@ -335,13 +359,16 @@ class _TodoList extends StatelessWidget {
             colorFilter: ColorFilter.mode(color, BlendMode.srcIn),
           ),
         ),
-        const SizedBox(width: 8),
+        const SizedBox(width: 9),
         Expanded(
           child: Text(
             todo.content,
             style: TextStyle(
-              color: done ? AppColors.textFaint : AppColors.text,
-              fontSize: 12.5,
+              color: done
+                  ? AppColors.textFaint
+                  : (doing ? AppColors.textPrimary : AppColors.text),
+              fontSize: 13,
+              fontWeight: doing ? FontWeight.w500 : FontWeight.w400,
               height: 1.6,
               decoration: done ? TextDecoration.lineThrough : null,
               decorationColor: AppColors.textFaint,

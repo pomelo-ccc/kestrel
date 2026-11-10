@@ -1651,7 +1651,7 @@ class _ChatScreenState extends State<ChatScreen>
       bottom: !_onCard
           ? 12
           : _footOnCard
-          ? 0
+          ? 4
           : _footer == 0 &&
                 widget.below != null &&
                 !IslandFootHosted.of(context)
@@ -1843,7 +1843,10 @@ class _ChatScreenState extends State<ChatScreen>
         // On a card, it is under the card (see [_buildScaffold]); a pane's
         // on it, here, in the row under the card's.
         if (_footOnCard)
-          SizedBox(height: Islands.belowHeight, child: _buildFoot())
+          Padding(
+            padding: const EdgeInsets.only(top: 4),
+            child: SizedBox(height: Islands.belowHeight, child: _buildFoot()),
+          )
         else if (_footer == 0 && !IslandFootHosted.of(context))
           ?widget.below,
       ],
@@ -2287,6 +2290,8 @@ class _SpeedAndTokenBadgeState extends State<_SpeedAndTokenBadge> {
         ProviderHealthMonitor.instance,
         AttentionVoiceSetting.enabled,
         NotchDropzone.pipEnabled,
+        NotchDropzone.islandEnabled,
+        NotchDropzone.islandMinimized,
         ?SessionReplaySetting.changes,
       ]),
       builder: (context, _) {
@@ -2297,6 +2302,8 @@ class _SpeedAndTokenBadgeState extends State<_SpeedAndTokenBadge> {
         final todayTotal = SessionSpeedTracker.todayEstimatedTokens + used;
         final voiceOn = AttentionVoiceSetting.enabled.value;
         final pipOn = NotchDropzone.pipEnabled.value;
+        final islandOn = NotchDropzone.islandEnabled.value;
+        final islandMin = NotchDropzone.islandMinimized.value;
         final hasItems =
             widget.session.itemCount > 0 && SessionReplaySetting.current();
         final String? label;
@@ -2383,6 +2390,30 @@ class _SpeedAndTokenBadgeState extends State<_SpeedAndTokenBadge> {
               ),
               const SizedBox(width: 2),
             ],
+            _StatusBarIconButton(
+              icon: !islandOn
+                  ? Icons.visibility_off_outlined
+                  : (islandMin
+                        ? Icons.close_fullscreen_rounded
+                        : Icons.open_in_full_rounded),
+              active: islandOn,
+              tooltip: !islandOn
+                  ? '顶部灵动岛悬浮窗：已关闭（点击开启）'
+                  : (islandMin
+                        ? '顶部灵动岛悬浮窗：迷你缩小模式（点击关闭，或再次点击恢复展开）'
+                        : '顶部灵动岛悬浮窗：已展开（点击缩小为迷你胶囊）'),
+              onTap: () {
+                if (!islandOn) {
+                  NotchDropzone.islandEnabled.value = true;
+                  NotchDropzone.islandMinimized.value = false;
+                } else if (!islandMin) {
+                  NotchDropzone.islandMinimized.value = true;
+                } else {
+                  NotchDropzone.islandEnabled.value = false;
+                }
+              },
+            ),
+            const SizedBox(width: 2),
             _StatusBarIconButton(
               icon: Codicons.multipleWindows,
               active: pipOn,

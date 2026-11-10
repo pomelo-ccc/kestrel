@@ -10,6 +10,7 @@ import 'agent_step.dart' show AgentStep;
 import 'edge_fade_mask.dart';
 import 'finite_selection_edges.dart';
 import 'live_selectable_text.dart';
+import 'markdown_view.dart';
 import 'step_header.dart';
 import 'wheel_latch.dart';
 
@@ -100,10 +101,10 @@ class ThinkingSection extends StatefulWidget {
 
 class _ThinkingSectionState extends State<ThinkingSection> {
   static TextStyle get _textStyle =>
-      TextStyle(color: AppColors.textMuted, fontSize: 13, height: 1.6);
+      TextStyle(color: AppColors.textMuted, fontSize: 13, height: 1.68);
 
   /// Seven lines of text.
-  static const _liveMaxHeight = 13 * 1.6 * 7;
+  static const _liveMaxHeight = 13 * 1.68 * 7;
 
   final _scrollController = SmoothScrollController();
   bool _contentAbove = false;
@@ -190,10 +191,19 @@ class _ThinkingSectionState extends State<ThinkingSection> {
             child: widget.expanded && _text.isNotEmpty
                 ? Container(
                     width: double.infinity,
-                    margin: const EdgeInsets.only(top: 6, bottom: 2),
+                    margin: const EdgeInsets.only(top: 6, bottom: 4, left: 2),
+                    padding: const EdgeInsets.only(left: 12, top: 2, bottom: 2),
+                    decoration: BoxDecoration(
+                      border: Border(
+                        left: BorderSide(
+                          color: AppColors.borderStrong.withValues(alpha: 0.7),
+                          width: 2,
+                        ),
+                      ),
+                    ),
                     child: _streaming
                         ? _buildLiveText()
-                        : Text(_text, style: _textStyle),
+                        : MarkdownView(_text, style: _textStyle),
                   )
                 : const SizedBox(width: double.infinity),
           ),

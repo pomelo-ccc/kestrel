@@ -2371,11 +2371,32 @@ class _ChatHistoryViewState extends State<ChatHistoryView>
         ),
       };
     }
+    final inOpenFold =
+        (switch (_folds.workAt(index)) {
+          final work? => _isFoldOpen(work),
+          null => false,
+        }) ||
+        (switch (_folds.stepsAt(index)) {
+          final steps? => _isFoldOpen(steps),
+          null => false,
+        });
+    final body = inOpenFold && shown != null
+        ? Container(
+            margin: const EdgeInsets.only(left: 5),
+            padding: const EdgeInsets.only(left: 12),
+            decoration: BoxDecoration(
+              border: Border(
+                left: BorderSide(color: AppColors.partBorder, width: 1.5),
+              ),
+            ),
+            child: shown,
+          )
+        : shown;
     return _ItemSelectionScope(
       index: index,
       delegate: _selectionDelegate,
       child: folds.isEmpty && footer == null
-          ? shown!
+          ? body!
           // Steps line up on the left, folds' lines too.
           : SizedBox(
               width: double.infinity,
@@ -2402,7 +2423,7 @@ class _ChatHistoryViewState extends State<ChatHistoryView>
                       expanded: _isFoldOpen(fold),
                       onToggle: () => _toggleFold(fold),
                     ),
-                  ?shown,
+                  ?body,
                   ?footer,
                 ],
               ),

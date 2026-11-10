@@ -16,6 +16,7 @@ import '../../chat/composer/composer_polish.dart' show ComposerPolishSetting;
 import '../../chat/widgets/pixel_loader.dart';
 import '../../chat/widgets/turn_footer.dart'
     show LiveTurnStatsSetting, SessionReplaySetting;
+import '../../notifications/notch_dropzone.dart';
 import 'appearance_page.dart' show AppearanceSettingsPage;
 import '../../kernel/queued_messages.dart';
 import '../../l10n/l10n.dart';
@@ -404,6 +405,46 @@ class GeneralSettingsPage extends StatelessWidget {
                     SessionReplaySetting.settingKey,
                     on ? null : SessionReplaySetting.off,
                   ),
+                ),
+                ListenableBuilder(
+                  listenable: Listenable.merge([
+                    NotchDropzone.islandEnabled,
+                    NotchDropzone.islandMinimized,
+                  ]),
+                  builder: (context, _) {
+                    final isZh =
+                        Localizations.localeOf(context).languageCode == 'zh';
+                    final islandOn = NotchDropzone.islandEnabled.value;
+                    final islandMin = NotchDropzone.islandMinimized.value;
+                    return Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        SettingsSwitchRow(
+                          label: isZh
+                              ? '顶部灵动岛实时状态条'
+                              : 'Top Dynamic Island Live Activity',
+                          description: isZh
+                              ? '任务执行中或等待确认时，在屏幕顶部显示悬浮灵动岛状态提示（也可直接点击胶囊上的 ✕ 关闭）'
+                              : 'Show a floating Dynamic Island pill at the top of the screen while tasks are running or awaiting confirmation',
+                          value: islandOn,
+                          onChanged: (on) =>
+                              NotchDropzone.islandEnabled.value = on,
+                        ),
+                        if (islandOn)
+                          SettingsSwitchRow(
+                            label: isZh
+                                ? '灵动岛迷你缩小模式'
+                                : 'Compact Mini Dynamic Island',
+                            description: isZh
+                                ? '将顶部灵动岛缩小为紧凑短胶囊，仅显示状态图标与简短标签，避免遮挡视线（也可直接点击胶囊上的 — 切换）'
+                                : 'Shrink the top Dynamic Island into a compact mini capsule to avoid blocking the screen',
+                            value: islandMin,
+                            onChanged: (min) =>
+                                NotchDropzone.islandMinimized.value = min,
+                          ),
+                      ],
+                    );
+                  },
                 ),
                 ListenableBuilder(
                   listenable: PixelLoaderRole.agent.style,

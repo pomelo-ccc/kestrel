@@ -23,12 +23,49 @@ typedef _NotchInitDart = void Function();
 abstract final class NotchDropzone {
   static final ValueNotifier<bool> pipEnabled = ValueNotifier<bool>(false);
   static final ValueNotifier<bool> islandEnabled = ValueNotifier<bool>(true);
+  static final ValueNotifier<bool> islandMinimized = ValueNotifier<bool>(false);
 
   static Timer? _timer;
   static bool _initialized = false;
   static final Map<AgentThread, ThreadStatus> _lastStatuses = {};
   static DateTime? _completedBannerUntil;
   static String? _completedBannerTitle;
+
+  static String get _prefsPath => p.join(
+    Platform.environment['HOME'] ?? Directory.systemTemp.path,
+    '.kestrel_notch_prefs.json',
+  );
+
+  static void _loadPrefs() {
+    try {
+      final file = File(_prefsPath);
+      if (!file.existsSync()) return;
+      final data = jsonDecode(file.readAsStringSync());
+      if (data is Map) {
+        if (data['islandEnabled'] case final bool en) {
+          islandEnabled.value = en;
+        }
+        if (data['islandMinimized'] case final bool min) {
+          islandMinimized.value = min;
+        }
+      }
+    } on Object {
+      // Ignore read errors.
+    }
+  }
+
+  static void _savePrefs() {
+    try {
+      File(_prefsPath).writeAsStringSync(
+        jsonEncode({
+          'islandEnabled': islandEnabled.value,
+          'islandMinimized': islandMinimized.value,
+        }),
+      );
+    } on Object {
+      // Ignore write errors.
+    }
+  }
 
   static void start({
     required Workspace workspace,
@@ -40,6 +77,9 @@ abstract final class NotchDropzone {
       return;
     }
     _initialized = true;
+    _loadPrefs();
+    islandEnabled.addListener(_savePrefs);
+    islandMinimized.addListener(_savePrefs);
 
     final inboxPath = p.join(
       Directory.systemTemp.path,
@@ -145,16 +185,20 @@ abstract final class NotchDropzone {
 
       bool islandActive = false;
       String islandText = '';
+      String islandShortText = '';
       if (islandEnabled.value) {
         if (status == ThreadStatus.needsInput) {
           islandActive = true;
           islandText = '🟠 待确认 · $title · 点击处理';
+          islandShortText = '🟠 待确认';
         } else if (status == ThreadStatus.running) {
           islandActive = true;
           islandText = '🏝️ 执行中 · $title · $detail';
+          islandShortText = '🏝️ 执行中';
         } else if (showCompletion) {
           islandActive = true;
           islandText = '✅ 已完成 · ${_completedBannerTitle ?? title} · 点击查看';
+          islandShortText = '✅ 已完成';
         }
       }
 
@@ -167,7 +211,9 @@ abstract final class NotchDropzone {
 
       final payload = jsonEncode({
         'islandActive': islandActive,
+        'islandMinimized': islandMinimized.value,
         'islandText': islandText,
+        'islandShortText': islandShortText,
         'pipVisible': pipEnabled.value,
         'pipTitle': '🦅 $title',
         'pipStatus': pipStatus,
@@ -229,6 +275,17 @@ abstract final class NotchDropzone {
 
         if (type == 'close_pip') {
           pipEnabled.value = false;
+          continue;
+        }
+
+        if (type == 'close_island') {
+          islandEnabled.value = false;
+          continue;
+        }
+
+        if (type == 'minimize_island') {
+          final min = data['minimized'];
+          islandMinimized.value = min is bool ? min : !islandMinimized.value;
           continue;
         }
 

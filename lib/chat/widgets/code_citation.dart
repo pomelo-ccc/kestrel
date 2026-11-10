@@ -460,7 +460,8 @@ class _CodeCardState extends State<_CodeCard> {
     // Built again for a new theme: its colors for the code.
     _colorSoon();
     final colors = themeColors;
-    final line = colors['chat.requestBorder'];
+    final rawLine = colors['chat.requestBorder'];
+    final line = rawLine.withValues(alpha: rawLine.a * 0.65);
     final background = colors['textCodeBlock.background'];
     return MouseRegion(
       onEnter: (_) => setState(() => _hovered = true),
@@ -468,7 +469,7 @@ class _CodeCardState extends State<_CodeCard> {
       child: Container(
         decoration: BoxDecoration(
           color: background,
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(8),
           border: Border.all(color: line),
         ),
         clipBehavior: Clip.antiAlias,
@@ -743,7 +744,9 @@ class _CodeCardState extends State<_CodeCard> {
         controller: _horizontal,
         thumbVisibility: _hovered,
         child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 8),
+          padding: EdgeInsets.symmetric(
+            vertical: _plain && lines.length == 1 ? 6 : 8,
+          ),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [

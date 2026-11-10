@@ -307,5 +307,6 @@ bool isStep(ChatItem item) => switch (item) {
 /// and end would flicker): a picture's shows small after its line.
 bool defaultExpanded(ChatItem item) => switch (item) {
   ThinkingItem(:final streaming) => streaming,
+  ToolCallItem(kind: ToolKind.todo) => true,
   _ => false,
 };
