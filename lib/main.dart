@@ -516,6 +516,20 @@ void followSettingsFiles(SettingsFiles files) {
           debugPrint('${ResumeAfterResetSetting.settingKey} not kept: $error');
         }),
   );
+  // A message edited and sent again: whether the files changed after it
+  // go back, asked unless set (there, or in its prompt).
+  RewindFilesSetting.current = () =>
+      RewindFilesSetting.parse(files.settings[RewindFilesSetting.settingKey]);
+  RewindFilesSetting.write = (value) => unawaited(
+    files.settings
+        .update(
+          RewindFilesSetting.settingKey,
+          value == RewindFilesSetting.fallback ? null : value.name,
+        )
+        .catchError((Object error) {
+          debugPrint('${RewindFilesSetting.settingKey} not kept: $error');
+        }),
+  );
   // Settings → Customize's switches: the skills, MCP servers and tools
   // turned off, given each agent at start and as they change.
   ExtensionSwitches.current = () =>

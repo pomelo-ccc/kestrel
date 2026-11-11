@@ -357,6 +357,19 @@ class GeneralSettingsPage extends StatelessWidget {
                         l10n.generalSettingsQueuedDuringTurn,
                   },
                 ),
+                _choiceRow(
+                  context,
+                  key: RewindFilesSetting.settingKey,
+                  label: l10n.generalSettingsRewindFiles,
+                  description: l10n.generalSettingsRewindFilesDescription,
+                  values: {
+                    RewindFilesSetting.ask.name: l10n.generalSettingsRewindAsk,
+                    RewindFilesSetting.revert.name:
+                        l10n.generalSettingsRewindRevert,
+                    RewindFilesSetting.keep.name:
+                        l10n.generalSettingsRewindKeep,
+                  },
+                ),
                 SettingsSwitchRow(
                   label: l10n.generalSettingsPromptSuggestions,
                   description: l10n.generalSettingsPromptSuggestionsDescription,

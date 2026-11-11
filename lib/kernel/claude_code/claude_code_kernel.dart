@@ -40,6 +40,7 @@ import 'claude_sdk_tools.dart';
 import 'turn_stats.dart';
 import 'control_channel.dart';
 import 'local_time_zone.dart';
+import 'tool_result_tally.dart';
 import 'usage_limit.dart';
 
 /// Reads a kept session: its conversation lines, oldest first, along the
@@ -193,6 +194,7 @@ class ClaudeCodeKernel
       required int turns,
       String? before,
     }) async => ClaudeHistoryPage.whole(await readHistory!(session));
+    _readHistory = readHistory;
     final pager = readHistoryPage ?? (readHistory == null ? null : wholePage);
     if ((_context.resume, pager) case (final session?, final read?)) {
       _pager = read;
@@ -486,6 +488,36 @@ class ClaudeCodeKernel
   /// Claude plan's calls' makeup, which no proxy sees.
   ContextDetail? _contextDetail;
 
+  /// What the CLI last counted in the context, by part: told again,
+  /// scaled, as the model tells what its context comes to.
+  ({int total, List<ContextSegment> segments})? _counted;
+
+  /// What the context comes to as the model told it: its last request's
+  /// input and output. The CLI's count is its own estimate for a model
+  /// behind the proxy (images' base64 as text, once). Null with none
+  /// since the context changed under it (compacted, rewound).
+  int? _toldContext;
+
+  /// The tool calls' results in the context, counted here: Claude Code's
+  /// breakdown counts an image's base64 as text. Known ([_resultsKnown])
+  /// for a new conversation, and for a resumed one once read from its
+  /// start or its last compaction.
+  var _results = ToolResultTally();
+  late bool _resultsKnown = _context.resume == null;
+
+  /// Reading the whole session for [_results]: the latest, given up on
+  /// as another starts or the context changes under it.
+  int _resultsReading = 0;
+  ClaudeHistoryReader? _readHistory;
+
+  /// [_contextDetail], its tool calls' results as counted here.
+  ContextDetail? get _shownDetail => switch (_contextDetail) {
+    final detail? when _resultsKnown => detail.withToolResults(
+      _results.byTool,
+    ),
+    final detail => detail,
+  };
+
   /// The models' own windows, by the model the CLI resolved them to, as
   /// reported while they were in use.
   static final Map<String, int> _modelWindows = {};
@@ -681,7 +713,7 @@ class ClaudeCodeKernel
               underway: (key, progress) => progress == null
                   ? UsageLedger.current.end(key)
                   : UsageLedger.current.begin(key, progress),
-              makeup: () => _contextDetail,
+              makeup: () => _shownDetail,
               session: () => _sessionId,
               providerName: 'Claude Code',
               quota: () => _quota,
@@ -1063,6 +1095,7 @@ class ClaudeCodeKernel
           turn.now &&
           _queued.contains(turn.id) &&
           _translator.workingInBackground;
+      _results.mark(turn.id);
       transport.write({
         'type': 'user',
         'uuid': turn.id,
@@ -1370,6 +1403,11 @@ class ClaudeCodeKernel
             );
           }
           emit(Rewound(nextSeq, itemId: itemId, index: index));
+          // Its last request held what is rewound too.
+          _toldContext = null;
+          _resultsReading++;
+          _resultsKnown = _resultsKnown && _results.rewind(itemId);
+          unawaited(_refreshContext());
           rewound.complete(true);
         })
         .catchError((Object error) {
@@ -1727,12 +1765,12 @@ class ClaudeCodeKernel
       _control!.respond(requestId, {'behavior': 'deny', 'message': _notAsked});
       return;
     }
-    // Full access is approved here (see _cliApproval), but for what the
-    // CLI's own would ask all the same: that too where no one is there to
-    // ask (a bot's, KernelWorkspace.approvesAll). In Plan it leaves to the
-    // classifier what the CLI cannot tell is read-only; with no
-    // classifier (another provider's model), that is approved here too,
-    // as it would be by the classifier.
+    // Full access is approved here (see _cliApproval), but for what is
+    // asked all the same (see _askedInFullAccess): that too where no one
+    // is there to ask (a bot's, KernelWorkspace.approvesAll). In Plan it
+    // leaves to the classifier what the CLI cannot tell is read-only; with
+    // no classifier (another provider's model), that is approved here
+    // too, as it would be by the classifier.
     if (_approval == 'bypassPermissions' &&
         (_work != 'plan' || !_classifies) &&
         tool != 'AskUserQuestion' &&
@@ -1885,6 +1923,10 @@ class ClaudeCodeKernel
   void _receive(Map<String, Object?> message) {
     if (_control?.receive(message) ?? false) return;
     _usage?.receive(message);
+    if (message['type'] case 'assistant' || 'user'
+        when _results.add(message) && _resultsKnown) {
+      _reportContext();
+    }
     switch (message['type']) {
       case ClaudeExit.type:
         _exited(
@@ -1968,7 +2010,9 @@ class ClaudeCodeKernel
         );
         emitInfoChanged();
       case 'assistant':
+        final told = _toldContext;
         if (_countRequest(message)) _reportStats();
+        if (_toldContext != told) _reportContext();
         if (message['error'] == 'rate_limit') {
           _limitSaid(message['message']);
           _accountsLimited();
@@ -2668,7 +2712,8 @@ class ClaudeCodeKernel
   /// conversation's: once, as a message comes a content block at a time.
   /// Later lines update the fields they give. A subagent's is left out, as
   /// its transcript is apart. Whether it was added or its usage changed.
-  bool _countRequest(Map<String, Object?> message) {
+  /// One of an [earlier] page, read after the rest, is not the last.
+  bool _countRequest(Map<String, Object?> message, {bool earlier = false}) {
     if (message['parent_tool_use_id'] != null ||
         message['isSidechain'] == true) {
       return false;
@@ -2692,8 +2737,11 @@ class ClaudeCodeKernel
     );
     // None at all: one of the CLI's own (an API error), not the model's.
     if (tokens.total == 0) return false;
-    _lastRequest = id;
-    _lastModel = model;
+    if (!earlier) {
+      _lastRequest = id;
+      _lastModel = model;
+      _toldContext = tokens.total + (claudeInt(usage['output_tokens']) ?? 0);
+    }
     if (usage.containsKey('cache_read_input_tokens') ||
         usage.containsKey('cache_creation_input_tokens')) {
       _cachingModels.add(model);
@@ -2708,6 +2756,11 @@ class ClaudeCodeKernel
   /// The conversation was compacted, maybe mid-turn: the context shown
   /// drops to what is left at once, then to what the CLI counts.
   void _compacted(Map<String, Object?> message) {
+    _toldContext = null;
+    // None of the results before it are left: known from here on.
+    _results.clear();
+    _resultsKnown = true;
+    _resultsReading++;
     final meta = message['compact_metadata'];
     if (meta is Map && meta['post_tokens'] is int) {
       emit(
@@ -2743,32 +2796,89 @@ class ClaudeCodeKernel
         _modelWindows[model] = raw;
       }
       emitInfoChanged();
-      emit(
-        UsageReported(
-          nextSeq,
-          ContextUsage(
-            window: max,
-            used: usage['totalTokens'] as int? ?? 0,
-            segments: [
-              for (final raw in usage['categories'] as List? ?? const [])
-                if (raw is Map && raw['tokens'] is int)
-                  ContextSegment(
-                    '${raw['name']}',
-                    raw['tokens'] as int,
-                    kind: switch (raw['kind']) {
-                      'free' => ContextKind.free,
-                      'buffer' => ContextKind.buffer,
-                      'deferred' => ContextKind.deferred,
-                      _ => ContextKind.used,
-                    },
-                  ),
-            ],
-            detail: _contextDetail = ContextDetail.parse(usage),
-          ),
-        ),
+      _contextDetail = ContextDetail.parse(usage);
+      _counted = (
+        total: usage['totalTokens'] as int? ?? 0,
+        segments: [
+          for (final raw in usage['categories'] as List? ?? const [])
+            if (raw is Map && raw['tokens'] is int)
+              ContextSegment(
+                '${raw['name']}',
+                raw['tokens'] as int,
+                kind: switch (raw['kind']) {
+                  'free' => ContextKind.free,
+                  'buffer' => ContextKind.buffer,
+                  'deferred' => ContextKind.deferred,
+                  _ => ContextKind.used,
+                },
+              ),
+        ],
       );
+      _reportContext();
     } on Object {
       // Context usage is a nicety: an older CLI may not answer.
+    }
+  }
+
+  /// What fills the context: as much as the model last told
+  /// ([_toldContext]), else as the CLI counted it; its parts as the CLI
+  /// counted them, scaled to that. Nothing before the CLI has counted.
+  void _reportContext() {
+    final counted = _counted;
+    if (counted == null) return;
+    final used = _toldContext ?? counted.total;
+    final scale = counted.total > 0 ? used / counted.total : 1.0;
+    final kept = counted.segments
+        .where((s) => s.kind == ContextKind.buffer)
+        .fold(0, (sum, s) => sum + s.tokens);
+    emit(
+      UsageReported(
+        nextSeq,
+        ContextUsage(
+          window: _contextWindow,
+          used: used,
+          segments: scale == 1
+              ? counted.segments
+              : [
+                  for (final s in counted.segments)
+                    switch (s.kind) {
+                      ContextKind.used => ContextSegment(
+                        s.label,
+                        (s.tokens * scale).round(),
+                      ),
+                      ContextKind.free => ContextSegment(
+                        s.label,
+                        math.max(0, _contextWindow - used - kept),
+                        kind: ContextKind.free,
+                      ),
+                      _ => s,
+                    },
+                ],
+          detail: _shownDetail,
+        ),
+      ),
+    );
+  }
+
+  /// Counts [_results] from the whole of [session], for a resumed one
+  /// whose first page did not reach back to its start or a compaction.
+  Future<void> _readResults(SessionRecord session) async {
+    final read = _readHistory;
+    if (read == null) return;
+    final reading = ++_resultsReading;
+    try {
+      final lines = await read(session);
+      if (_disposed || reading != _resultsReading) return;
+      final whole = ToolResultTally();
+      for (final line in lines) {
+        whole.add(line);
+      }
+      // And what came while it was read.
+      _results = whole..takeNewer(_results);
+      _resultsKnown = true;
+      _reportContext();
+    } on Object {
+      // Claude Code's breakdown stays shown.
     }
   }
 
@@ -2904,13 +3014,26 @@ class ClaudeCodeKernel
         ..replaying = true
         ..keptTurns = kept;
       var counted = false;
+      var whole = page.earlier == null;
       for (final line in page.entries) {
         if (line['type'] == 'assistant') counted |= _countRequest(line);
+        _results.add(line);
+        // What the model told before it is no longer what it holds.
+        if (line case {'type': 'system', 'subtype': 'compact_boundary'}) {
+          _toldContext = null;
+          whole = true;
+        }
         _translator.translate(line);
+      }
+      if (whole) {
+        _resultsKnown = true;
+      } else {
+        unawaited(_readResults(session));
       }
       _readHead = _translator.head;
       _translator.endReplay();
       if (counted) _reportStats();
+      _reportContext();
     } on Object catch (error) {
       emit(
         ItemUpserted(
@@ -2962,7 +3085,9 @@ class ClaudeCodeKernel
             ..keptTurns = kept;
       var counted = false;
       for (final line in page.entries) {
-        if (line['type'] == 'assistant') counted |= _countRequest(line);
+        if (line['type'] == 'assistant') {
+          counted |= _countRequest(line, earlier: true);
+        }
         translator.translate(line);
       }
       translator.endPage(after: _readHead);
@@ -3677,14 +3802,11 @@ class ClaudeCodeKernel
   String get _cliApproval =>
       _approval == 'bypassPermissions' ? 'acceptEdits' : _approval;
 
-  /// What the CLI would still ask in full access: safety checks requiring
-  /// manual approval (also inside compound commands), explicit ask rules,
-  /// and tools that require user interaction. Protected-path checks that
-  /// the classifier may approve do not require a prompt in full access.
+  /// What is still asked in full access: the user's own ask rules, tools
+  /// that require user interaction, and what a host is told to act on
+  /// (an organization's read block, say). The CLI's safety checks, those
+  /// requiring manual approval too, are approved: full access is no checks.
   static bool _askedInFullAccess(Map<String, Object?> request) =>
-      request['classifier_approvable'] == false ||
-      (request['decision_reason_type'] == 'safetyCheck' &&
-          request['classifier_approvable'] != true) ||
       request['matched_ask_rule'] != null ||
       request['requires_user_interaction'] == true ||
       request['decision_reason_code'] != null;

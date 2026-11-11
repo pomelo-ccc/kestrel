@@ -50,13 +50,26 @@ abstract final class LinkMethods {
   /// behind it. Answered with `{"session"}`.
   static const send = 'send';
 
-  /// `{"session", "index", "text", "images"?, "mentions"?}`: the user's
-  /// message at `index` (counted from the phone's first item, as an
-  /// update's `start` is) sent again as this, as the desktop's edit of a
-  /// message: everything after it is discarded, and the turn runs again
-  /// from there. `notFound` where there is no message of the user's;
-  /// `unsupported` where the agent cannot go back.
+  /// `{"session", "index", "text", "images"?, "mentions"?,
+  /// "revertFiles"?}`: the user's message at `index` (counted from the
+  /// phone's first item, as an update's `start` is) sent again as this, as
+  /// the desktop's edit of a message: everything after it is discarded,
+  /// and the turn runs again from there. With `revertFiles`, what the
+  /// agent did to the files from it on is put back first (see
+  /// [rewindPlan]); without, the files are left. `notFound` where there is
+  /// no message of the user's; `unsupported` where the agent cannot go
+  /// back.
   static const edit = 'edit';
+
+  /// `{"session", "index"}`: what [edit] with `revertFiles` would put back
+  /// of the files, asked before it, as the desktop asks. Answered with
+  /// `{"files": [{"name", "outcome"}], "setting"}`: each file by its path
+  /// in the project, `outcome` `restore` (put back as it was), `merge`
+  /// (changed elsewhere since: that is kept) or `conflict` (cannot be:
+  /// left as it is); `setting`, the desktop's choice — `ask`, or `revert`
+  /// or `keep` without asking. No files: nothing to ask. `unknown` from a
+  /// desktop before it: nothing is asked, the files are left.
+  static const rewindPlan = 'rewindPlan';
 
   /// `{"session"}`: stops the turn under way.
   static const stop = 'stop';
@@ -736,6 +749,7 @@ class LinkSessionUpdate {
     this.tasks = const [],
     this.earlier,
     this.goal,
+    this.context,
   });
 
   factory LinkSessionUpdate.fromJson(Map<String, Object?> json) =>
@@ -763,6 +777,10 @@ class LinkSessionUpdate {
         ],
         earlier: json['earlier'] as bool?,
         goal: switch (json['goal']) {
+          final Map<String, Object?> map => map,
+          _ => null,
+        },
+        context: switch (json['context']) {
           final Map<String, Object?> map => map,
           _ => null,
         },
@@ -801,6 +819,13 @@ class LinkSessionUpdate {
   /// "duration", "tokens"}`, its times in milliseconds.
   final Map<String, Object?>? goal;
 
+  /// How full the agent's context is, if its kernel says: `{"window",
+  /// "used", "parts": [{"part", "tokens"}], "compactAt"}`, a part by the
+  /// desktop's key for it (`system`, `tools`, `mcp`, `memory`, `skills`,
+  /// `messages`) or the kernel's own name, `compactAt` where it is
+  /// compacted, in tokens.
+  final Map<String, Object?>? context;
+
   Map<String, Object?> toJson() => {
     'session': session,
     'start': start,
@@ -813,6 +838,7 @@ class LinkSessionUpdate {
     if (tasks.isNotEmpty) 'tasks': [for (final task in tasks) task.toJson()],
     'earlier': ?earlier,
     'goal': ?goal,
+    'context': ?context,
   };
 }
 
