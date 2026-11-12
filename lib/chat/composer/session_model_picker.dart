@@ -50,13 +50,6 @@ class SessionModelPicker extends StatelessWidget {
   /// only when it is not the standard one; its upstream before it only
   /// when another upstream has a model of its name.
   String _label(KernelOption model, List<KernelOption> options) {
-    final ping = ProviderHealthMonitor.instance.pingForModel(model.id);
-    final statusDot = switch (ping.status) {
-      ProviderPingStatus.healthy => '🟢 ${ping.shortLabel}',
-      ProviderPingStatus.slow => '🟡 ${ping.shortLabel}',
-      ProviderPingStatus.offline => '🔴 离线',
-      _ => null,
-    };
     return [
       if (model.group case final group?
           when options.any(
@@ -70,8 +63,47 @@ class SessionModelPicker extends StatelessWidget {
             when setting.kind != KernelChoiceKind.context ||
                 selected != setting.options.first)
           selected.label,
-      ?statusDot,
     ].join(' · ');
+  }
+
+  Widget? _pingBadge(KernelOption model) {
+    final ping = ProviderHealthMonitor.instance.pingForModel(model.id);
+    final (Color dotColor, String text) = switch (ping.status) {
+      ProviderPingStatus.healthy => (const Color(0xFF22A35A), ping.shortLabel),
+      ProviderPingStatus.slow => (const Color(0xFFD98B1C), ping.shortLabel),
+      ProviderPingStatus.offline => (const Color(0xFFDC3E3E), '离线'),
+      _ => (Colors.transparent, ''),
+    };
+    if (text.isEmpty) return null;
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 5.5,
+          height: 5.5,
+          decoration: BoxDecoration(
+            color: dotColor,
+            shape: BoxShape.circle,
+            boxShadow: [
+              BoxShadow(
+                color: dotColor.withValues(alpha: 0.35),
+                blurRadius: 3,
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(width: 4),
+        Text(
+          text,
+          style: TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.w500,
+            color: AppColors.textFaint,
+            fontFeatures: const [FontFeature.tabularFigures()],
+          ),
+        ),
+      ],
+    );
   }
 
   /// Runs [pick], which switches to [option]: once confirmed, if that
@@ -175,6 +207,7 @@ class SessionModelPicker extends StatelessWidget {
       options: model.options,
       selected: model.selected,
       label: _label(model.selected, model.options),
+      trailingBadge: _pingBadge(model.selected),
       // Each its name alone, one line; its maker's logo and its upstream's
       // heading tell the rest.
       describes: false,

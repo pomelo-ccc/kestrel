@@ -2312,8 +2312,9 @@ class _SpeedAndTokenBadgeState extends State<_SpeedAndTokenBadge> {
         final islandMin = NotchDropzone.islandMinimized.value;
         final hasItems =
             widget.session.itemCount > 0 && SessionReplaySetting.current();
+        final liveStreamingSpeed = streaming && speed > 0;
         final String? label;
-        if (streaming && speed > 0) {
+        if (liveStreamingSpeed) {
           label = '${speed.toStringAsFixed(1)} tok/s';
         } else if (speed > 0) {
           label =
@@ -2332,7 +2333,7 @@ class _SpeedAndTokenBadgeState extends State<_SpeedAndTokenBadge> {
                 child: HoverBuilder(
                   cursor: SystemMouseCursors.click,
                   builder: (context, hovered) {
-                    final fg = streaming
+                    final fg = liveStreamingSpeed
                         ? AppColors.accent
                         : (hovered ? AppColors.text : AppColors.textFaint);
                     return GestureDetector(
@@ -2354,7 +2355,7 @@ class _SpeedAndTokenBadgeState extends State<_SpeedAndTokenBadge> {
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Icon(
-                              streaming ? Codicons.zap : Codicons.pulse,
+                              liveStreamingSpeed ? Codicons.zap : Codicons.pulse,
                               size: 12,
                               color: fg,
                             ),

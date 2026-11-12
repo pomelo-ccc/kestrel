@@ -314,7 +314,6 @@ class _LiveStatsState extends State<_LiveStats> {
           elapsed: elapsed,
           text: AgentStep.formatDuration(elapsed, l10n: l10n),
           hint: l10n.turnDurationHint,
-          isZh: l10n.localeName.startsWith('zh'),
         ),
       if (speed != null)
         _Stat(
@@ -340,81 +339,26 @@ class _LiveStatsState extends State<_LiveStats> {
 /// Interactive-feeling live chronograph widget for an active turn:
 /// 1. Sweeping radar chronograph dial (`_LiveChronoDialPainter`)
 /// 2. Odometer whole-second counter (`RollingText`) + `.0`–`.9` decisecond badge
-/// 3. 8-bar quantum telemetry wave + evolving stage commentary + mini progress bar
 class _LiveChronoStat extends StatelessWidget {
   const _LiveChronoStat({
     required this.elapsed,
     required this.text,
     required this.hint,
-    required this.isZh,
   });
 
   final Duration elapsed;
   final String text;
   final String hint;
-  final bool isZh;
 
-  static ({String label, double progress, Color accent}) _stageInfo(
-    int elapsedMs,
-    bool isZh,
-  ) {
+  static Color _stageAccent(int elapsedMs) {
     final sec = elapsedMs / 1000.0;
-    if (sec < 2.0) {
-      return (
-        label: isZh ? '⚡ 极速响应' : '⚡ Instant spark',
-        progress: (sec / 2.0).clamp(0.0, 1.0),
-        accent: const Color(0xFFD96543),
-      );
-    } else if (sec < 5.0) {
-      return (
-        label: isZh ? '🧠 神经元点火' : '🧠 Synapses firing',
-        progress: ((sec - 2.0) / 3.0).clamp(0.0, 1.0),
-        accent: const Color(0xFFD96543),
-      );
-    } else if (sec < 9.0) {
-      return (
-        label: isZh ? '🔍 检索上下文' : '🔍 Scanning context',
-        progress: ((sec - 5.0) / 4.0).clamp(0.0, 1.0),
-        accent: const Color(0xFF2860E8),
-      );
-    } else if (sec < 15.0) {
-      return (
-        label: isZh ? '⚙️ 推演逻辑链' : '⚙️ Chaining logic',
-        progress: ((sec - 9.0) / 6.0).clamp(0.0, 1.0),
-        accent: const Color(0xFF2860E8),
-      );
-    } else if (sec < 22.0) {
-      return (
-        label: isZh ? '✨ 灵感编织中' : '✨ Weaving answer',
-        progress: ((sec - 15.0) / 7.0).clamp(0.0, 1.0),
-        accent: const Color(0xFFD96543),
-      );
-    } else if (sec < 32.0) {
-      return (
-        label: isZh ? '☕ 深度思考中' : '☕ Deep thinking',
-        progress: ((sec - 22.0) / 10.0).clamp(0.0, 1.0),
-        accent: const Color(0xFFD97706),
-      );
-    } else if (sec < 45.0) {
-      return (
-        label: isZh ? '🔥 算力全开' : '🔥 Full throttle',
-        progress: ((sec - 32.0) / 13.0).clamp(0.0, 1.0),
-        accent: const Color(0xFFDC2626),
-      );
-    } else if (sec < 60.0) {
-      return (
-        label: isZh ? '🧭 梳理脉络' : '🧭 Mapping structure',
-        progress: ((sec - 45.0) / 15.0).clamp(0.0, 1.0),
-        accent: const Color(0xFF2860E8),
-      );
-    } else {
-      final cycle = ((sec - 60.0) % 20.0) / 20.0;
-      return (
-        label: isZh ? '🏔️ 潜心长考' : '🏔️ Deep contemplation',
-        progress: cycle.clamp(0.0, 1.0),
-        accent: const Color(0xFF7C3AED),
-      );
-    }
+    if (sec < 5.0) return const Color(0xFFD96543);
+    if (sec < 15.0) return const Color(0xFF2860E8);
+    if (sec < 22.0) return const Color(0xFFD96543);
+    if (sec < 32.0) return const Color(0xFFD97706);
+    if (sec < 45.0) return const Color(0xFFDC2626);
+    if (sec < 60.0) return const Color(0xFF2860E8);
+    return const Color(0xFF7C3AED);
   }
 
   @override
@@ -422,7 +366,7 @@ class _LiveChronoStat extends StatelessWidget {
     final isDark = themeColors.dark;
     final elapsedMs = elapsed.inMilliseconds;
     final decisecond = (elapsedMs ~/ 100) % 10;
-    final stage = _stageInfo(elapsedMs, isZh);
+    final accent = _stageAccent(elapsedMs);
     final primaryColor = isDark
         ? const Color(0xFFECE6DC)
         : const Color(0xFF3E3831);
@@ -452,7 +396,7 @@ class _LiveChronoStat extends StatelessWidget {
                   size: const Size(14, 14),
                   painter: _LiveChronoDialPainter(
                     elapsedMs: elapsedMs,
-                    accent: stage.accent,
+                    accent: accent,
                     dark: isDark,
                   ),
                 ),
@@ -475,10 +419,10 @@ class _LiveChronoStat extends StatelessWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
             decoration: BoxDecoration(
-              color: stage.accent.withValues(alpha: isDark ? 0.18 : 0.11),
+              color: accent.withValues(alpha: isDark ? 0.18 : 0.11),
               borderRadius: BorderRadius.circular(4),
               border: Border.all(
-                color: stage.accent.withValues(alpha: isDark ? 0.32 : 0.22),
+                color: accent.withValues(alpha: isDark ? 0.32 : 0.22),
                 width: 0.7,
               ),
             ),
@@ -488,75 +432,9 @@ class _LiveChronoStat extends StatelessWidget {
                 fontSize: 10,
                 fontWeight: FontWeight.w600,
                 height: 1.1,
-                color: stage.accent,
+                color: accent,
                 fontFeatures: const [FontFeature.tabularFigures()],
               ),
-            ),
-          ),
-          const SizedBox(width: 8),
-          // 4. Live telemetry capsule: 8-bar quantum wave + stage badge + progress bar.
-          Container(
-            height: 20,
-            padding: const EdgeInsets.symmetric(horizontal: 7),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  stage.accent.withValues(alpha: isDark ? 0.15 : 0.08),
-                  const Color(0xFF2860E8).withValues(alpha: isDark ? 0.12 : 0.05),
-                ],
-              ),
-              borderRadius: BorderRadius.circular(999),
-              border: Border.all(
-                color: stage.accent.withValues(alpha: isDark ? 0.28 : 0.18),
-                width: 0.8,
-              ),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                CustomPaint(
-                  size: const Size(24, 10),
-                  painter: _LivePulseWavePainter(
-                    elapsedMs: elapsedMs,
-                    accent: stage.accent,
-                    dark: isDark,
-                  ),
-                ),
-                const SizedBox(width: 6),
-                Text(
-                  stage.label,
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w500,
-                    color: isDark
-                        ? const Color(0xFFDAD2C6)
-                        : const Color(0xFF524A41),
-                    height: 1.1,
-                  ),
-                ),
-                const SizedBox(width: 6),
-                // Mini stage progress bar.
-                Container(
-                  width: 20,
-                  height: 3.5,
-                  decoration: BoxDecoration(
-                    color: (isDark ? Colors.white : Colors.black).withValues(
-                      alpha: 0.10,
-                    ),
-                    borderRadius: BorderRadius.circular(99),
-                  ),
-                  alignment: Alignment.centerLeft,
-                  child: FractionallySizedBox(
-                    widthFactor: stage.progress.clamp(0.12, 1.0),
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: stage.accent,
-                        borderRadius: BorderRadius.circular(99),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
             ),
           ),
         ],
@@ -641,55 +519,6 @@ class _LiveChronoDialPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_LiveChronoDialPainter oldDelegate) =>
-      oldDelegate.elapsedMs != elapsedMs ||
-      oldDelegate.accent != accent ||
-      oldDelegate.dark != dark;
-}
-
-/// Draws a 6-bar equalizer/telemetry wave that ripples continuously as the
-/// timer ticks.
-class _LivePulseWavePainter extends CustomPainter {
-  const _LivePulseWavePainter({
-    required this.elapsedMs,
-    required this.accent,
-    required this.dark,
-  });
-
-  final int elapsedMs;
-  final Color accent;
-  final bool dark;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    const barCount = 6;
-    const barWidth = 2.2;
-    final totalBarsWidth = barCount * barWidth;
-    final gap = (size.width - totalBarsWidth) / (barCount - 1);
-    final t = elapsedMs / 160.0;
-
-    for (var i = 0; i < barCount; i++) {
-      final wave = (math.sin(t - i * 0.75) + 1.0) * 0.5;
-      final heightFactor = 0.28 + 0.72 * wave;
-      final barHeight = size.height * heightFactor;
-      final x = i * (barWidth + gap);
-      final y = (size.height - barHeight) / 2;
-
-      final color = Color.lerp(
-        accent,
-        const Color(0xFF2860E8),
-        i / (barCount - 1),
-      )!.withValues(alpha: 0.55 + 0.45 * wave);
-
-      final rrect = RRect.fromRectAndRadius(
-        Rect.fromLTWH(x, y, barWidth, barHeight),
-        const Radius.circular(99),
-      );
-      canvas.drawRRect(rrect, Paint()..color = color);
-    }
-  }
-
-  @override
-  bool shouldRepaint(_LivePulseWavePainter oldDelegate) =>
       oldDelegate.elapsedMs != elapsedMs ||
       oldDelegate.accent != accent ||
       oldDelegate.dark != dark;

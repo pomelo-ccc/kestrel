@@ -37,6 +37,7 @@ class ComposerPicker extends StatefulWidget {
     required this.selected,
     required this.onSelected,
     this.label,
+    this.trailingBadge,
     this.describes = true,
     this.descriptionAside = false,
     this.settingsOf,
@@ -59,6 +60,10 @@ class ComposerPicker extends StatefulWidget {
 
   /// What the pill reads; the selected option's label if null.
   final String? label;
+
+  /// Optional compact badge shown after [label] inside the pill (e.g. live
+  /// model latency indicator).
+  final Widget? trailingBadge;
 
   /// Shows each option's description under it.
   final bool describes;
@@ -785,14 +790,17 @@ class ComposerPickerState extends State<ComposerPicker> {
 
   Widget _buildPill(bool hovered, bool open) {
     final colors = themeColors;
+    final dark = colors.dark;
     final emphasized = widget.emphasized;
     final color = widget.selected.caution
         ? AppColors.caution
-        : widget.foreground ?? AppColors.textMuted;
+        : emphasized
+        ? AppColors.text
+        : (hovered || open ? AppColors.text : (widget.foreground ?? AppColors.textMuted));
     return AnimatedContainer(
       duration: const Duration(milliseconds: 120),
-      height: 22,
-      padding: const EdgeInsets.only(left: 7, right: 4),
+      height: 24,
+      padding: const EdgeInsets.only(left: 8, right: 5),
       // Emphasized, a secondary button, as the agents window's pickers in
       // its chat input; else a toolbar item.
       decoration: BoxDecoration(
@@ -806,19 +814,22 @@ class ComposerPickerState extends State<ComposerPicker> {
             ? colors['toolbar.hoverBackground']
             : Colors.transparent,
         border: switch (emphasized
-            ? colors.get('button.secondaryBorder')
+            ? (colors.get('button.secondaryBorder') ??
+                  (dark
+                      ? Colors.white.withValues(alpha: 0.10)
+                      : Colors.black.withValues(alpha: 0.08)))
             : null) {
           final border? => Border.all(color: border),
           null => null,
         },
-        borderRadius: BorderRadius.circular(11),
+        borderRadius: BorderRadius.circular(7.5),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           widget.selected.iconBuilder?.call(13, color) ??
               Icon(widget.selected.icon, size: 13, color: color),
-          const SizedBox(width: 4.5),
+          const SizedBox(width: 5),
           // Cut short where the input is narrow, not over its edge.
           Flexible(
             child: Text(
@@ -832,9 +843,14 @@ class ComposerPickerState extends State<ComposerPicker> {
               ),
             ),
           ),
+          if (widget.trailingBadge case final badge?) ...[
+            const SizedBox(width: 5),
+            badge,
+          ],
+          const SizedBox(width: 1),
           Icon(
             Icons.keyboard_arrow_down_rounded,
-            size: 15,
+            size: 14.5,
             color: AppColors.textFaint,
           ),
         ],
