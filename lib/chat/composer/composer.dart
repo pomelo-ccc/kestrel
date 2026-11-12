@@ -1678,29 +1678,6 @@ class ChatComposerState extends State<ChatComposer>
     }
   }
 
-  /// Captures a region of the screen via macOS interactive `screencapture`
-  /// and inserts the resulting PNG straight into the composer.
-  Future<void> _captureScreenshot() async {
-    if (!Platform.isMacOS) return;
-    final path =
-        '${Directory.systemTemp.path}/kestrel_shot_${DateTime.now().millisecondsSinceEpoch}.png';
-    try {
-      final result = await Process.run('/usr/sbin/screencapture', [
-        '-i',
-        '-x',
-        path,
-      ]);
-      if (result.exitCode != 0) return;
-      final file = File(path);
-      if (!await file.exists() || await file.length() == 0) return;
-      if (!mounted) return;
-      await insertFiles([ComposerFile(path)], here: true);
-      _focusNode.requestFocus();
-    } on Object {
-      // Cancelled or unavailable.
-    }
-  }
-
   /// Inserts external selected text grabbed via global hotkey (`⌃⇧S`) into
   /// the composer and focuses the input.
   void insertGrabbedSelection(String selectedText) {
@@ -2625,10 +2602,6 @@ class ChatComposerState extends State<ChatComposer>
               ),
             ),
             const SizedBox(width: 8),
-            if (Platform.isMacOS && !_isFlutterTest) ...[
-              _ScreenshotButton(onTap: () => unawaited(_captureScreenshot())),
-              const SizedBox(width: 2),
-            ],
             if (ComposerPolishSetting.current()) ...[
               _PolishButton(
                 busy: _polishing,
@@ -2758,41 +2731,6 @@ class _PolishButton extends StatelessWidget {
             ),
           );
         },
-      ),
-    );
-  }
-}
-
-class _ScreenshotButton extends StatelessWidget {
-  const _ScreenshotButton({required this.onTap});
-
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = themeColors;
-    return IdeHover(
-      message: '框选截图并插入提问 (⌃⇧A)',
-      child: HoverBuilder(
-        cursor: SystemMouseCursors.click,
-        builder: (context, hovered) => GestureDetector(
-          onTapDown: (_) {},
-          onTap: onTap,
-          child: Container(
-            width: 25,
-            height: 25,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              color: hovered ? colors['toolbar.hoverBackground'] : null,
-              borderRadius: BorderRadius.circular(6.5),
-            ),
-            child: Icon(
-              Codicons.deviceCamera,
-              size: 13.5,
-              color: hovered ? AppColors.text : AppColors.textMuted,
-            ),
-          ),
-        ),
       ),
     );
   }

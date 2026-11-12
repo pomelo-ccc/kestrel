@@ -15,7 +15,6 @@ static BOOL gIslandActive = NO;
 static BOOL gIslandMinimized = NO;
 static NSString *gLastIslandFullText = @"";
 static NSString *gLastIslandShortText = @"🏝️ 执行中";
-static EventHotKeyRef gHotKeyScreenshotRef = NULL;
 static EventHotKeyRef gHotKeySelectionRef = NULL;
 
 // PiP Mini Monitor window & controls
@@ -57,35 +56,6 @@ static void KestrelAppendEvent(NSDictionary *dict) {
       [line writeToFile:gInboxPath atomically:YES];
     }
   }
-}
-
-static void KestrelTriggerScreenshotAsk(void) {
-  dispatch_async(dispatch_get_global_queue(QOS_CLASS_USER_INITIATED, 0), ^{
-    NSString *tempDir = NSTemporaryDirectory();
-    long long ts = (long long)([[NSDate date] timeIntervalSince1970] * 1000);
-    NSString *path = [tempDir stringByAppendingPathComponent:
-                      [NSString stringWithFormat:@"kestrel_notch_shot_%lld.png", ts]];
-    NSTask *task = [[NSTask alloc] init];
-    task.launchPath = @"/usr/sbin/screencapture";
-    task.arguments = @[@"-i", @"-x", path];
-    @try {
-      [task launch];
-      [task waitUntilExit];
-    } @catch (NSException *exception) {
-      return;
-    }
-    if (task.terminationStatus != 0) return;
-    NSFileManager *fm = [NSFileManager defaultManager];
-    NSDictionary *attrs = [fm attributesOfItemAtPath:path error:nil];
-    if (!attrs || [attrs fileSize] == 0) return;
-    dispatch_async(dispatch_get_main_queue(), ^{
-      KestrelActivateMainWindow();
-      KestrelAppendEvent(@{
-        @"type": @"screenshot",
-        @"files": @[path]
-      });
-    });
-  });
 }
 
 static void KestrelTriggerGrabSelection(void) {
@@ -132,8 +102,6 @@ static OSStatus KestrelHotKeyHandler(EventHandlerCallRef nextHandler,
                                       &hkCom);
   if (status == noErr && hkCom.id == 2) {
     KestrelTriggerGrabSelection();
-  } else {
-    KestrelTriggerScreenshotAsk();
   }
   return noErr;
 }
@@ -202,13 +170,13 @@ static OSStatus KestrelHotKeyHandler(EventHandlerCallRef nextHandler,
 
 - (void)draggingExited:(id<NSDraggingInfo>)sender {
   self.highlight = NO;
-  gLabelField.stringValue = @"📥 拖入提问 · ⌃⇧A 截图 · ⌃⇧S 划词";
+  gLabelField.stringValue = @"📥 拖入提问 · ⌃⇧S 划词";
   [self setNeedsDisplay:YES];
 }
 
 - (BOOL)performDragOperation:(id<NSDraggingInfo>)sender {
   self.highlight = NO;
-  gLabelField.stringValue = @"📥 拖入提问 · ⌃⇧A 截图 · ⌃⇧S 划词";
+  gLabelField.stringValue = @"📥 拖入提问 · ⌃⇧S 划词";
   [self setNeedsDisplay:YES];
 
   NSPasteboard *pb = [sender draggingPasteboard];
@@ -280,7 +248,6 @@ static OSStatus KestrelHotKeyHandler(EventHandlerCallRef nextHandler,
 - (void)onFocusMain:(id)sender;
 - (void)onApprove:(id)sender;
 - (void)onClosePip:(id)sender;
-- (void)onScreenshot:(id)sender;
 - (void)onToggleMinimizeIsland:(id)sender;
 - (void)onCloseIsland:(id)sender;
 @end
@@ -300,9 +267,6 @@ static void KestrelShowNotch(BOOL show);
   gPipVisible = NO;
   [gPipPanel orderOut:nil];
   KestrelAppendEvent(@{@"type": @"close_pip"});
-}
-- (void)onScreenshot:(id)sender {
-  KestrelTriggerScreenshotAsk();
 }
 - (void)onToggleMinimizeIsland:(id)sender {
   gIslandMinimized = !gIslandMinimized;
@@ -428,7 +392,7 @@ static void KestrelHandleDragEvent(void) {
     gDraggingNearTop = YES;
     KestrelNotchDropView *dv = (KestrelNotchDropView *)gDropContainer;
     dv.isLiveActivity = NO;
-    gLabelField.stringValue = @"📥 拖入提问 · ⌃⇧A 截图 · ⌃⇧S 划词";
+    gLabelField.stringValue = @"📥 拖入提问 · ⌃⇧S 划词";
     KestrelUpdateNotchLayout(NO);
     KestrelShowNotch(YES);
   } else if (gDraggingNearTop && mouse.y < topY - 150.0) {
@@ -596,10 +560,7 @@ static void KestrelSetupPipPanel(void) {
   NSButton *focusBtn = KestrelMakePillButton(NSMakeRect(12, 10, 78, 24), @"切回主窗", @selector(onFocusMain:));
   [card addSubview:focusBtn];
 
-  NSButton *shotBtn = KestrelMakePillButton(NSMakeRect(96, 10, 78, 24), @"📸 截图问", @selector(onScreenshot:));
-  [card addSubview:shotBtn];
-
-  gPipApproveBtn = KestrelMakePillButton(NSMakeRect(180, 10, 96, 24), @"✅ 允许执行", @selector(onApprove:));
+  gPipApproveBtn = KestrelMakePillButton(NSMakeRect(96, 10, 96, 24), @"✅ 允许执行", @selector(onApprove:));
   gPipApproveBtn.hidden = YES;
   [card addSubview:gPipApproveBtn];
 
@@ -662,7 +623,7 @@ void KestrelNotchInit(const char *inboxPathCString) {
     dropView.autoresizingMask = NSViewWidthSizable | NSViewHeightSizable;
 
     NSTextField *label = [[NSTextField alloc] initWithFrame:NSMakeRect(14, 9, width - 64, 20)];
-    label.stringValue = @"📥 拖入提问 · ⌃⇧A 截图 · ⌃⇧S 划词";
+    label.stringValue = @"📥 拖入提问 · ⌃⇧S 划词";
     label.editable = NO;
     label.selectable = NO;
     label.bezeled = NO;
@@ -736,19 +697,12 @@ void KestrelNotchInit(const char *inboxPathCString) {
       return event;
     }];
 
-    // Register global hotkeys:
-    // 1. Control + Shift + A (keyCode 0x00 = 'A') -> Screenshot to Ask
-    // 2. Control + Shift + S (keyCode 0x01 = 'S') -> Grab Selection from Any App
+    // Register global hotkey:
+    // Control + Shift + S (keyCode 0x01 = 'S') -> Grab Selection from Any App
     EventTypeSpec eventType;
     eventType.eventClass = kEventClassKeyboard;
     eventType.eventKind = kEventHotKeyPressed;
     InstallApplicationEventHandler(&KestrelHotKeyHandler, 1, &eventType, NULL, NULL);
-
-    EventHotKeyID hotKeyScreenshotID;
-    hotKeyScreenshotID.signature = 'KSTL';
-    hotKeyScreenshotID.id = 1;
-    RegisterEventHotKey(0x00, controlKey | shiftKey, hotKeyScreenshotID,
-                        GetApplicationEventTarget(), 0, &gHotKeyScreenshotRef);
 
     EventHotKeyID hotKeySelectionID;
     hotKeySelectionID.signature = 'KSTL';

@@ -17,9 +17,8 @@ typedef _NotchInitNative = Void Function();
 typedef _NotchInitDart = void Function();
 
 /// Bridges the native macOS Top-Notch Dropzone, Dynamic Island Live Activity (#22),
-/// Top-Right PiP Mini Monitor (#23), global `⌃⇧A` Screenshot-to-Ask, and
-/// global `⌃⇧S` Grab Selection (#24) (`libKestrelNotch.dylib`) with Kestrel's
-/// active [Workspace] and composer.
+/// Top-Right PiP Mini Monitor (#23), and global `⌃⇧S` Grab Selection (#24)
+/// (`libKestrelNotch.dylib`) with Kestrel's active [Workspace] and composer.
 abstract final class NotchDropzone {
   static final ValueNotifier<bool> pipEnabled = ValueNotifier<bool>(false);
   static final ValueNotifier<bool> islandEnabled = ValueNotifier<bool>(true);
@@ -168,7 +167,7 @@ abstract final class NotchDropzone {
       final pending = session?.pendingInteraction;
       final needsApproval = pending is ApprovalRequest;
 
-      String detail = '随时按 ⌃⇧A 截图提问，或按 ⌃⇧S 划词直问';
+      String detail = '随时按 ⌃⇧S 划词直问，或拖入顶部灵动岛';
       if (pending is ApprovalRequest) {
         detail = '⚠️ 等待权限确认：${pending.toolName} (${pending.title})';
       } else if (pending is QuestionRequest) {
