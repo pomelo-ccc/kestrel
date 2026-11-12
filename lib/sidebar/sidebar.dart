@@ -3571,7 +3571,10 @@ class _GroupHeader extends StatelessWidget {
                   SidebarIconButton(
                     icon: Icons.more_horiz_rounded,
                     tooltip: context.l10n.sidebarMoreActions,
-                    size: 20,
+                    size: 23,
+                    circular: true,
+                    customGlyph: (color) =>
+                        _ThinRowGlyph(_SidebarRowGlyph.moreVert, color: color),
                     onTap: menu.open,
                   ),
                 if (onCreate case final onCreate? when active)
@@ -3579,7 +3582,10 @@ class _GroupHeader extends StatelessWidget {
                     SidebarIconButton(
                       icon: Icons.add_rounded,
                       tooltip: context.l10n.sidebarNewAgentIn(group.label),
-                      size: 20,
+                      size: 23,
+                      circular: true,
+                      customGlyph: (color) =>
+                          _ThinRowGlyph(_SidebarRowGlyph.plus, color: color),
                       onTap: onCreate,
                     ),
                   ),
@@ -4331,7 +4337,7 @@ class _ThreadRow extends StatelessWidget {
                 // An aside under the one it was asked beside.
                 padding: EdgeInsets.only(
                   left: onDetach == null ? 8 : 8 + _asideIndent,
-                  right: 6,
+                  right: 4,
                 ),
                 // Too narrow, what is beside the title gives way (its hover
                 // tells it), before the title is cut to nothing.
@@ -4380,7 +4386,15 @@ class _ThreadRow extends StatelessWidget {
                             ),
                     ),
                     if (!renaming)
-                      ..._buildTrailing(active, context.l10n, foreground),
+                      ..._buildTrailing(
+                        active,
+                        context.l10n,
+                        foreground,
+                        onOpenMenu: () {
+                          onContextMenu();
+                          menu.open();
+                        },
+                      ),
                   ],
                 ),
               ),
@@ -4504,8 +4518,9 @@ class _ThreadRow extends StatelessWidget {
   List<GiveWay> _buildTrailing(
     bool active,
     AppLocalizations l10n,
-    Color foreground,
-  ) {
+    Color foreground, {
+    required VoidCallback onOpenMenu,
+  }) {
     final diff = thread.diff;
     Widget gap(Widget child) =>
         Padding(padding: const EdgeInsets.only(left: 6), child: child);
@@ -4597,19 +4612,11 @@ class _ThreadRow extends StatelessWidget {
                     tooltip: l10n.localeName.startsWith('zh')
                         ? '暂存到 Stash'
                         : 'Save to Stash',
-                    size: 20,
+                    size: 24,
+                    circular: true,
+                    customGlyph: (color) =>
+                        _ThinRowGlyph(_SidebarRowGlyph.stash, color: color),
                     onTap: save,
-                  ),
-                if (!thread.archived && onDetach == null)
-                  SidebarIconButton(
-                    icon: thread.pinned
-                        ? Icons.push_pin
-                        : Icons.push_pin_outlined,
-                    tooltip: thread.pinned
-                        ? l10n.sidebarUnpin
-                        : l10n.sidebarPin,
-                    size: 20,
-                    onTap: onPin,
                   ),
                 SidebarIconButton(
                   icon: thread.archived
@@ -4618,8 +4625,42 @@ class _ThreadRow extends StatelessWidget {
                   tooltip: thread.archived
                       ? l10n.sidebarUnarchive
                       : l10n.sidebarArchive,
-                  size: 20,
+                  size: 24,
+                  circular: true,
+                  customGlyph: (color) => _ThinRowGlyph(
+                    thread.archived
+                        ? _SidebarRowGlyph.unarchive
+                        : _SidebarRowGlyph.archive,
+                    color: color,
+                  ),
                   onTap: onArchive,
+                ),
+                if (!thread.archived && onDetach == null)
+                  SidebarIconButton(
+                    icon: thread.pinned
+                        ? Icons.push_pin
+                        : Icons.push_pin_outlined,
+                    tooltip: thread.pinned
+                        ? l10n.sidebarUnpin
+                        : l10n.sidebarPin,
+                    size: 24,
+                    circular: true,
+                    customGlyph: (color) => _ThinRowGlyph(
+                      thread.pinned
+                          ? _SidebarRowGlyph.pinned
+                          : _SidebarRowGlyph.pin,
+                      color: color,
+                    ),
+                    onTap: onPin,
+                  ),
+                SidebarIconButton(
+                  icon: Icons.more_vert_rounded,
+                  tooltip: l10n.sidebarMoreActions,
+                  size: 24,
+                  circular: true,
+                  customGlyph: (color) =>
+                      _ThinRowGlyph(_SidebarRowGlyph.moreVert, color: color),
+                  onTap: onOpenMenu,
                 ),
               ],
             ),
@@ -4652,7 +4693,7 @@ class _ThreadRow extends StatelessWidget {
             ),
           ),
         ),
-      const GiveWay(SizedBox(width: 2)),
+      const GiveWay(SizedBox(width: 1)),
     ];
   }
 }
@@ -4914,7 +4955,7 @@ class _Dot extends StatelessWidget {
   }
 }
 
-/// Small square icon button with a hover fill.
+/// Small square or circular icon button with a hover fill.
 class SidebarIconButton extends StatelessWidget {
   const SidebarIconButton({
     super.key,
@@ -4922,12 +4963,18 @@ class SidebarIconButton extends StatelessWidget {
     required this.tooltip,
     required this.onTap,
     this.size = 24,
+    this.circular = false,
+    this.hoverColor,
+    this.customGlyph,
     this.command,
     this.keyContext = ChatKeys.chatLayout,
     this.spinning = false,
   });
 
   final IconData icon;
+  final bool circular;
+  final Color? hoverColor;
+  final Widget Function(Color color)? customGlyph;
 
   /// Its icon turning: what it started still goes on.
   final bool spinning;
@@ -4961,31 +5008,171 @@ class SidebarIconButton extends StatelessWidget {
         label: tooltip,
         child: HoverBuilder(
           cursor: SystemMouseCursors.click,
-          builder: (context, hovered) => GestureDetector(
-            onTap: onTap,
-            child: Container(
-              width: size,
-              height: size,
-              decoration: BoxDecoration(
-                color: hovered
-                    ? themeColors['toolbar.hoverBackground']
-                    : Colors.transparent,
-                borderRadius: BorderRadius.circular(5),
+          builder: (context, hovered) {
+            final dark = themeColors.dark;
+            final fillColor = hovered
+                ? (hoverColor ??
+                      (circular
+                          ? (dark
+                                ? Colors.white.withValues(alpha: 0.17)
+                                : Colors.black.withValues(alpha: 0.135))
+                          : themeColors['toolbar.hoverBackground']))
+                : Colors.transparent;
+            final iconColor = hovered ? AppColors.text : AppColors.textMuted;
+            final baseIcon = AppIcon(
+              icon,
+              size: size * 0.65,
+              color: iconColor,
+            );
+            final glyph = switch (customGlyph) {
+              final builder? => Stack(
+                alignment: Alignment.center,
+                children: [
+                  Opacity(opacity: 0, child: baseIcon),
+                  IgnorePointer(child: builder(iconColor)),
+                ],
               ),
-              child: switch (AppIcon(
-                icon,
-                size: size * 0.65,
-                color: hovered ? AppColors.text : AppColors.textMuted,
-              )) {
-                final icon when spinning => IdeSpinning(icon),
-                final icon => icon,
-              },
-            ),
-          ),
+              null => baseIcon,
+            };
+            return GestureDetector(
+              onTap: onTap,
+              child: Container(
+                width: size,
+                height: size,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: fillColor,
+                  shape: circular ? BoxShape.circle : BoxShape.rectangle,
+                  borderRadius: circular ? null : BorderRadius.circular(5),
+                ),
+                child: spinning ? IdeSpinning(glyph) : glyph,
+              ),
+            );
+          },
         ),
       ),
     );
   }
+}
+
+enum _SidebarRowGlyph {
+  archive,
+  unarchive,
+  pin,
+  pinned,
+  stash,
+  moreVert,
+  plus,
+}
+
+class _ThinRowGlyph extends StatelessWidget {
+  const _ThinRowGlyph(this.glyph, {required this.color});
+
+  final _SidebarRowGlyph glyph;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return CustomPaint(
+      size: const Size.square(14),
+      painter: _ThinRowGlyphPainter(glyph: glyph, color: color),
+    );
+  }
+}
+
+class _ThinRowGlyphPainter extends CustomPainter {
+  const _ThinRowGlyphPainter({required this.glyph, required this.color});
+
+  final _SidebarRowGlyph glyph;
+  final Color color;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final stroke = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.2
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round;
+
+    switch (glyph) {
+      case _SidebarRowGlyph.archive || _SidebarRowGlyph.unarchive:
+        final box = RRect.fromRectAndRadius(
+          const Rect.fromLTRB(2.1, 2.2, 11.9, 11.8),
+          const Radius.circular(1.7),
+        );
+        canvas.drawRRect(box, stroke);
+        canvas.drawLine(const Offset(2.1, 4.9), const Offset(11.9, 4.9), stroke);
+        final arrow = Path();
+        if (glyph == _SidebarRowGlyph.archive) {
+          canvas.drawLine(const Offset(7.0, 6.3), const Offset(7.0, 9.9), stroke);
+          arrow
+            ..moveTo(5.45, 8.45)
+            ..lineTo(7.0, 10.0)
+            ..lineTo(8.55, 8.45);
+        } else {
+          canvas.drawLine(const Offset(7.0, 10.0), const Offset(7.0, 6.4), stroke);
+          arrow
+            ..moveTo(5.45, 7.95)
+            ..lineTo(7.0, 6.4)
+            ..lineTo(8.55, 7.95);
+        }
+        canvas.drawPath(arrow, stroke);
+
+      case _SidebarRowGlyph.pin || _SidebarRowGlyph.pinned:
+        canvas.drawLine(const Offset(4.4, 2.3), const Offset(9.6, 2.3), stroke);
+        final body = Path()
+          ..moveTo(5.2, 2.3)
+          ..lineTo(5.2, 5.7)
+          ..lineTo(3.7, 7.6)
+          ..lineTo(3.7, 8.4)
+          ..lineTo(10.3, 8.4)
+          ..lineTo(10.3, 7.6)
+          ..lineTo(8.8, 5.7)
+          ..lineTo(8.8, 2.3)
+          ..close();
+        if (glyph == _SidebarRowGlyph.pinned) {
+          canvas.drawPath(
+            body,
+            Paint()
+              ..color = color.withValues(alpha: 0.28)
+              ..style = PaintingStyle.fill,
+          );
+        }
+        canvas.drawPath(body, stroke);
+        canvas.drawLine(const Offset(7.0, 8.4), const Offset(7.0, 12.1), stroke);
+
+      case _SidebarRowGlyph.stash:
+        final mark = Path()
+          ..moveTo(3.6, 3.4)
+          ..quadraticBezierTo(3.6, 2.2, 4.8, 2.2)
+          ..lineTo(9.2, 2.2)
+          ..quadraticBezierTo(10.4, 2.2, 10.4, 3.4)
+          ..lineTo(10.4, 11.8)
+          ..lineTo(7.0, 9.45)
+          ..lineTo(3.6, 11.8)
+          ..close();
+        canvas.drawPath(mark, stroke);
+        canvas.drawLine(const Offset(7.0, 4.4), const Offset(7.0, 7.2), stroke);
+        canvas.drawLine(const Offset(5.6, 5.8), const Offset(8.4, 5.8), stroke);
+
+      case _SidebarRowGlyph.moreVert:
+        final dotPaint = Paint()
+          ..color = color
+          ..style = PaintingStyle.fill;
+        for (final y in const [3.7, 7.0, 10.3]) {
+          canvas.drawCircle(Offset(7.0, y), 1.0, dotPaint);
+        }
+
+      case _SidebarRowGlyph.plus:
+        canvas.drawLine(const Offset(7.0, 3.3), const Offset(7.0, 10.7), stroke);
+        canvas.drawLine(const Offset(3.3, 7.0), const Offset(10.7, 7.0), stroke);
+    }
+  }
+
+  @override
+  bool shouldRepaint(_ThinRowGlyphPainter oldDelegate) =>
+      oldDelegate.glyph != glyph || oldDelegate.color != color;
 }
 
 /// Update, beside the settings' gear while an update waits: a pill in the
