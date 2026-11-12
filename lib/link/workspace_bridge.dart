@@ -299,6 +299,11 @@ class WorkspaceBridge {
       unread: groups.unread(group.id),
       last: last,
       updatedAt: last?.at ?? group.created,
+      holder: groups.relay(group.id).holder,
+      passesLeft: groups.relay(group.id).left,
+      passes: group.passes,
+      rules: group.rules,
+      gap: group.gap,
     );
   }
 
@@ -369,11 +374,13 @@ class WorkspaceBridge {
       model: bots.modelOf(bot),
       assistant: bot.assistant,
       chatOnly: bot.chatOnly,
+      writesFirst: bot.writesFirst,
       session: session,
       status: bots.typing(bot) ? BotStatus.typing : BotStatus.idle,
       unread: bots.unread(bot),
       last: bots.lastLine(bot),
-      updatedAt: thread?.updatedAt,
+      // Its chat's, not its groups'.
+      updatedAt: bots.chattedAt(bot),
       notices: bots.notices(bot),
     );
   }
@@ -736,6 +743,7 @@ class WorkspaceBridge {
           avatarImage: _avatarImage(params['avatarImage']),
           // Not said (a phone from before): as it was.
           chatOnly: params['chatOnly'] as bool?,
+          writesFirst: params['writesFirst'] as bool?,
         );
         return {'bot': _linkBot(bots, saved).toJson()};
       case LinkMethods.botAvatar:
@@ -778,6 +786,9 @@ class WorkspaceBridge {
             for (final member in (params['members'] as List?) ?? const [])
               if (member is String) member,
           ],
+          passes: (params['passes'] as num?)?.toInt(),
+          rules: params['rules'] as String?,
+          gap: (params['gap'] as num?)?.toInt(),
         );
         return {'group': _linkGroup(_groups(), group).toJson()};
       case LinkMethods.deleteGroup:
@@ -812,7 +823,12 @@ class WorkspaceBridge {
           if (_taken[key] case final taken?) return taken;
         }
         final answer = Future<Object?>.value({
-          'seq': _groups().send(group.id, text: text, images: images),
+          'seq': _groups().send(
+            group.id,
+            text: text,
+            images: images,
+            ref: (params['ref'] as num?)?.toInt(),
+          ),
         });
         if (key != null) {
           _taken[key] = answer;

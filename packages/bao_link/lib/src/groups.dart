@@ -4,6 +4,17 @@
 /// Who sent a group's message that is the user's.
 const linkGroupUser = 'user';
 
+/// Who sent a group's message that is the app's: who joined or left, as
+/// a line of its own ([LinkGroupMessage.text], plain).
+const linkGroupApp = '@app';
+
+/// How many times a group's conversation may be passed on after each of
+/// the user's messages, unless it says ([LinkGroup.passes]).
+const linkGroupPasses = 8;
+
+/// The fewest it may be set to.
+const linkGroupLeastPasses = 2;
+
 /// A group chat of the user and some of their bots ([members], by their
 /// ids). Its messages are the desktop's, sent as they come
 /// ([LinkEvents.group]).
@@ -16,6 +27,11 @@ class LinkGroup {
     this.unread = 0,
     this.last,
     this.updatedAt,
+    this.holder,
+    this.passesLeft = 0,
+    this.passes = linkGroupPasses,
+    this.rules = '',
+    this.gap = 0,
   });
 
   factory LinkGroup.fromJson(Map<String, Object?> json) => LinkGroup(
@@ -38,6 +54,11 @@ class LinkGroup {
       final num ms => DateTime.fromMillisecondsSinceEpoch(ms.toInt()),
       _ => null,
     },
+    holder: json['holder'] as String?,
+    passesLeft: (json['passesLeft'] as num?)?.toInt() ?? 0,
+    passes: (json['passes'] as num?)?.toInt() ?? linkGroupPasses,
+    rules: json['rules'] as String? ?? '',
+    gap: (json['gap'] as num?)?.toInt() ?? 0,
   );
 
   final String id;
@@ -56,6 +77,24 @@ class LinkGroup {
   final LinkGroupMessage? last;
   final DateTime? updatedAt;
 
+  /// The bot that has its conversation now, if one does: one speaks at
+  /// a time, and passes it on; and how many times it may still be passed.
+  final String? holder;
+  final int passesLeft;
+
+  /// How many times its conversation may be passed on after each of the
+  /// user's messages: [linkGroupLeastPasses] at least; 0, as many as the
+  /// bots like.
+  final int passes;
+
+  /// Its rules, as the user (or the assistant) wrote them: what its bots
+  /// keep to there.
+  final String rules;
+
+  /// How many seconds a bot waits, handed the conversation by another,
+  /// before it answers: 0, at once.
+  final int gap;
+
   Map<String, Object?> toJson() => {
     'id': id,
     'name': name,
@@ -64,14 +103,20 @@ class LinkGroup {
     if (unread > 0) 'unread': unread,
     'last': ?last?.toJson(),
     'updated': ?updatedAt?.millisecondsSinceEpoch,
+    'holder': ?holder,
+    if (passesLeft > 0) 'passesLeft': passesLeft,
+    if (passes != linkGroupPasses) 'passes': passes,
+    if (rules.isNotEmpty) 'rules': rules,
+    if (gap > 0) 'gap': gap,
   };
 }
 
 /// One of a group's messages: the [seq]th, sent at [at] by [from] (a bot's
-/// id, or [linkGroupUser]). The user's [text] as they wrote it; a bot's as
+/// id, [linkGroupUser], or [linkGroupApp]). The user's [text] as they wrote it; a bot's as
 /// its reply has it, its messages and narration in their tags (see the
 /// chat codec's bot parts). [images], the names of its pictures' files,
-/// asked for with [LinkMethods.groupImage].
+/// asked for with [LinkMethods.groupImage]. The user's may quote one
+/// before it ([ref], its number); a bot's quote in its tags.
 class LinkGroupMessage {
   const LinkGroupMessage({
     required this.seq,
@@ -79,6 +124,7 @@ class LinkGroupMessage {
     required this.from,
     this.text = '',
     this.images = const [],
+    this.ref,
   });
 
   factory LinkGroupMessage.fromJson(Map<String, Object?> json) =>
@@ -93,6 +139,7 @@ class LinkGroupMessage {
           for (final image in (json['images'] as List?) ?? const [])
             if (image is String) image,
         ],
+        ref: (json['ref'] as num?)?.toInt(),
       );
 
   final int seq;
@@ -100,8 +147,12 @@ class LinkGroupMessage {
   final String from;
   final String text;
   final List<String> images;
+  final int? ref;
 
   bool get mine => from == linkGroupUser;
+
+  /// A line of the app's: who joined or left.
+  bool get notice => from == linkGroupApp;
 
   Map<String, Object?> toJson() => {
     'seq': seq,
@@ -109,5 +160,6 @@ class LinkGroupMessage {
     'from': from,
     if (text.isNotEmpty) 'text': text,
     if (images.isNotEmpty) 'images': images,
+    'ref': ?ref,
   };
 }

@@ -6,6 +6,7 @@ import 'package:bao_remote/claude.dart' show ClaudeHistoryPage;
 import 'package:baocode/chat/chat_session.dart' show ComposerMessage, UserPlace;
 import 'package:baocode/chat/chat_models.dart';
 import 'package:baocode/bots/bot_folders.dart';
+import 'package:baocode/bots/bot_groups.dart';
 import 'package:baocode/bots/bots.dart';
 import 'package:baocode/kernel/agent_kernel.dart';
 import 'package:baocode/kernel/claude_code/claude_code_kernel.dart';
@@ -626,10 +627,7 @@ void main() {
     final bots = Bots(workspace: workspace, folders: MemoryBotFolders());
     await bots.start();
     addTearDown(bots.dispose);
-    bots.groups
-      ..quiet = Duration.zero
-      ..stagger = Duration.zero
-      ..tell = (_, _, _) {};
+    bots.groups.tell = (_, _, _) {};
     final mia = bots.save(name: 'Mia', identity: '', abilities: {});
     final (phone, desktop) = await peers();
     final withBots = WorkspaceBridge(
@@ -643,11 +641,13 @@ void main() {
       ((await withBots.handle(LinkMethods.saveGroup, {
                 'name': '江湖',
                 'members': ['assistant', mia.id],
+                'gap': 30,
               }))!
               as Map)['group']
           as Map<String, Object?>,
     );
     expect(made.members, ['assistant', mia.id]);
+    expect(made.gap, 30);
     expect(withBots.state().groups.single.name, '江湖');
     final png = base64.encode([137, 80, 78, 71]);
     final send = {
@@ -662,6 +662,10 @@ void main() {
     // Sent again, as when the link dropped: once.
     expect(await withBots.handle(LinkMethods.sendGroup, send), {'seq': 1});
     expect(withBots.state().groups.single.unread, 0);
+    // Mia has its conversation, as the phone sees.
+    final room = withBots.state().groups.single;
+    expect(['assistant', mia.id], contains(room.holder));
+    expect(room.passesLeft, BotGroups.passes);
     final opened =
         (await withBots.handle(LinkMethods.openGroup, {'group': made.id}))!
             as Map;
