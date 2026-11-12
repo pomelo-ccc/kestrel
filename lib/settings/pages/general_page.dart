@@ -13,6 +13,7 @@ import '../../kernel/claude_code/claude_path_setting.dart';
 import '../../kernel/commit_attribution.dart';
 import '../../kernel/prompt_suggestions.dart';
 import '../../chat/composer/composer_polish.dart' show ComposerPolishSetting;
+import '../../chat/rewind_files_setting.dart';
 import '../../chat/widgets/pixel_loader.dart';
 import '../../chat/widgets/turn_footer.dart'
     show LiveTurnStatsSetting, SessionReplaySetting;

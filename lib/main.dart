@@ -27,6 +27,7 @@ import 'chat/user_message_style.dart';
 import 'chat/widgets/chat_minimap.dart';
 import 'chat/widgets/pixel_loader.dart';
 import 'chat/resume_after_reset.dart';
+import 'chat/rewind_files_setting.dart';
 import 'chat/widgets/turn_footer.dart'
     show LiveTurnStatsSetting, SessionReplaySetting;
 import 'customize/customization_store.dart';
@@ -1060,65 +1061,36 @@ class _BaoCodeAppState extends State<BaoCodeApp>
 
   /// A window's app: its own navigator, dialogs, overlay and focus; what
   /// it shows built anew as its folder changes.
-  Widget _app(AppWindow window) => MaterialApp(
-    title: 'Byte',
-    debugShowCheckedModeBanner: false,
-    theme: buildAppTheme(),
-    themeAnimationDuration: Duration.zero,
-    scrollBehavior: const BaoScrollBehavior(),
-    builder: (context, child) => ValueListenableBuilder<int>(
-      valueListenable: CodeFont.uiScale,
-      builder: (context, percent, scaled) {
-        // The whole window is zoomed, not its text alone: its fixed heights,
-        // icons and gaps grow with the text they hold.
-        final zoom = percent / 100;
-        final media = UiZoom.zoomed(MediaQuery.of(context), zoom);
-        // The traffic lights in the middle of the title bar, as it grows.
-        WindowControls.setTitleBarDrop(
-          (AppMetrics.titleBarHeight * zoom - AppMetrics.nativeTitleBarHeight) /
-              2,
-          viewId: window.viewId,
-        );
-        // Windows blurs glyphs drawn at a fractional pixel size.
-        TextScaler snapped(TextScaler scaler) => AppPlatform.isWindows
-            ? PixelSnappedTextScaler(scaler, media.devicePixelRatio)
-            : scaler;
-        final system = media.textScaler;
-        return SystemTextScale(
-          // A terminal at a size of its own: the zoom taken back off.
-          scaler: snapped(
-            zoom == 1 ? system : TextScaler.linear(system.scale(1) / zoom),
-          ),
-          child: MediaQuery(
-            data: media.copyWith(textScaler: snapped(system)),
-            child: UiZoom(scale: zoom, child: scaled),
-          ),
-        );
-      },
-      child: ValueListenableBuilder<bool>(
-        valueListenable: Islands.enabled,
-        builder: (context, islands, child) =>
-            IslandStyle(on: islands, child: child!),
-        child: _themeTransition.wrap(
-          child ?? const SizedBox.shrink(),
-          canvas: AppColors.windowCanvas,
-        ),
-      ),
-    ),
-    locale: _locale.locale,
-    supportedLocales: AppLocale.supportedLocales,
-    localizationsDelegates: const [
-      AppLocalizations.delegate,
-      GlobalMaterialLocalizations.delegate,
-      GlobalCupertinoLocalizations.delegate,
-      GlobalWidgetsLocalizations.delegate,
-    ],
-    home: window.isStash
-        ? Material(
-            type: MaterialType.transparency,
-            child: StashPanelView(
-              controller: StashController.current!,
-              viewId: window.viewId,
+  Widget _app(AppWindow window) => _withoutSemantics(
+    MaterialApp(
+      title: 'Byte',
+      debugShowCheckedModeBanner: false,
+      theme: buildAppTheme(),
+      themeAnimationDuration: Duration.zero,
+      scrollBehavior: const BaoScrollBehavior(),
+      builder: (context, child) => ValueListenableBuilder<int>(
+        valueListenable: CodeFont.uiScale,
+        builder: (context, percent, scaled) {
+          // The whole window is zoomed, not its text alone: its fixed heights,
+          // icons and gaps grow with the text they hold.
+          final zoom = percent / 100;
+          final media = UiZoom.zoomed(MediaQuery.of(context), zoom);
+          // The traffic lights in the middle of the title bar, as it grows.
+          WindowControls.setTitleBarDrop(
+            (AppMetrics.titleBarHeight * zoom -
+                    AppMetrics.nativeTitleBarHeight) /
+                2,
+            viewId: window.viewId,
+          );
+          // Windows blurs glyphs drawn at a fractional pixel size.
+          TextScaler snapped(TextScaler scaler) => AppPlatform.isWindows
+              ? PixelSnappedTextScaler(scaler, media.devicePixelRatio)
+              : scaler;
+          final system = media.textScaler;
+          return SystemTextScale(
+            // A terminal at a size of its own: the zoom taken back off.
+            scaler: snapped(
+              zoom == 1 ? system : TextScaler.linear(system.scale(1) / zoom),
             ),
             child: MediaQuery(
               data: media.copyWith(textScaler: snapped(system)),
@@ -1126,9 +1098,14 @@ class _BaoCodeAppState extends State<BaoCodeApp>
             ),
           );
         },
-        child: _themeTransition.wrap(
-          child ?? const SizedBox.shrink(),
-          canvas: AppColors.windowCanvas,
+        child: ValueListenableBuilder<bool>(
+          valueListenable: Islands.enabled,
+          builder: (context, islands, child) =>
+              IslandStyle(on: islands, child: child!),
+          child: _themeTransition.wrap(
+            child ?? const SizedBox.shrink(),
+            canvas: AppColors.windowCanvas,
+          ),
         ),
       ),
       locale: _locale.locale,
