@@ -2682,7 +2682,8 @@ class _KeycapBadge extends StatelessWidget {
 }
 
 /// Polish, Enhance prompt as it says (see [ChatComposerState._polish]): a
-/// sparkle, spinning while the model answers; faint with no words to polish.
+/// sparkle, spinning while the model answers; faint with no words to polish,
+/// yet still responsive on hover with a circular highlight and status tooltip.
 class _PolishButton extends StatelessWidget {
   const _PolishButton({
     required this.busy,
@@ -2697,35 +2698,86 @@ class _PolishButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
-    final colors = themeColors;
+    final dark = themeColors.dark;
     final active = enabled && !busy;
+    final isZh = l10n.localeName.startsWith('zh');
+    final hoverBase = active
+        ? Color.lerp(
+            dark ? Colors.white : Colors.black,
+            AppColors.accent,
+            0.42,
+          )!
+        : (dark ? Colors.white : Colors.black);
+    final hoverAlpha = active ? (dark ? 0.19 : 0.13) : (dark ? 0.13 : 0.09);
+
     return IdeHover(
-      message: busy
-          ? l10n.composerPolishing
-          : '${l10n.composerPolishHint} (⌘E · ⌘Z 撤销)',
+      position: IdeHoverPosition.above,
+      message: busy ? l10n.composerPolishing : l10n.composerPolishHint,
+      content: busy
+          ? null
+          : ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 260),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '${l10n.composerPolish} (⌘E)',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 12,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    enabled
+                        ? (isZh
+                              ? '用辅助模型将草稿改写得更清晰具体（⌘Z 可撤销）'
+                              : l10n.composerPolishHint)
+                        : (isZh
+                              ? '输入内容后点击可一键润色增强提示词'
+                              : 'Type a prompt first to enhance it'),
+                    style: TextStyle(
+                      color: AppColors.textMuted,
+                      fontSize: 11.5,
+                    ),
+                  ),
+                ],
+              ),
+            ),
       child: HoverBuilder(
         cursor: active ? SystemMouseCursors.click : SystemMouseCursors.basic,
         builder: (context, hovered) {
+          final iconColor = busy
+              ? AppColors.accent
+              : active
+              ? (hovered ? AppColors.accent : AppColors.textMuted)
+              : (hovered ? AppColors.textMuted : AppColors.textFaint);
           final icon = Icon(
             busy ? Codicons.loading : Codicons.sparkle,
-            size: 13.5,
-            color: enabled
-                ? (hovered ? AppColors.text : AppColors.textMuted)
-                : AppColors.textFaint,
+            size: 14,
+            color: iconColor,
           );
           return GestureDetector(
             // Keeps the editor's focus.
             onTapDown: (_) {},
             onTap: active ? onTap : null,
-            child: Container(
-              width: 25,
-              height: 25,
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 130),
+              width: 26,
+              height: 26,
               alignment: Alignment.center,
               decoration: BoxDecoration(
-                color: active && hovered
-                    ? colors['toolbar.hoverBackground']
-                    : null,
-                borderRadius: BorderRadius.circular(6.5),
+                color: hovered
+                    ? hoverBase.withValues(alpha: hoverAlpha)
+                    : hoverBase.withValues(alpha: 0),
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: active && hovered
+                      ? AppColors.accent.withValues(alpha: dark ? 0.36 : 0.28)
+                      : AppColors.accent.withValues(alpha: 0),
+                  width: 0.85,
+                ),
               ),
               child: busy ? IdeSpinning(icon) : icon,
             ),
