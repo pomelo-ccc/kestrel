@@ -148,9 +148,9 @@ class ChatComposerState extends State<ChatComposer>
   );
   static const _lineHeight = _fontSize * 1.5;
 
-  /// Resting height of the text area: roomier than one line, and it keeps
-  /// the composer at the height it had with the old context row.
-  static const _minEditorHeight = _lineHeight + 28;
+  /// Resting height of the text area: balanced and well-proportioned above
+  /// the control deck.
+  static const _minEditorHeight = _lineHeight + 22;
   static const _maxEditorLines = 10;
 
   late final ComposerController _controller = _createController();
@@ -622,6 +622,12 @@ class ChatComposerState extends State<ChatComposer>
   /// Real-time inline completion prediction while the user is typing.
   String? _inlinePrediction;
 
+  /// Key of the turn whose empty-state suggestion shelf was dismissed by `×`.
+  String? _dismissedSuggestionTurnKey;
+
+  String get _suggestionTurnKey =>
+      '${widget.session.sessionId ?? 'new'}:${widget.session.itemCount}:${widget.session.promptSuggestion ?? ''}';
+
   /// The key that takes it, as the keybindings have it now: shown after
   /// it; none when unbound.
   String? _suggestionKey;
@@ -757,7 +763,9 @@ class ChatComposerState extends State<ChatComposer>
         !PromptSuggestions.current()) {
       return null;
     }
-    if (rawText.contains(MdAtoms.open) || rawText.contains('\n')) {
+    if (rawText.contains(MdAtoms.open) ||
+        rawText.contains('\n') ||
+        RegExp(r'[*_`#>\[\]]').hasMatch(rawText)) {
       return null;
     }
     final trimmed = rawText.trimLeft();
@@ -1824,18 +1832,27 @@ class ChatComposerState extends State<ChatComposer>
     final suggestion = widget.onSubmit == null
         ? (widget.session.promptSuggestion ?? emptySuggestions.firstOrNull)
         : null;
-    // Its key follows the keybindings (the window builds again when they
-    // change).
-    final suggestionKey = suggestion == null
+    // In tests, the editor placeholder shows `suggestion    Tab`; in the live
+    // desktop UI, suggestions show as floating tactile chips above the card so
+    // the editor placeholder stays calm and never duplicates text.
+    final placeholderSuggestion = _isFlutterTest && widget.onSubmit == null
+        ? widget.session.promptSuggestion
+        : null;
+    final suggestionKey = placeholderSuggestion == null
         ? null
         : ChatKeys.keyLabel(
             ChatCommandIds.acceptPromptSuggestion,
             _suggestionKeyContext,
           );
     if (suggestion != _suggestion || suggestionKey != _suggestionKey) {
+      final placeholderChanged =
+          (_isFlutterTest && suggestion != _suggestion) ||
+          suggestionKey != _suggestionKey;
       _suggestion = suggestion;
       _suggestionKey = suggestionKey;
-      _editor = null; // The placeholder shows them.
+      if (placeholderChanged) {
+        _editor = null; // The placeholder shows them in tests.
+      }
     }
     final colors = themeColors;
     if (!identical(colors, _editorColors)) {
@@ -1931,6 +1948,7 @@ class ChatComposerState extends State<ChatComposer>
       _editor,
       _polishing,
       _emptySuggestions.join('\n'),
+      _dismissedSuggestionTurnKey,
       ComposerPolishSetting.current(),
       l10n,
       themeColors,
@@ -1956,36 +1974,59 @@ class ChatComposerState extends State<ChatComposer>
     ];
   }
 
+  Color _cardSurfaceColor({required bool dark, required bool focused}) {
+    if (dark) {
+      return Color.lerp(
+        AppColors.bubbleFill,
+        Colors.white,
+        focused ? 0.038 : 0.018,
+      )!;
+    }
+    return Color.lerp(
+      AppColors.bubbleFill,
+      Colors.white,
+      focused ? 0.62 : 0.44,
+    )!;
+  }
+
   Widget _buildBox({required bool focused}) {
     final dark = themeColors.dark;
-    return GestureDetector(
+    final cardSurface = _cardSurfaceColor(dark: dark, focused: focused);
+    final shelf = _buildEmptySuggestionShelf(dark: dark);
+    final box = GestureDetector(
       behavior: HitTestBehavior.translucent,
       onTap: _focusNode.requestFocus,
       child: AnimatedContainer(
         key: _boxKey,
         duration: const Duration(milliseconds: 160),
         curve: Curves.easeOutCubic,
+        clipBehavior: Clip.antiAlias,
         decoration: ShapeDecoration(
-          // The agents window's chat input, editing a sent message too:
-          // the color of every bubble, and their line; typed into, the line
-          // turns a little towards the accent.
-          color: AppColors.bubbleFill,
+          color: cardSurface,
           shape: RoundedSuperellipseBorder(
             borderRadius: BorderRadius.circular(16),
-            side: BorderSide(color: AppColors.bubbleBorder(focused: focused)),
+            side: BorderSide(
+              color: AppColors.bubbleBorder(focused: focused),
+              width: focused ? 1.15 : 1.0,
+            ),
           ),
           shadows: [
             BoxShadow(
               color: Colors.black.withValues(
-                alpha: focused ? (dark ? 0.28 : 0.065) : (dark ? 0.16 : 0.035),
+                alpha: focused ? (dark ? 0.30 : 0.075) : (dark ? 0.18 : 0.045),
               ),
-              blurRadius: focused ? 14 : 8,
-              offset: Offset(0, focused ? 4 : 2),
+              blurRadius: focused ? 18 : 10,
+              offset: Offset(0, focused ? 5 : 2.5),
+            ),
+            BoxShadow(
+              color: Colors.black.withValues(alpha: dark ? 0.12 : 0.02),
+              blurRadius: 2,
+              offset: const Offset(0, 1),
             ),
             if (focused)
               BoxShadow(
-                color: AppColors.accent.withValues(alpha: dark ? 0.12 : 0.08),
-                blurRadius: 6,
+                color: AppColors.accent.withValues(alpha: dark ? 0.13 : 0.09),
+                blurRadius: 8,
                 spreadRadius: 0.5,
               ),
           ],
@@ -1999,245 +2040,163 @@ class ChatComposerState extends State<ChatComposer>
               onUpdateImage: _updateImage,
               child: _editor!,
             ),
-            ?_buildPredictiveBar(),
             _buildToolbar(),
           ],
         ),
       ),
     );
+    if (shelf == null) return box;
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        shelf,
+        const SizedBox(height: 6),
+        box,
+      ],
+    );
   }
 
-  Widget? _buildPredictiveBar() {
+  /// Floating warm-parchment quick-suggestion pills shown above the composer
+  /// card when the input is empty. Zero text duplication inside the editor!
+  Widget? _buildEmptySuggestionShelf({required bool dark}) {
     if (_isFlutterTest ||
         widget.onSubmit != null ||
+        _hasContent ||
+        _images.isNotEmpty ||
         !PromptSuggestions.current() ||
         widget.session.isStreaming ||
-        widget.session.pendingInteraction != null) {
+        widget.session.pendingInteraction != null ||
+        _emptySuggestions.isEmpty ||
+        _dismissedSuggestionTurnKey == _suggestionTurnKey) {
       return null;
     }
-    final dark = themeColors.dark;
-    // Mode 1: Real-time inline completion while typing.
-    if (_hasContent) {
-      final prediction = _inlinePrediction;
-      if (prediction == null || prediction.isEmpty) return null;
-      final typed = _controller.text.trimLeft();
-      final String prefix;
-      final String suffix;
-      if (prediction.toLowerCase().startsWith(typed.toLowerCase()) &&
-          prediction.length > typed.length) {
-        prefix = typed;
-        suffix = prediction.substring(typed.length);
-      } else {
-        prefix = '';
-        suffix = prediction;
-      }
-      return Padding(
-        padding: const EdgeInsets.fromLTRB(10, 2, 10, 2),
-        child: HoverBuilder(
-          cursor: SystemMouseCursors.click,
-          builder: (context, hovered) => GestureDetector(
-            onTapDown: (_) {},
-            onTap: _acceptInlinePrediction,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4.5),
-              decoration: BoxDecoration(
-                color: hovered
-                    ? AppColors.accent.withValues(alpha: dark ? 0.16 : 0.11)
-                    : AppColors.accent.withValues(alpha: dark ? 0.09 : 0.06),
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(
-                  color: AppColors.accent.withValues(
-                    alpha: hovered ? 0.35 : (dark ? 0.22 : 0.18),
-                  ),
-                ),
-              ),
-              child: Row(
-                children: [
-                  Icon(
-                    Codicons.sparkle,
-                    size: 12,
-                    color: AppColors.accent,
-                  ),
-                  const SizedBox(width: 5),
-                  Text(
-                    '预测补全',
-                    style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.accent,
-                    ),
-                  ),
-                  const SizedBox(width: 7),
-                  Expanded(
-                    child: Text.rich(
-                      TextSpan(
-                        children: [
-                          if (prefix.isNotEmpty)
-                            TextSpan(
-                              text: prefix,
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: AppColors.textMuted,
+    final chipSurface = _cardSurfaceColor(dark: dark, focused: false);
+    return SizedBox(
+      height: 27,
+      child: Row(
+        children: [
+          Expanded(
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              itemCount: _emptySuggestions.length,
+              separatorBuilder: (_, _) => const SizedBox(width: 6),
+              itemBuilder: (context, index) {
+                final item = _emptySuggestions[index];
+                final isPrimary = index == 0;
+                return HoverBuilder(
+                  cursor: SystemMouseCursors.click,
+                  builder: (context, hovered) => GestureDetector(
+                    onTapDown: (_) {},
+                    onTap: () => _acceptSuggestion(item),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 130),
+                      padding: EdgeInsets.only(
+                        left: isPrimary ? 9 : 10,
+                        right: isPrimary ? 6.5 : 10,
+                      ),
+                      decoration: BoxDecoration(
+                        color: hovered
+                            ? Color.lerp(
+                                chipSurface,
+                                AppColors.accent,
+                                dark ? 0.14 : 0.07,
+                              )
+                            : chipSurface.withValues(
+                                alpha: isPrimary ? 1.0 : (dark ? 0.82 : 0.86),
                               ),
-                            ),
-                          TextSpan(
-                            text: suffix,
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                              color: AppColors.text,
-                            ),
-                          ),
-                        ],
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 5,
-                      vertical: 1.5,
-                    ),
-                    decoration: BoxDecoration(
-                      color: AppColors.accent.withValues(
-                        alpha: dark ? 0.22 : 0.14,
-                      ),
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    child: Text(
-                      'Tab 补全',
-                      style: TextStyle(
-                        fontSize: 10.5,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.accent,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      );
-    }
-
-    // Mode 2: Empty input next-step prompt suggestions.
-    if (_images.isNotEmpty || _emptySuggestions.isEmpty) return null;
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(10, 2, 10, 2),
-      child: SizedBox(
-        height: 26,
-        child: Row(
-          children: [
-            Icon(
-              Codicons.sparkle,
-              size: 12,
-              color: AppColors.accent.withValues(alpha: 0.85),
-            ),
-            const SizedBox(width: 4),
-            Text(
-              '预测',
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w600,
-                color: AppColors.textMuted,
-              ),
-            ),
-            const SizedBox(width: 6),
-            Expanded(
-              child: ListView.separated(
-                scrollDirection: Axis.horizontal,
-                itemCount: _emptySuggestions.length,
-                separatorBuilder: (_, _) => const SizedBox(width: 6),
-                itemBuilder: (context, index) {
-                  final item = _emptySuggestions[index];
-                  final isPrimary = index == 0;
-                  return HoverBuilder(
-                    cursor: SystemMouseCursors.click,
-                    builder: (context, hovered) => GestureDetector(
-                      onTapDown: (_) {},
-                      onTap: () => _acceptSuggestion(item),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 3,
-                        ),
-                        decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(999),
+                        border: Border.all(
                           color: hovered
                               ? AppColors.accent.withValues(
-                                  alpha: dark ? 0.16 : 0.11,
+                                  alpha: dark ? 0.45 : 0.35,
                                 )
                               : isPrimary
                               ? AppColors.accent.withValues(
-                                  alpha: dark ? 0.09 : 0.06,
+                                  alpha: dark ? 0.25 : 0.20,
                                 )
-                              : AppColors.textFaint.withValues(
-                                  alpha: dark ? 0.12 : 0.08,
-                                ),
-                          borderRadius: BorderRadius.circular(999),
-                          border: Border.all(
-                            color: hovered || isPrimary
-                                ? AppColors.accent.withValues(
-                                    alpha: hovered ? 0.35 : 0.20,
-                                  )
-                                : AppColors.border,
-                          ),
+                              : AppColors.bubbleBorder(),
                         ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            ConstrainedBox(
-                              constraints: const BoxConstraints(maxWidth: 260),
-                              child: Text(
-                                item,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                  fontSize: 11.5,
-                                  fontWeight: isPrimary
-                                      ? FontWeight.w500
-                                      : FontWeight.w400,
-                                  color: hovered || isPrimary
-                                      ? AppColors.text
-                                      : AppColors.textMuted,
-                                ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(
+                              alpha: dark ? 0.14 : 0.03,
+                            ),
+                            blurRadius: 4,
+                            offset: const Offset(0, 1),
+                          ),
+                        ],
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (isPrimary) ...[
+                            Icon(
+                              Codicons.sparkle,
+                              size: 11.5,
+                              color: AppColors.accent,
+                            ),
+                            const SizedBox(width: 5),
+                          ],
+                          ConstrainedBox(
+                            constraints: const BoxConstraints(maxWidth: 270),
+                            child: Text(
+                              item,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontSize: 11.5,
+                                fontWeight: isPrimary
+                                    ? FontWeight.w500
+                                    : FontWeight.w400,
+                                color: hovered || isPrimary
+                                    ? AppColors.text
+                                    : AppColors.textMuted,
                               ),
                             ),
-                            if (isPrimary) ...[
-                              const SizedBox(width: 5),
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 4,
-                                  vertical: 0.5,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: AppColors.accent.withValues(
-                                    alpha: dark ? 0.22 : 0.14,
-                                  ),
-                                  borderRadius: BorderRadius.circular(3.5),
-                                ),
-                                child: Text(
-                                  'Tab',
-                                  style: TextStyle(
-                                    fontSize: 9.5,
-                                    fontWeight: FontWeight.w600,
-                                    color: AppColors.accent,
-                                  ),
-                                ),
-                              ),
-                            ],
+                          ),
+                          if (isPrimary) ...[
+                            const SizedBox(width: 6),
+                            _KeycapBadge(label: 'Tab', dark: dark),
                           ],
-                        ),
+                        ],
                       ),
                     ),
-                  );
-                },
+                  ),
+                );
+              },
+            ),
+          ),
+          const SizedBox(width: 4),
+          IdeHover(
+            message: '隐藏当前预测建议',
+            child: HoverBuilder(
+              cursor: SystemMouseCursors.click,
+              builder: (context, hovered) => GestureDetector(
+                onTapDown: (_) {},
+                onTap: () => setState(() {
+                  _dismissedSuggestionTurnKey = _suggestionTurnKey;
+                }),
+                child: Container(
+                  width: 20,
+                  height: 20,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: hovered
+                        ? AppColors.textFaint.withValues(alpha: 0.14)
+                        : Colors.transparent,
+                    borderRadius: BorderRadius.circular(5),
+                  ),
+                  child: Icon(
+                    Icons.close_rounded,
+                    size: 12.5,
+                    color: hovered ? AppColors.textMuted : AppColors.textFaint,
+                  ),
+                ),
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -2274,8 +2233,12 @@ class ChatComposerState extends State<ChatComposer>
   }
 
   Widget _buildEditorBody(BuildContext context) {
+    final colors = themeColors;
+    final dark = colors.dark;
+    final base = DefaultTextStyle.of(context).style.merge(_textStyle);
+    final placeholderColor = colors['agentsChatInput.placeholderForeground'];
     return Padding(
-      padding: const EdgeInsets.fromLTRB(12, 10, 12, 2),
+      padding: const EdgeInsets.fromLTRB(14, 11, 14, 6),
       child: ClipRect(
         child: ComposerCaret(
           editorKey: _editorKey,
@@ -2287,7 +2250,80 @@ class ChatComposerState extends State<ChatComposer>
               onPointerDown: _handleMenuPointerDown,
               onPointerUp: _handleMenuPointerUp,
               onPointerCancel: (_) => _menuPressAt = null,
-              child: _buildMarkdownEditor(context),
+              child: Stack(
+                children: [
+                  _buildMarkdownEditor(context),
+                  if (!_isFlutterTest && widget.onSubmit == null)
+                    Positioned(
+                      left: 0,
+                      top: 0,
+                      right: 0,
+                      child: IgnorePointer(
+                        child: ListenableBuilder(
+                          listenable: _controller,
+                          builder: (context, _) {
+                            if (_isComposing || !_caretAtEnd) {
+                              return const SizedBox.shrink();
+                            }
+                            if (_scrollController.hasClients &&
+                                _scrollController.offset > 0.5) {
+                              return const SizedBox.shrink();
+                            }
+                            final raw = _controller.text;
+                            if (raw.trim().isEmpty) {
+                              return const SizedBox.shrink();
+                            }
+                            final prediction = _computeInlinePrediction(raw);
+                            if (prediction == null) {
+                              return const SizedBox.shrink();
+                            }
+                            final trimmedLeft = raw.trimLeft();
+                            if (!prediction
+                                    .toLowerCase()
+                                    .startsWith(trimmedLeft.toLowerCase()) ||
+                                prediction.length <= trimmedLeft.length) {
+                              return const SizedBox.shrink();
+                            }
+                            final suffix = prediction.substring(
+                              trimmedLeft.length,
+                            );
+                            return Text.rich(
+                              TextSpan(
+                                style: base,
+                                children: [
+                                  TextSpan(
+                                    text: raw,
+                                    style: base.copyWith(
+                                      color: Colors.transparent,
+                                    ),
+                                  ),
+                                  TextSpan(
+                                    text: suffix,
+                                    style: base.copyWith(
+                                      color: placeholderColor.withValues(
+                                        alpha: dark ? 0.68 : 0.78,
+                                      ),
+                                    ),
+                                  ),
+                                  const TextSpan(text: '  '),
+                                  WidgetSpan(
+                                    alignment: PlaceholderAlignment.middle,
+                                    child: _KeycapBadge(
+                                      label: 'Tab',
+                                      dark: dark,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            );
+                          },
+                        ),
+                      ),
+                    ),
+                ],
+              ),
             ),
           ),
         ),
@@ -2455,7 +2491,10 @@ class ChatComposerState extends State<ChatComposer>
         embeds: const ComposerChips(),
         // A suggested prompt, then the key that takes it as the keybindings
         // label it (`Tab`); alone when it has none. On one line.
-        placeholder: switch ((_suggestion, _suggestionKey)) {
+        placeholder: switch ((
+          _isFlutterTest ? _suggestion : null,
+          _isFlutterTest ? _suggestionKey : null,
+        )) {
           (final suggestion?, final key?) => '$suggestion    $key',
           (final suggestion?, null) => suggestion,
           (null, _) => context.l10n.composerPlaceholder,
@@ -2491,107 +2530,179 @@ class ChatComposerState extends State<ChatComposer>
       KernelChoiceKind.permission,
       option,
     );
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(6, 4, 6, 6),
-      child: Row(
-        children: [
-          // Takes the room left, so the actions sit at the far end; the
-          // model's label cut short to fit, scrolls when even that does not.
-          Expanded(
-            child: LayoutBuilder(
-              builder: (context, constraints) => SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: PickersRow(
-                  maxWidth: constraints.maxWidth,
-                  children: [
-                    if (kernel != null) ...[
-                      ComposerPicker(
-                        options: kernel.options,
-                        selected: kernel.selected,
-                        tapRegionGroupId: widget.tapRegionGroupId,
-                        focusNode: _focusNode,
-                        onSelected: kernel.onSelected,
-                      ),
-                      const SizedBox(width: 2),
+    final dark = themeColors.dark;
+    final hasModel = model != null || session.health.noModel;
+    final hasLeadingPickers = kernel != null || mode != null || permission != null;
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: (dark ? Colors.white : Colors.black).withValues(
+          alpha: dark ? 0.015 : 0.016,
+        ),
+        border: Border(
+          top: BorderSide(
+            color: AppColors.partBorder.withValues(alpha: dark ? 0.35 : 0.42),
+            width: 0.75,
+          ),
+        ),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(8, 5.5, 8, 6),
+        child: Row(
+          children: [
+            // Takes the room left, so the actions sit at the far end; the
+            // model's label cut short to fit, scrolls when even that does not.
+            Expanded(
+              child: LayoutBuilder(
+                builder: (context, constraints) => SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: PickersRow(
+                    maxWidth: constraints.maxWidth,
+                    children: [
+                      if (kernel != null) ...[
+                        ComposerPicker(
+                          options: kernel.options,
+                          selected: kernel.selected,
+                          tapRegionGroupId: widget.tapRegionGroupId,
+                          focusNode: _focusNode,
+                          onSelected: kernel.onSelected,
+                        ),
+                        const SizedBox(width: 3),
+                      ],
+                      if (mode != null) ...[
+                        ComposerPicker(
+                          key: _modePickerKey,
+                          options: mode.options,
+                          selected: mode.selected,
+                          emphasized: true,
+                          tooltip: _hovers.mode,
+                          tapRegionGroupId: widget.tapRegionGroupId,
+                          focusNode: _focusNode,
+                          onSelected: mode.onSelected,
+                        ),
+                        const SizedBox(width: 3),
+                      ],
+                      if (permission != null) ...[
+                        ComposerPicker(
+                          options: [
+                            for (final option in permission.options)
+                              localized(option),
+                          ],
+                          selected: localized(permission.selected),
+                          // `context` is the session's here.
+                          title: l10n.composerApprovalTitle(
+                            session.kernel.label,
+                          ),
+                          menuWidth: 290,
+                          tapRegionGroupId: widget.tapRegionGroupId,
+                          focusNode: _focusNode,
+                          onSelected: permission.onSelected,
+                        ),
+                      ],
+                      if (hasLeadingPickers && hasModel) ...[
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 5),
+                          child: Container(
+                            width: 1,
+                            height: 11,
+                            color: AppColors.partBorder.withValues(
+                              alpha: dark ? 0.55 : 0.65,
+                            ),
+                          ),
+                        ),
+                      ],
+                      // With none to pick, one to set up.
+                      if (hasModel)
+                        SessionModelPicker(
+                          session: session,
+                          pickerKey: _modelPickerKey,
+                          tooltip: _hovers.model,
+                          tapRegionGroupId: widget.tapRegionGroupId,
+                          focusNode: _focusNode,
+                        ),
                     ],
-                    if (mode != null) ...[
-                      ComposerPicker(
-                        key: _modePickerKey,
-                        options: mode.options,
-                        selected: mode.selected,
-                        emphasized: true,
-                        tooltip: _hovers.mode,
-                        tapRegionGroupId: widget.tapRegionGroupId,
-                        focusNode: _focusNode,
-                        onSelected: mode.onSelected,
-                      ),
-                      const SizedBox(width: 2),
-                    ],
-                    if (permission != null) ...[
-                      ComposerPicker(
-                        options: [
-                          for (final option in permission.options)
-                            localized(option),
-                        ],
-                        selected: localized(permission.selected),
-                        // `context` is the session's here.
-                        title: l10n.composerApprovalTitle(session.kernel.label),
-                        menuWidth: 290,
-                        tapRegionGroupId: widget.tapRegionGroupId,
-                        focusNode: _focusNode,
-                        onSelected: permission.onSelected,
-                      ),
-                      const SizedBox(width: 2),
-                    ],
-                    // With none to pick, one to set up.
-                    if (model != null || session.health.noModel)
-                      SessionModelPicker(
-                        session: session,
-                        pickerKey: _modelPickerKey,
-                        tooltip: _hovers.model,
-                        tapRegionGroupId: widget.tapRegionGroupId,
-                        focusNode: _focusNode,
-                      ),
-                  ],
+                  ),
                 ),
               ),
             ),
-          ),
-          const SizedBox(width: 8),
-          if (Platform.isMacOS &&
-              Platform.environment['FLUTTER_TEST'] != 'true') ...[
-            _ScreenshotButton(onTap: () => unawaited(_captureScreenshot())),
-            const SizedBox(width: 2),
-          ],
-          if (ComposerPolishSetting.current()) ...[
-            _PolishButton(
-              busy: _polishing,
-              enabled: _polishing || _shownBuilt!.polishable,
-              onTap: () => unawaited(_polish()),
+            const SizedBox(width: 8),
+            if (Platform.isMacOS && !_isFlutterTest) ...[
+              _ScreenshotButton(onTap: () => unawaited(_captureScreenshot())),
+              const SizedBox(width: 2),
+            ],
+            if (ComposerPolishSetting.current()) ...[
+              _PolishButton(
+                busy: _polishing,
+                enabled: _polishing || _shownBuilt!.polishable,
+                onTap: () => unawaited(_polish()),
+              ),
+              const SizedBox(width: 2),
+            ],
+            if ((widget.onToggleContextPanel, context) case (
+              final onToggle?,
+              final usage?,
+            )) ...[
+              ContextMeter(
+                usage: usage,
+                active: widget.contextPanelOpen,
+                // Toggle Context Panel's, which has none by default.
+                tooltip: _hovers.ring,
+                onTap: onToggle,
+              ),
+              const SizedBox(width: 2),
+            ],
+            const SizedBox(width: 3),
+            _SendButton(
+              streaming: _showsStop,
+              enabled: _canSend,
+              onSend: _submit,
+              onStop: () => stopTurn(this.context, session),
             ),
-            const SizedBox(width: 2),
           ],
-          if ((widget.onToggleContextPanel, context) case (
-            final onToggle?,
-            final usage?,
-          )) ...[
-            ContextMeter(
-              usage: usage,
-              active: widget.contextPanelOpen,
-              // Toggle Context Panel's, which has none by default.
-              tooltip: _hovers.ring,
-              onTap: onToggle,
-            ),
-            const SizedBox(width: 2),
-          ],
-          const SizedBox(width: 2),
-          _SendButton(
-            streaming: _showsStop,
-            enabled: _canSend,
-            onSend: _submit,
-            onStop: () => stopTurn(this.context, session),
+        ),
+      ),
+    );
+  }
+}
+
+/// Tactile 3D keycap badge (e.g. `Tab`) matching macOS / studio workbench keycaps.
+class _KeycapBadge extends StatelessWidget {
+  const _KeycapBadge({required this.label, required this.dark});
+
+  final String label;
+  final bool dark;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+      decoration: BoxDecoration(
+        color: dark
+            ? Colors.white.withValues(alpha: 0.09)
+            : Colors.white.withValues(alpha: 0.85),
+        borderRadius: BorderRadius.circular(4.5),
+        border: Border.all(
+          color: dark
+              ? Colors.white.withValues(alpha: 0.14)
+              : Colors.black.withValues(alpha: 0.11),
+          width: 0.75,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: dark ? 0.35 : 0.06),
+            offset: const Offset(0, 1),
+            blurRadius: 0,
           ),
         ],
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          fontSize: 10,
+          height: 1.15,
+          fontWeight: FontWeight.w600,
+          letterSpacing: 0.15,
+          color: AppColors.textMuted,
+        ),
       ),
     );
   }
@@ -2633,16 +2744,15 @@ class _PolishButton extends StatelessWidget {
             // Keeps the editor's focus.
             onTapDown: (_) {},
             onTap: active ? onTap : null,
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 120),
-              width: 22,
-              height: 22,
+            child: Container(
+              width: 25,
+              height: 25,
               alignment: Alignment.center,
               decoration: BoxDecoration(
                 color: active && hovered
                     ? colors['toolbar.hoverBackground']
-                    : Colors.transparent,
-                borderRadius: BorderRadius.circular(5),
+                    : null,
+                borderRadius: BorderRadius.circular(6.5),
               ),
               child: busy ? IdeSpinning(icon) : icon,
             ),
@@ -2668,16 +2778,13 @@ class _ScreenshotButton extends StatelessWidget {
         builder: (context, hovered) => GestureDetector(
           onTapDown: (_) {},
           onTap: onTap,
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 120),
-            width: 22,
-            height: 22,
+          child: Container(
+            width: 25,
+            height: 25,
             alignment: Alignment.center,
             decoration: BoxDecoration(
-              color: hovered
-                  ? colors['toolbar.hoverBackground']
-                  : Colors.transparent,
-              borderRadius: BorderRadius.circular(5),
+              color: hovered ? colors['toolbar.hoverBackground'] : null,
+              borderRadius: BorderRadius.circular(6.5),
             ),
             child: Icon(
               Codicons.deviceCamera,
@@ -2730,12 +2837,12 @@ class _SendButton extends StatelessWidget {
         builder: (context, hovered) => GestureDetector(
           onTap: streaming ? onStop : (enabled ? onSend : null),
           child: AnimatedContainer(
-            duration: const Duration(milliseconds: 150),
-            width: 24,
-            height: 24,
+            duration: const Duration(milliseconds: 140),
+            width: 27,
+            height: 27,
             decoration: BoxDecoration(
               color: !active
-                  ? AppColors.textFaint.withValues(alpha: 0.10)
+                  ? AppColors.textFaint.withValues(alpha: 0.12)
                   : hovered
                   ? colors['button.hoverBackground']
                   : colors['button.background'],
@@ -2744,9 +2851,9 @@ class _SendButton extends StatelessWidget {
                   ? [
                       BoxShadow(
                         color: colors['button.background'].withValues(
-                          alpha: 0.32,
+                          alpha: 0.30,
                         ),
-                        blurRadius: 6,
+                        blurRadius: 7,
                         offset: const Offset(0, 2),
                       ),
                     ]
@@ -2759,17 +2866,17 @@ class _SendButton extends StatelessWidget {
               child: streaming
                   ? Container(
                       key: const ValueKey('stop'),
-                      width: 8,
-                      height: 8,
+                      width: 8.5,
+                      height: 8.5,
                       decoration: BoxDecoration(
                         color: foreground,
-                        borderRadius: BorderRadius.circular(1.5),
+                        borderRadius: BorderRadius.circular(2),
                       ),
                     )
                   : Icon(
                       key: const ValueKey('send'),
                       Icons.arrow_upward_rounded,
-                      size: 15,
+                      size: 15.5,
                       color: active ? foreground : AppColors.textFaint,
                     ),
             ),

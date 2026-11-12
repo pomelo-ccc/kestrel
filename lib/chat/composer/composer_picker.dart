@@ -812,7 +812,7 @@ class ComposerPickerState extends State<ComposerPicker> {
             ? colors['toolbar.activeBackground']
             : hovered
             ? colors['toolbar.hoverBackground']
-            : Colors.transparent,
+            : colors['toolbar.hoverBackground'].withValues(alpha: 0),
         border: switch (emphasized
             ? (colors.get('button.secondaryBorder') ??
                   (dark
