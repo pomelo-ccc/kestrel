@@ -2903,11 +2903,6 @@ class _SidebarState extends State<Sidebar>
 /// [AppColors] and [themeColors] so changing the theme in Settings →
 /// Appearance updates every sidebar surface, text shade, and accent.
 abstract final class _SidebarPalette {
-  static Color get p200 =>
-      themeColors.dark ? AppColors.text : AppColors.hover;
-  static Color get p300 => themeColors.dark
-      ? Color.lerp(AppColors.text, AppColors.textMuted, 0.25)!
-      : AppColors.border;
   static Color get p400 =>
       themeColors.dark ? AppColors.textMuted : AppColors.textFaint;
   static Color get p500 => themeColors.dark
@@ -2915,11 +2910,6 @@ abstract final class _SidebarPalette {
       : Color.lerp(AppColors.textMuted, AppColors.textFaint, 0.4)!;
   static Color get p600 =>
       themeColors.dark ? AppColors.border : AppColors.textMuted;
-  static Color get p700 => themeColors.dark
-      ? AppColors.hover
-      : Color.lerp(AppColors.text, AppColors.textMuted, 0.35)!;
-  static Color get p800 =>
-      themeColors.dark ? AppColors.surface : AppColors.text;
 }
 
 /// The top search box (`[ 🔍 搜索          ⌘ K ]`) in the left sidebar.
@@ -3487,37 +3477,34 @@ class _GroupHeader extends StatelessWidget {
               : (details) => menu.open(details.globalPosition),
           child: Container(
             height: Sidebar.rowHeight,
-            margin: EdgeInsets.fromLTRB(
-              islands ? 5 : 8,
+            margin: const EdgeInsets.fromLTRB(
+              IdeListColors.inset,
               4,
-              islands ? 5 : 8,
+              IdeListColors.inset,
               0,
             ),
             padding: const EdgeInsets.only(left: 8, right: 4),
             decoration: BoxDecoration(
               color: highlighted ? AppColors.hover : Colors.transparent,
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(
+                islands ? Islands.rowRadius : 6,
+              ),
             ),
             child: Row(
               children: [
-                if (!light) ...[
-                  AnimatedRotation(
-                    turns: collapsed ? -0.25 : 0,
-                    duration: WbMotion.durationChevron,
-                    curve: WbMotion.collapseIcon,
-                    child: Icon(
-                      Icons.keyboard_arrow_down_rounded,
-                      size: 14,
-                      color: active
-                          ? (dark
-                                ? _SidebarPalette.p300
-                                : _SidebarPalette.p700)
-                          : (dark
-                                ? _SidebarPalette.p500
-                                : _SidebarPalette.p400),
+                if (!light || project != null) ...[
+                  SizedBox(
+                    width: 15,
+                    height: 15,
+                    child: Center(
+                      child: Icon(
+                        collapsed ? Codicons.folder : Codicons.folderOpened,
+                        size: 14.5,
+                        color: active ? AppColors.text : AppColors.textMuted,
+                      ),
                     ),
                   ),
-                  const SizedBox(width: 4),
+                  const SizedBox(width: 7),
                 ],
                 // The dot right after the name, the rest of the row after.
                 Expanded(
@@ -3646,18 +3633,14 @@ class _GroupHeader extends StatelessWidget {
   }
 
   Widget _label(Project? project, {bool active = false}) {
-    final dark = themeColors.dark;
     final label = Text.rich(
       ideSpeedSpan(group.label, speedMatch ?? const []),
       maxLines: 1,
       overflow: TextOverflow.ellipsis,
       style: TextStyle(
-        color: active
-            ? (dark ? _SidebarPalette.p200 : _SidebarPalette.p800)
-            : (dark ? _SidebarPalette.p400 : _SidebarPalette.p500),
-        fontSize: 12,
-        letterSpacing: 0.2,
-        fontWeight: FontWeight.w600,
+        color: active ? AppColors.text : AppColors.textMuted,
+        fontSize: 12.5,
+        fontWeight: FontWeight.w500,
       ),
     );
     if (project == null) return label;
@@ -4065,7 +4048,7 @@ class _MoreRow extends StatelessWidget {
       onTap: onTap,
       child: Container(
         height: 24,
-        padding: const EdgeInsets.only(left: 28),
+        padding: const EdgeInsets.only(left: 34),
         alignment: Alignment.centerLeft,
         child: Text(
           label,
@@ -4347,7 +4330,7 @@ class _ThreadRow extends StatelessWidget {
               Padding(
                 // An aside under the one it was asked beside.
                 padding: EdgeInsets.only(
-                  left: onDetach == null ? 11 : 11 + _asideIndent,
+                  left: onDetach == null ? 8 : 8 + _asideIndent,
                   right: 6,
                 ),
                 // Too narrow, what is beside the title gives way (its hover
@@ -4356,9 +4339,9 @@ class _ThreadRow extends StatelessWidget {
                   children: [
                     GiveWay(
                       Padding(
-                        padding: const EdgeInsets.only(right: 8),
+                        padding: const EdgeInsets.only(right: 7),
                         child: SizedBox(
-                          width: 14,
+                          width: 15,
                           child: Center(
                             child: switch (asides) {
                               final asides? when active => _AsidesArrow(
@@ -4370,10 +4353,9 @@ class _ThreadRow extends StatelessWidget {
                                     : context.l10n.sidebarFoldAsides,
                                 onTap: asides.onToggle,
                               ),
-                              _ => StatusIndicator(
-                                status,
-                                selected: selected,
-                              ),
+                              _ when status == ThreadStatus.running =>
+                                const PixelLoader.agent(size: 12),
+                              _ => const SizedBox.shrink(),
                             },
                           ),
                         ),
@@ -4912,15 +4894,7 @@ class StatusIndicator extends StatelessWidget {
       ThreadStatus.running => const PixelLoader.agent(size: 12),
       ThreadStatus.needsInput => _Dot(needsInputColor),
       ThreadStatus.unread => _Dot(AppColors.accent),
-      ThreadStatus.idle => CustomPaint(
-        size: const Size.square(7.5),
-        painter: _IdleDotPainter(
-          selected
-              ? AppColors.accent
-              : AppColors.textMuted.withValues(alpha: 0.65),
-          fill: selected ? AppColors.accent.withValues(alpha: 0.2) : null,
-        ),
-      ),
+      ThreadStatus.idle => const SizedBox.shrink(),
     };
   }
 }
@@ -4938,34 +4912,6 @@ class _Dot extends StatelessWidget {
       decoration: BoxDecoration(color: color, shape: BoxShape.circle),
     );
   }
-}
-
-class _IdleDotPainter extends CustomPainter {
-  const _IdleDotPainter(this.color, {this.fill});
-
-  final Color color;
-  final Color? fill;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final center = Offset(size.width / 2, size.height / 2);
-    final radius = (size.shortestSide - 1.5) / 2;
-    if (fill != null) {
-      final fillPaint = Paint()
-        ..color = fill!
-        ..style = PaintingStyle.fill;
-      canvas.drawCircle(center, radius, fillPaint);
-    }
-    final paint = Paint()
-      ..color = color
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.5;
-    canvas.drawCircle(center, radius, paint);
-  }
-
-  @override
-  bool shouldRepaint(_IdleDotPainter oldDelegate) =>
-      oldDelegate.color != color || oldDelegate.fill != fill;
 }
 
 /// Small square icon button with a hover fill.
