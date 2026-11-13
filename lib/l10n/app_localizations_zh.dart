@@ -1830,6 +1830,11 @@ class AppLocalizationsZh extends AppLocalizations {
   String get sidebarArchived => '已归档';
 
   @override
+  String sidebarArchivedIn(String folder) {
+    return '$folder · 已归档';
+  }
+
+  @override
   String get sidebarOpenFolder => '打开文件夹…';
 
   @override
@@ -2216,6 +2221,9 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get agentStateRunningInBackground => '在后台运行';
+
+  @override
+  String get agentElapsedHint => '已运行时长：续跑的各次累计在内';
 
   @override
   String get agentStateRunning => '运行中';
@@ -5923,6 +5931,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get customizeKindRules => '规则';
 
   @override
+  String get customizeKindMemory => '记忆';
+
+  @override
   String get customizeKindCommands => '命令';
 
   @override
@@ -5978,6 +5989,10 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get customizeDisabled => '已停用';
+
+  @override
+  String get customizeLinkUnreachable =>
+      '未加载：这是个系统无法打开的链接。请把技能装成真实文件夹，或重新创建链接。';
 
   @override
   String get customizeBack => '返回';
@@ -6045,6 +6060,10 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get customizeEmptyPlugins => '还没有安装插件。在 Claude Code 里用 /plugin 安装。';
+
+  @override
+  String get customizeEmptyMemory =>
+      '还没有记忆。Claude Code 工作时会把了解到的你和这个项目的信息存在这里（自动记忆），之后的对话会读回来。';
 
   @override
   String get customizeEmptyMcpsUser =>
@@ -9332,6 +9351,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get accountsGiteeHosts => 'gitee.com，使用私人令牌登录';
 
   @override
+  String get accountsGitCodeHosts => 'gitcode.com，使用个人访问令牌登录';
+
+  @override
   String get accountsSignInBrowser => '在浏览器中登录';
 
   @override
@@ -9385,6 +9407,9 @@ class AppLocalizationsZh extends AppLocalizations {
   @override
   String get accountsTokenGiteeScopes =>
       '需要勾选 user_info、projects、pull_requests、issues、notes 权限的私人令牌。';
+
+  @override
+  String get accountsTokenGitCodeScopes => '需要能读取用户信息、读写仓库、Issue 和合并请求的个人访问令牌。';
 
   @override
   String accountsTokenCreate(String host) {
@@ -13154,4 +13179,61 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get generalSettingsRewindKeep => '保留改动';
+
+  @override
+  String get settingsTransferTitle => '迁移到另一台电脑';
+
+  @override
+  String get settingsTransferDescription => '把设置、快捷键和上游（含模型）导出成一个文件，到另一台电脑上导入。';
+
+  @override
+  String get settingsTransferLabel => '设置文件';
+
+  @override
+  String get settingsTransferExport => '导出…';
+
+  @override
+  String get settingsTransferImport => '导入…';
+
+  @override
+  String get settingsTransferExportQuestion => '导出设置？';
+
+  @override
+  String get settingsTransferExportDetail =>
+      '设置、快捷键和上游都会写进文件。上游的 API Key 只有勾选下面一项才会带上，而且是明文，所以文件别给别人，导入后就删掉。';
+
+  @override
+  String get settingsTransferWithKeys => '包含上游的 API Key';
+
+  @override
+  String settingsTransferExported(String path) {
+    return '已导出到 $path';
+  }
+
+  @override
+  String settingsTransferImportQuestion(String file) {
+    return '导入 $file 里的设置？';
+  }
+
+  @override
+  String get settingsTransferImportDetail =>
+      '文件里的设置、快捷键和上游会替换现有的；文件里没有的设置保持不变。';
+
+  @override
+  String get settingsTransferImported => '已导入。部分设置要重启 BaoCode 后生效。';
+
+  @override
+  String get settingsTransferNotAFile => '这不是 BaoCode 导出的设置文件。';
+
+  @override
+  String settingsTransferFailed(String error) {
+    return '没能完成：$error';
+  }
+
+  @override
+  String get generalSettingsSessionTools => 'Agent 可以统筹其他对话';
+
+  @override
+  String get generalSettingsSessionToolsDescription =>
+      'Agent 能列出你的其他对话、在不唤醒的情况下查看进展、给它们派活（没在运行的会恢复，正忙的会排队）并等待结果。适合用一个对话统筹其他对话；改动后新启动的 Agent 才有。';
 }

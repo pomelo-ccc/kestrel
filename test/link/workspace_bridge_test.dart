@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:bao_link/bao_link.dart';
 import 'package:bao_remote/claude.dart' show ClaudeHistoryPage;
@@ -180,6 +181,41 @@ void main() {
       expect(texts(opened.items), ['u5', '-', 'u6', '-']);
       expect(opened.earlier, isTrue);
     });
+
+    test(
+      'opened again with what the phone has: only what is new comes',
+      () async {
+        final first = await open(4);
+        final have = [for (final item in first.items) linkDigest(item)];
+        final session = workspace.threads.first.session;
+        session.send(const ComposerMessage(text: 'more'));
+        await settle();
+        final again = LinkSessionUpdate.fromJson(
+          (await bridge.handle(LinkMethods.open, {
+                'session': id,
+                'window': 4,
+                'have': have,
+              }))!
+              as Map<String, Object?>,
+        );
+        // From where the phone's first item is: its four left out.
+        expect(again.start, 4);
+        expect(again.count, greaterThan(4));
+        expect(texts(again.items).first, 'more');
+        expect(again.earlier, isTrue);
+        // What the desktop does not have (another conversation's): all of it.
+        final other = LinkSessionUpdate.fromJson(
+          (await bridge.handle(LinkMethods.open, {
+                'session': id,
+                'window': 4,
+                'have': [linkDigest('elsewhere')],
+              }))!
+              as Map<String, Object?>,
+        );
+        expect(other.start, 0);
+        expect(other.count, 4);
+      },
+    );
 
     test('a window beyond the items has all, and no earlier', () async {
       final opened = await open(100);
@@ -749,6 +785,54 @@ void main() {
         ),
       ),
     );
+  });
+
+  test('a file from the phone: kept for the agent, by its name', () async {
+    final workspace = Workspace();
+    addTearDown(workspace.dispose);
+    final bots = Bots(workspace: workspace, folders: MemoryBotFolders());
+    await bots.start();
+    addTearDown(bots.dispose);
+    final (_, desktop) = await peers();
+    final uploads = Directory.systemTemp.createTempSync('phone_uploads');
+    addTearDown(() => uploads.deleteSync(recursive: true));
+    final withBots = WorkspaceBridge(
+      workspace: workspace,
+      peer: desktop,
+      device: () => const DeviceInfo(name: 'PC', kind: 'pc', system: 'Win'),
+      bots: bots,
+      uploadsOf: (_, _) => '${uploads.path}/phone',
+    );
+    addTearDown(withBots.dispose);
+    final bytes = [80, 75, 3, 4, 0, 1, 2];
+    Future<Map> upload(String name) async => await withBots.handle(
+      LinkMethods.upload,
+      {'bot': 'assistant', 'name': name, 'data': base64.encode(bytes)},
+    ) as Map;
+    final first = (await upload('报价单.xlsx'))['path'] as String;
+    expect(first, startsWith('${uploads.path}/phone/'));
+    expect(first, endsWith('/报价单.xlsx'));
+    expect(File(first).readAsBytesSync(), bytes);
+    // The same name again: a folder of its own, the first one kept.
+    final second = (await upload('报价单.xlsx'))['path'] as String;
+    expect(second, isNot(first));
+    expect(File(first).existsSync(), isTrue);
+    expect(
+      await withBots.handle(LinkMethods.upload, {
+        'bot': 'assistant',
+        'name': 'big.bin',
+        'data': base64.encode(Uint8List(LinkLimits.upload + 1)),
+      }),
+      containsPair('tooLarge', true),
+    );
+  });
+
+  test('a file from the phone keeps its name, not its folders', () {
+    expect(WorkspaceBridge.uploadName('../../etc/passwd'), 'passwd');
+    expect(WorkspaceBridge.uploadName(r'C:\x\a:b?.txt'), 'a_b_.txt');
+    expect(WorkspaceBridge.uploadName('..'), 'file');
+    expect(WorkspaceBridge.uploadName(null), 'file');
+    expect(WorkspaceBridge.uploadName('合同 v2.docx'), '合同 v2.docx');
   });
 }
 

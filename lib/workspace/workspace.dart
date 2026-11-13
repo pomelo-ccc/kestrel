@@ -426,7 +426,8 @@ class Workspace extends ChangeNotifier implements ColorThemeStorage {
   Future<void>? _refreshing;
 
   /// Picks up sessions the kernels kept since [load] (e.g. ones started in
-  /// a terminal). What is listed stays as it is.
+  /// a terminal). What is listed stays as it is, except one talked in
+  /// elsewhere while idle: it is read anew right away (see [reload]).
   Future<void> refresh() =>
       _refreshing ??= _refresh().whenComplete(() => _refreshing = null);
 
@@ -457,6 +458,47 @@ class Workspace extends ChangeNotifier implements ColorThemeStorage {
       }
     }
     if (_threads.length != before || goneOn) notifyListeners();
+    _reloadGoneOn();
+  }
+
+  /// Reads anew the ones talked in elsewhere since they were read here, as
+  /// they are come to, not left for the user to ask for (a reload notifies
+  /// itself; the threads are only swapped, not moved).
+  void _reloadGoneOn() {
+    for (final thread in [..._threads]) {
+      if (thread._goneOnElsewhere && canReload(thread)) reload(thread);
+    }
+  }
+
+  /// When each open conversation's kept file was last seen changed (see
+  /// [refreshIfChanged]).
+  final Expando<DateTime> _seenModified = Expando();
+
+  /// [refresh], only once an open conversation's kept file changed since it
+  /// was last looked at and since its agent went quiet, as [modified] tells
+  /// (null for none): cheap enough to ask every so often, where [refresh]
+  /// reads every kept session. The file is written to besides what is said
+  /// (titles, the last prompt), so [refresh] still tells whether it was.
+  Future<void> refreshIfChanged(
+    Future<DateTime?> Function(String path) modified,
+  ) async {
+    if (_loading) return;
+    var changed = false;
+    for (final thread in [..._threads]) {
+      final path = thread.record?.path;
+      final quiet = thread._quietSince;
+      if (path == null || !thread.isOpen || quiet == null) continue;
+      final at = await modified(path);
+      if (at == null || at == _seenModified[thread]) continue;
+      _seenModified[thread] = at;
+      if (at.isAfter(quiet.add(_ownMessageLag))) changed = true;
+    }
+    if (changed) {
+      await refresh();
+    } else {
+      // Noted while its agent was at work: read anew once it is done.
+      _reloadGoneOn();
+    }
   }
 
   /// A message of the conversation's own may be timed a moment after its
@@ -493,6 +535,8 @@ class Workspace extends ChangeNotifier implements ColorThemeStorage {
 
   /// Reads [thread]'s kept session anew, in its place: what was said in it
   /// elsewhere since it was read here (gone on with in a terminal) shows.
+  /// Asked for by the sidebar's reload button, and by [refresh] once it
+  /// notes the conversation went on elsewhere while the agent was idle.
   /// The thread stays the same, its marks, draft and place with it; only
   /// its conversation is opened again, the one before stopped.
   void reload(AgentThread thread) {
@@ -1853,13 +1897,18 @@ class Workspace extends ChangeNotifier implements ColorThemeStorage {
     notifyListeners();
   }
 
-  /// Archives [project]'s agents (not a new one nothing was sent to).
+  /// Archives [project]'s agents (not a new one nothing was sent to): the
+  /// folder goes with them, off the sidebar, its agents under Archived
+  /// (back once one is unarchived, or the folder opened).
   void archiveAll(Project project) {
     setArchivedAll([
       for (final thread in [..._threads])
         if (thread.project == project && !thread.archived && !thread.untouched)
           thread,
     ], true);
+    if (_threads.any((t) => t.project == project && t.archived)) {
+      hideProject(project);
+    }
   }
 
   /// Unarchives every archived agent ([where] there is one, those it takes).
@@ -1868,6 +1917,7 @@ class Workspace extends ChangeNotifier implements ColorThemeStorage {
       if (!thread.archived || !(where?.call(thread) ?? true)) continue;
       thread.archived = false;
       _keepMarks(thread);
+      _unhide(thread.project.path);
     }
     notifyListeners();
   }
@@ -2601,6 +2651,16 @@ class Workspace extends ChangeNotifier implements ColorThemeStorage {
       _layout = WorkspaceLayout.ide;
     }
     _settings.addAll(strings(kept['settings']));
+    // A provider's model's context (by its number of tokens) was kept as
+    // shown, picked or not, before #914: let go once, for each to follow
+    // its upstream until one is picked.
+    if (kept['contextPicks'] != 1) {
+      _settings.removeWhere(
+        (key, value) =>
+            key.startsWith(modelSettingKey(KernelChoiceKind.context, '')) &&
+            int.tryParse(value) != null,
+      );
+    }
     if (kept['ignoredRecommendations'] case final List<Object?> ignored) {
       _ignoredRecommendations.addAll(ignored.whereType<String>());
     }
@@ -2752,6 +2812,7 @@ class Workspace extends ChangeNotifier implements ColorThemeStorage {
       'layout': _layout.name,
       if (_paneTabs) 'paneTabs': true,
       'settings': _settings,
+      'contextPicks': 1,
       'agents': _agentSettings,
       'ignoredRecommendations': [..._ignoredRecommendations],
       'sidebar': {
@@ -2973,11 +3034,15 @@ class Workspace extends ChangeNotifier implements ColorThemeStorage {
       remember(KernelChoiceKind.model, before.model, snapshot.model);
       remember(KernelChoiceKind.effort, before.effort, snapshot.effort);
       remember(KernelChoiceKind.context, before.context, snapshot.context);
-      // And each model's own, for it to go back to (see modelSettingKey).
+      // And each model's own, for it to go back to (see modelSettingKey):
+      // its context only as picked with it, not as it came with a switch
+      // to it (its upstream's, else another model's), for it to follow its
+      // upstream until one is (#914).
       if (snapshot.model case final model?) {
         for (final (kind, value) in [
           (KernelChoiceKind.effort, snapshot.effort),
-          (KernelChoiceKind.context, snapshot.context),
+          if (before.model == model)
+            (KernelChoiceKind.context, snapshot.context),
         ]) {
           final key = modelSettingKey(kind, model);
           if (value != null && _settings[key] != value) {
@@ -3922,6 +3987,8 @@ class Workspace extends ChangeNotifier implements ColorThemeStorage {
     final changed = thread.archived != archived || (archived && thread.pinned);
     thread.archived = archived;
     if (archived) thread.pinned = false;
+    // Its folder, archived with it, back on the sidebar with it.
+    if (!archived && changed) _unhide(thread.project.path);
     final kept = _keepMarks(thread, save: save);
     if (archived && leave) _leave(thread);
     return changed || kept;

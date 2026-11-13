@@ -3458,6 +3458,12 @@ abstract class AppLocalizations {
   /// **'Archived'**
   String get sidebarArchived;
 
+  /// No description provided for @sidebarArchivedIn.
+  ///
+  /// In en, this message translates to:
+  /// **'{folder} · archived'**
+  String sidebarArchivedIn(String folder);
+
   /// No description provided for @sidebarOpenFolder.
   ///
   /// In en, this message translates to:
@@ -4123,6 +4129,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'running in the background'**
   String get agentStateRunningInBackground;
+
+  /// No description provided for @agentElapsedHint.
+  ///
+  /// In en, this message translates to:
+  /// **'How long it has been at work: the times it was continued add up'**
+  String get agentElapsedHint;
 
   /// Lowercase, after a subagent's name.
   ///
@@ -10233,6 +10245,12 @@ abstract class AppLocalizations {
   /// **'Rules'**
   String get customizeKindRules;
 
+  /// No description provided for @customizeKindMemory.
+  ///
+  /// In en, this message translates to:
+  /// **'Memory'**
+  String get customizeKindMemory;
+
   /// No description provided for @customizeKindCommands.
   ///
   /// In en, this message translates to:
@@ -10347,6 +10365,12 @@ abstract class AppLocalizations {
   /// **'Disabled'**
   String get customizeDisabled;
 
+  /// No description provided for @customizeLinkUnreachable.
+  ///
+  /// In en, this message translates to:
+  /// **'Not loaded: this is a link the system cannot follow. Install the skill as a real folder, or link it again.'**
+  String get customizeLinkUnreachable;
+
   /// No description provided for @customizeBack.
   ///
   /// In en, this message translates to:
@@ -10454,6 +10478,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'None installed. Install plugins with /plugin in Claude Code.'**
   String get customizeEmptyPlugins;
+
+  /// No description provided for @customizeEmptyMemory.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing remembered yet. Claude Code saves what it learns about you and this project here as it works (its auto memory), and reads it back in later conversations.'**
+  String get customizeEmptyMemory;
 
   /// No description provided for @customizeEmptyMcpsUser.
   ///
@@ -16089,6 +16119,12 @@ abstract class AppLocalizations {
   /// **'gitee.com, with a personal access token'**
   String get accountsGiteeHosts;
 
+  /// No description provided for @accountsGitCodeHosts.
+  ///
+  /// In en, this message translates to:
+  /// **'gitcode.com, with a personal access token'**
+  String get accountsGitCodeHosts;
+
   /// No description provided for @accountsSignInBrowser.
   ///
   /// In en, this message translates to:
@@ -16178,6 +16214,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'A personal access token with the user_info, projects, pull_requests, issues and notes scopes.'**
   String get accountsTokenGiteeScopes;
+
+  /// No description provided for @accountsTokenGitCodeScopes.
+  ///
+  /// In en, this message translates to:
+  /// **'A personal access token that can read your user info, and read and write repositories, issues and pull requests.'**
+  String get accountsTokenGitCodeScopes;
 
   /// No description provided for @accountsTokenCreate.
   ///
@@ -22626,6 +22668,102 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Keep the Changes'**
   String get generalSettingsRewindKeep;
+
+  /// No description provided for @settingsTransferTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Move to Another Computer'**
+  String get settingsTransferTitle;
+
+  /// No description provided for @settingsTransferDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Your settings, keybindings and upstreams with their models, in one file to import on the other computer.'**
+  String get settingsTransferDescription;
+
+  /// No description provided for @settingsTransferLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Settings file'**
+  String get settingsTransferLabel;
+
+  /// No description provided for @settingsTransferExport.
+  ///
+  /// In en, this message translates to:
+  /// **'Export…'**
+  String get settingsTransferExport;
+
+  /// No description provided for @settingsTransferImport.
+  ///
+  /// In en, this message translates to:
+  /// **'Import…'**
+  String get settingsTransferImport;
+
+  /// No description provided for @settingsTransferExportQuestion.
+  ///
+  /// In en, this message translates to:
+  /// **'Export your settings?'**
+  String get settingsTransferExportQuestion;
+
+  /// No description provided for @settingsTransferExportDetail.
+  ///
+  /// In en, this message translates to:
+  /// **'Settings, keybindings and upstreams go into the file. The upstreams\' API keys only if you tick the box below: they are then in the file as plain text, so keep it to yourself and delete it once imported.'**
+  String get settingsTransferExportDetail;
+
+  /// No description provided for @settingsTransferWithKeys.
+  ///
+  /// In en, this message translates to:
+  /// **'Include the upstreams\' API keys'**
+  String get settingsTransferWithKeys;
+
+  /// No description provided for @settingsTransferExported.
+  ///
+  /// In en, this message translates to:
+  /// **'Exported to {path}'**
+  String settingsTransferExported(String path);
+
+  /// No description provided for @settingsTransferImportQuestion.
+  ///
+  /// In en, this message translates to:
+  /// **'Import the settings in {file}?'**
+  String settingsTransferImportQuestion(String file);
+
+  /// No description provided for @settingsTransferImportDetail.
+  ///
+  /// In en, this message translates to:
+  /// **'Its settings, keybindings and upstreams replace yours; settings it does not have stay as they are.'**
+  String get settingsTransferImportDetail;
+
+  /// No description provided for @settingsTransferImported.
+  ///
+  /// In en, this message translates to:
+  /// **'Imported. Some settings take effect once BaoCode restarts.'**
+  String get settingsTransferImported;
+
+  /// No description provided for @settingsTransferNotAFile.
+  ///
+  /// In en, this message translates to:
+  /// **'This is not a settings file BaoCode exported.'**
+  String get settingsTransferNotAFile;
+
+  /// No description provided for @settingsTransferFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Not done: {error}'**
+  String settingsTransferFailed(String error);
+
+  /// No description provided for @generalSettingsSessionTools.
+  ///
+  /// In en, this message translates to:
+  /// **'Agents can coordinate other conversations'**
+  String get generalSettingsSessionTools;
+
+  /// No description provided for @generalSettingsSessionToolsDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'An agent can list your other conversations, read where they stand without waking them, hand them work (resumed if stopped, queued if busy) and wait for them. For one conversation that coordinates the others; agents started after the change have it.'**
+  String get generalSettingsSessionToolsDescription;
 }
 
 class _AppLocalizationsDelegate

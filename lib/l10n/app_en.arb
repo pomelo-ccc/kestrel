@@ -937,6 +937,14 @@
   },
   "sidebarDone": "Done",
   "sidebarArchived": "Archived",
+  "sidebarArchivedIn": "{folder} · archived",
+  "@sidebarArchivedIn": {
+    "placeholders": {
+      "folder": {
+        "type": "String"
+      }
+    }
+  },
   "sidebarOpenFolder": "Open folder…",
   "sidebarAgents": "Agents",
   "sidebarCollapseAll": "Collapse All",
@@ -1300,6 +1308,7 @@
   "@agentStateRunningInBackground": {
     "description": "Lowercase, after a subagent's name."
   },
+  "agentElapsedHint": "How long it has been at work: the times it was continued add up",
   "agentStateRunning": "running",
   "@agentStateRunning": {
     "description": "Lowercase, after a subagent's name."
@@ -4546,6 +4555,7 @@
   "customizeKindSkills": "Skills",
   "customizeKindSubagents": "Subagents",
   "customizeKindRules": "Rules",
+  "customizeKindMemory": "Memory",
   "customizeKindCommands": "Commands",
   "customizeKindHooks": "Hooks",
   "customizeScopeUser": "User",
@@ -4565,6 +4575,7 @@
   "customizeReadOnly": "Read only: Claude Code keeps this file itself.",
   "customizeEnabled": "Enabled",
   "customizeDisabled": "Disabled",
+  "customizeLinkUnreachable": "Not loaded: this is a link the system cannot follow. Install the skill as a real folder, or link it again.",
   "customizeBack": "Back",
   "customizeClose": "Close Customize",
   "customizeDeleteTitle": "Delete {name}?",
@@ -4625,6 +4636,7 @@
     }
   },
   "customizeEmptyPlugins": "None installed. Install plugins with /plugin in Claude Code.",
+  "customizeEmptyMemory": "Nothing remembered yet. Claude Code saves what it learns about you and this project here as it works (its auto memory), and reads it back in later conversations.",
   "customizeEmptyMcpsUser": "None yet. Add one with: claude mcp add --scope user <name> -- <command>",
   "customizeEmptyMcpsLocal": "None yet. Add one with claude mcp add, run in the project.",
   "customizeEmptyMcpsProject": "None yet. Servers shared with the project go in its .mcp.json.",
@@ -7085,6 +7097,7 @@
   "accountsGitHubHosts": "github.com, or your company's GitHub Enterprise",
   "accountsGitLabHosts": "gitlab.com, or a self-managed GitLab (http:// or https://, with its port)",
   "accountsGiteeHosts": "gitee.com, with a personal access token",
+  "accountsGitCodeHosts": "gitcode.com, with a personal access token",
   "accountsSignInBrowser": "Sign in with Browser",
   "accountsSignInToken": "Use a Token…",
   "accountsViaBrowser": "signed in with browser",
@@ -7131,6 +7144,7 @@
   "accountsTokenGitHubScopes": "A classic token with the repo and read:user scopes, or a fine-grained token with read and write access to issues and pull requests.",
   "accountsTokenGitLabScopes": "A personal access token with the api scope.",
   "accountsTokenGiteeScopes": "A personal access token with the user_info, projects, pull_requests, issues and notes scopes.",
+  "accountsTokenGitCodeScopes": "A personal access token that can read your user info, and read and write repositories, issues and pull requests.",
   "accountsTokenCreate": "Create a Token on {host}",
   "@accountsTokenCreate": {
     "placeholders": {
@@ -8853,5 +8867,24 @@
   "generalSettingsRewindFilesDescription": "When you edit an earlier message and send it again, what happens to the files the agent changed after it. Commands' (Bash) changes are not tracked. Claude Code and BaoCode agent only.",
   "generalSettingsRewindAsk": "Ask Each Time",
   "generalSettingsRewindRevert": "Undo the Changes",
-  "generalSettingsRewindKeep": "Keep the Changes"
+  "generalSettingsRewindKeep": "Keep the Changes",
+  "settingsTransferTitle": "Move to Another Computer",
+  "settingsTransferDescription": "Your settings, keybindings and upstreams with their models, in one file to import on the other computer.",
+  "settingsTransferLabel": "Settings file",
+  "settingsTransferExport": "Export…",
+  "settingsTransferImport": "Import…",
+  "settingsTransferExportQuestion": "Export your settings?",
+  "settingsTransferExportDetail": "Settings, keybindings and upstreams go into the file. The upstreams' API keys only if you tick the box below: they are then in the file as plain text, so keep it to yourself and delete it once imported.",
+  "settingsTransferWithKeys": "Include the upstreams' API keys",
+  "settingsTransferExported": "Exported to {path}",
+  "@settingsTransferExported": {"placeholders": {"path": {"type": "String"}}},
+  "settingsTransferImportQuestion": "Import the settings in {file}?",
+  "@settingsTransferImportQuestion": {"placeholders": {"file": {"type": "String"}}},
+  "settingsTransferImportDetail": "Its settings, keybindings and upstreams replace yours; settings it does not have stay as they are.",
+  "settingsTransferImported": "Imported. Some settings take effect once BaoCode restarts.",
+  "settingsTransferNotAFile": "This is not a settings file BaoCode exported.",
+  "settingsTransferFailed": "Not done: {error}",
+  "@settingsTransferFailed": {"placeholders": {"error": {"type": "String"}}},
+  "generalSettingsSessionTools": "Agents can coordinate other conversations",
+  "generalSettingsSessionToolsDescription": "An agent can list your other conversations, read where they stand without waking them, hand them work (resumed if stopped, queued if busy) and wait for them. For one conversation that coordinates the others; agents started after the change have it."
 }

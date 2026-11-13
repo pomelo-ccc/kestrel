@@ -1885,6 +1885,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get sidebarArchived => 'Archived';
 
   @override
+  String sidebarArchivedIn(String folder) {
+    return '$folder · archived';
+  }
+
+  @override
   String get sidebarOpenFolder => 'Open folder…';
 
   @override
@@ -2301,6 +2306,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get agentStateRunningInBackground => 'running in the background';
+
+  @override
+  String get agentElapsedHint =>
+      'How long it has been at work: the times it was continued add up';
 
   @override
   String get agentStateRunning => 'running';
@@ -6312,6 +6321,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get customizeKindRules => 'Rules';
 
   @override
+  String get customizeKindMemory => 'Memory';
+
+  @override
   String get customizeKindCommands => 'Commands';
 
   @override
@@ -6369,6 +6381,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get customizeDisabled => 'Disabled';
+
+  @override
+  String get customizeLinkUnreachable =>
+      'Not loaded: this is a link the system cannot follow. Install the skill as a real folder, or link it again.';
 
   @override
   String get customizeBack => 'Back';
@@ -6439,6 +6455,10 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get customizeEmptyPlugins =>
       'None installed. Install plugins with /plugin in Claude Code.';
+
+  @override
+  String get customizeEmptyMemory =>
+      'Nothing remembered yet. Claude Code saves what it learns about you and this project here as it works (its auto memory), and reads it back in later conversations.';
 
   @override
   String get customizeEmptyMcpsUser =>
@@ -9861,6 +9881,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get accountsGiteeHosts => 'gitee.com, with a personal access token';
 
   @override
+  String get accountsGitCodeHosts =>
+      'gitcode.com, with a personal access token';
+
+  @override
   String get accountsSignInBrowser => 'Sign in with Browser';
 
   @override
@@ -9915,6 +9939,10 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get accountsTokenGiteeScopes =>
       'A personal access token with the user_info, projects, pull_requests, issues and notes scopes.';
+
+  @override
+  String get accountsTokenGitCodeScopes =>
+      'A personal access token that can read your user info, and read and write repositories, issues and pull requests.';
 
   @override
   String accountsTokenCreate(String host) {
@@ -13943,4 +13971,65 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get generalSettingsRewindKeep => 'Keep the Changes';
+
+  @override
+  String get settingsTransferTitle => 'Move to Another Computer';
+
+  @override
+  String get settingsTransferDescription =>
+      'Your settings, keybindings and upstreams with their models, in one file to import on the other computer.';
+
+  @override
+  String get settingsTransferLabel => 'Settings file';
+
+  @override
+  String get settingsTransferExport => 'Export…';
+
+  @override
+  String get settingsTransferImport => 'Import…';
+
+  @override
+  String get settingsTransferExportQuestion => 'Export your settings?';
+
+  @override
+  String get settingsTransferExportDetail =>
+      'Settings, keybindings and upstreams go into the file. The upstreams\' API keys only if you tick the box below: they are then in the file as plain text, so keep it to yourself and delete it once imported.';
+
+  @override
+  String get settingsTransferWithKeys => 'Include the upstreams\' API keys';
+
+  @override
+  String settingsTransferExported(String path) {
+    return 'Exported to $path';
+  }
+
+  @override
+  String settingsTransferImportQuestion(String file) {
+    return 'Import the settings in $file?';
+  }
+
+  @override
+  String get settingsTransferImportDetail =>
+      'Its settings, keybindings and upstreams replace yours; settings it does not have stay as they are.';
+
+  @override
+  String get settingsTransferImported =>
+      'Imported. Some settings take effect once BaoCode restarts.';
+
+  @override
+  String get settingsTransferNotAFile =>
+      'This is not a settings file BaoCode exported.';
+
+  @override
+  String settingsTransferFailed(String error) {
+    return 'Not done: $error';
+  }
+
+  @override
+  String get generalSettingsSessionTools =>
+      'Agents can coordinate other conversations';
+
+  @override
+  String get generalSettingsSessionToolsDescription =>
+      'An agent can list your other conversations, read where they stand without waking them, hand them work (resumed if stopped, queued if busy) and wait for them. For one conversation that coordinates the others; agents started after the change have it.';
 }
