@@ -116,7 +116,7 @@ class OpenInEditorButton extends StatelessWidget {
                   ),
                   child: Icon(
                     editor.icon,
-                    size: 14,
+                    size: 14.5,
                     color: menu.isOpen || hovered
                         ? AppColors.text
                         : AppColors.textMuted,

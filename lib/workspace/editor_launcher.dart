@@ -14,8 +14,8 @@ enum Editor {
   fastIde(
     'Fast Ide',
     null,
-    // The demo's: a window's outline, in line with the codicons around it.
-    icon: Codicons.window,
+    // Code editor glyph (`</>`), distinct from the adjacent panel/sidebar toggles.
+    icon: Codicons.code,
     builtIn: true,
   ),
   vscode(
