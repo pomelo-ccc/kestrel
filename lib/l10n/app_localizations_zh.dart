@@ -2403,6 +2403,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get imageDefaultSet => '已设为默认图片模型';
 
   @override
+  String get imageCopyPrompt => '复制提示词';
+
+  @override
   String get toolProposingGoal => '正在提议目标';
 
   @override
@@ -3424,6 +3427,17 @@ class AppLocalizationsZh extends AppLocalizations {
   String explorerDownloading(int done, int total) {
     return '正在下载文件… $done/$total';
   }
+
+  @override
+  String get explorerDownload => '下载...';
+
+  @override
+  String explorerDownloadExists(String folder) {
+    return '$folder 里已有同名的文件或文件夹，要替换吗？';
+  }
+
+  @override
+  String get explorerDownloadReplace => '替换';
 
   @override
   String get explorerPreparingTransfer => '正在准备文件…';
@@ -7852,6 +7866,19 @@ class AppLocalizationsZh extends AppLocalizations {
   String get newChatCreateWorkspaceDetail => '在多个文件夹中工作';
 
   @override
+  String newChatAddFolderTo(String name) {
+    return '将文件夹添加到 $name…';
+  }
+
+  @override
+  String get newChatAddFolderToDetail => '智能体也能在那里工作';
+
+  @override
+  String newChatProjectAddedFolders(String path, int count) {
+    return '$path · 另有 $count 个文件夹';
+  }
+
+  @override
   String get workspaceCreateTitle => '创建工作区';
 
   @override
@@ -7911,6 +7938,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get sidebarEditProject => '编辑项目…';
 
   @override
+  String get sidebarAddFolder => '添加文件夹…';
+
+  @override
   String get projectEditTitle => '编辑项目';
 
   @override
@@ -7919,6 +7949,10 @@ class AppLocalizationsZh extends AppLocalizations {
   @override
   String get projectLocationDescription =>
       '文件夹搬走或改名后，把地址改成新位置，这个项目的对话会一起迁移过去。不会移动文件夹本身。';
+
+  @override
+  String get projectFoldersDescription =>
+      '智能体在这个项目中工作时，也可以读写添加进来的文件夹。已开始的对话在下次启动时生效。';
 
   @override
   String projectChooseFolder(String app) {
@@ -10366,6 +10400,12 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get aboutOpen => '打开';
+
+  @override
+  String get aboutDeviceId => '设备 ID';
+
+  @override
+  String get aboutCopy => '复制';
 
   @override
   String get stashSettingsIssueSync => 'Issue 同步为 Stash';
@@ -13236,4 +13276,94 @@ class AppLocalizationsZh extends AppLocalizations {
   @override
   String get generalSettingsSessionToolsDescription =>
       'Agent 能列出你的其他对话、在不唤醒的情况下查看进展、给它们派活（没在运行的会恢复，正忙的会排队）并等待结果。适合用一个对话统筹其他对话；改动后新启动的 Agent 才有。';
+
+  @override
+  String get generalSettingsCommandLine => '命令行';
+
+  @override
+  String get baoBashRecommended => 'BaoCode Bash（推荐）';
+
+  @override
+  String get baoBashDescription =>
+      '让智能体在 Windows 上用上完整的 bash：自带 rg、grep、sed、awk、find、jq、tar 等八十多个常用命令，不需要装 Git for Windows；C:\\ 和 /c/ 两种路径都认。内置内核和 Claude Code 内核都会用它运行命令。';
+
+  @override
+  String get baoBashNotInstalled => '还没安装。';
+
+  @override
+  String baoBashInstalled(String version) {
+    return '已安装 $version。';
+  }
+
+  @override
+  String baoBashUpdateAvailable(String version) {
+    return '有新版本 $version。';
+  }
+
+  @override
+  String baoBashDownloading(int percent) {
+    return '正在下载… $percent%';
+  }
+
+  @override
+  String get baoBashInstall => '安装';
+
+  @override
+  String baoBashInstallSize(String size) {
+    return '安装（$size）';
+  }
+
+  @override
+  String get baoBashUpdate => '更新';
+
+  @override
+  String get baoBashUninstall => '卸载';
+
+  @override
+  String baoBashFailed(String error) {
+    return '安装失败：$error';
+  }
+
+  @override
+  String get baoBashNoticeTitle => '在 Windows 上，推荐安装 BaoCode Bash';
+
+  @override
+  String get baoBashNoticeBody =>
+      '智能体运行命令会更稳。它自带 bash 和 rg、grep、sed、awk、find、jq、tar 等八十多个常用命令，不需要装 Git for Windows；C:\\ 和 /c/ 两种路径都认，不会再因为 cmd 和 PowerShell 写法不同而出错。';
+
+  @override
+  String get baoBashNoticeLater => '暂不';
+
+  @override
+  String get baoBashSource => '开源地址：';
+
+  @override
+  String get baoBashHintInstall => '安装并使用';
+
+  @override
+  String get commandLineShell => '运行命令的 Shell';
+
+  @override
+  String get commandLineShellDescription =>
+      '智能体在 Windows 上用它运行命令。Claude Code CLI 内核只能用 bash：选了 cmd 或 PowerShell 时，它仍用 Git Bash。';
+
+  @override
+  String get commandLineShellCustom => '自定义…';
+
+  @override
+  String commandLineShellInUse(String path) {
+    return '正在使用：$path';
+  }
+
+  @override
+  String commandLineShellFallback(String shell, String path) {
+    return '$shell 还不能用，命令暂时用 $path 运行。';
+  }
+
+  @override
+  String get commandLineCustomPath => '自定义 Shell';
+
+  @override
+  String get commandLineCustomPathDescription =>
+      '运行命令的程序：bash.exe、cmd.exe、powershell.exe 或 pwsh.exe。';
 }

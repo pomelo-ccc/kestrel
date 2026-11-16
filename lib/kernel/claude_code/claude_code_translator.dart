@@ -128,6 +128,11 @@ class ClaudeTranslator {
   final Map<String, int> _thinkingTokens = {};
   final Map<String, int> _textLength = {};
 
+  /// What a text block streaming has said while it is only blank, not
+  /// shown yet: some models write a line break or two before a tool call,
+  /// which would show as an empty row and break a run of steps.
+  final Map<String, String> _blankText = {};
+
   final Map<String, _Tool> _tools = {};
   final Map<String, _Agent> _agents = {};
 
@@ -496,7 +501,7 @@ class ClaudeTranslator {
     }
     for (final id in [..._textLength.keys]) {
       _textLength.remove(id);
-      emit(ItemCompleted(nextSeq(), id));
+      if (_blankText.remove(id) == null) emit(ItemCompleted(nextSeq(), id));
     }
     for (final id in [..._unanswered]) {
       if (_inBackground(id)) continue;
@@ -603,7 +608,7 @@ class ClaudeTranslator {
             _messageBlocks[index] = id;
             (_unclaimed['$_messageId:text'] ??= []).add(id);
             _textLength[id] = 0;
-            _put(id, const AssistantTextItem(''), streaming: true);
+            _blankText[id] = '';
           case 'tool_use':
             // Its input may come all at once as it ends: timed from here.
             if (!replaying) _meter.startBlock();
@@ -647,7 +652,17 @@ class ClaudeTranslator {
             if (offset == null) return;
             final text = delta['text'] as String? ?? '';
             _textLength[id] = offset + text.length;
-            emit(TextDelta(nextSeq(), id, offset, text));
+            if (_blankText[id] case final blank?) {
+              final written = blank + text;
+              if (written.trim().isEmpty) {
+                _blankText[id] = written;
+              } else {
+                _blankText.remove(id);
+                _put(id, AssistantTextItem(written), streaming: true);
+              }
+            } else {
+              emit(TextDelta(nextSeq(), id, offset, text));
+            }
         }
       case 'content_block_stop':
         _blockSince = DateTime.now();
@@ -655,7 +670,8 @@ class ClaudeTranslator {
         if (id == null) return;
         if (_thoughts.containsKey(id)) {
           _completeThought(id, null);
-        } else if (_textLength.remove(id) != null) {
+        } else if (_textLength.remove(id) != null &&
+            _blankText.remove(id) == null) {
           emit(ItemCompleted(nextSeq(), id));
         }
     }
@@ -860,6 +876,7 @@ class ClaudeTranslator {
         _thinkingStarted.remove(id);
         _thinkingTokens.remove(id);
         _textLength.remove(id);
+        _blankText.remove(id);
         emit(ItemRemoved(nextSeq(), id));
       } else if (_streamedCalls.remove(id)) {
         _dropCall(id);
@@ -888,6 +905,7 @@ class ClaudeTranslator {
       _thinkingStarted.remove(id);
       _thinkingTokens.remove(id);
       _textLength.remove(id);
+      _blankText.remove(id);
       emit(ItemRemoved(nextSeq(), id));
     }
   }

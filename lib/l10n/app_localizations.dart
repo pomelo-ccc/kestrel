@@ -4478,6 +4478,12 @@ abstract class AppLocalizations {
   /// **'Set as default image model'**
   String get imageDefaultSet;
 
+  /// No description provided for @imageCopyPrompt.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy prompt'**
+  String get imageCopyPrompt;
+
   /// No description provided for @toolProposingGoal.
   ///
   /// In en, this message translates to:
@@ -6025,6 +6031,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Downloading files... {done}/{total}'**
   String explorerDownloading(int done, int total);
+
+  /// No description provided for @explorerDownload.
+  ///
+  /// In en, this message translates to:
+  /// **'Download...'**
+  String get explorerDownload;
+
+  /// No description provided for @explorerDownloadExists.
+  ///
+  /// In en, this message translates to:
+  /// **'Some of them are already in {folder}. Replace them?'**
+  String explorerDownloadExists(String folder);
+
+  /// No description provided for @explorerDownloadReplace.
+  ///
+  /// In en, this message translates to:
+  /// **'Replace'**
+  String get explorerDownloadReplace;
 
   /// No description provided for @explorerPreparingTransfer.
   ///
@@ -13461,6 +13485,24 @@ abstract class AppLocalizations {
   /// **'Work across several folders'**
   String get newChatCreateWorkspaceDetail;
 
+  /// The menu's choice, in the menu of where a new chat works, that picks a folder in the file manager and adds it to the project picked: its agents work in it too.
+  ///
+  /// In en, this message translates to:
+  /// **'Add Folder to {name}…'**
+  String newChatAddFolderTo(String name);
+
+  /// No description provided for @newChatAddFolderToDetail.
+  ///
+  /// In en, this message translates to:
+  /// **'Its agents work there too'**
+  String get newChatAddFolderToDetail;
+
+  /// Under a project with folders added to it in the menu of where a new chat works: where it is, and how many folders were added to it.
+  ///
+  /// In en, this message translates to:
+  /// **'{path} · {count, plural, =1{1 more folder} other{{count} more folders}}'**
+  String newChatProjectAddedFolders(String path, int count);
+
   /// The title of the dialog that makes a workspace of several folders.
   ///
   /// In en, this message translates to:
@@ -13563,6 +13605,12 @@ abstract class AppLocalizations {
   /// **'Edit Project…'**
   String get sidebarEditProject;
 
+  /// A project's menu item: picks a folder in the file manager and adds it to the project, its agents working in it too.
+  ///
+  /// In en, this message translates to:
+  /// **'Add Folder…'**
+  String get sidebarAddFolder;
+
   /// No description provided for @projectEditTitle.
   ///
   /// In en, this message translates to:
@@ -13580,6 +13628,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Moved or renamed the folder? Point the project at it here, and its conversations move along. The folder itself is not moved.'**
   String get projectLocationDescription;
+
+  /// No description provided for @projectFoldersDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Agents working in this project can read and change the files in the folders added to it too. Conversations already started see them once they start again.'**
+  String get projectFoldersDescription;
 
   /// No description provided for @projectChooseFolder.
   ///
@@ -17928,6 +17982,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Open'**
   String get aboutOpen;
+
+  /// No description provided for @aboutDeviceId.
+  ///
+  /// In en, this message translates to:
+  /// **'Device ID'**
+  String get aboutDeviceId;
+
+  /// No description provided for @aboutCopy.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy'**
+  String get aboutCopy;
 
   /// No description provided for @stashSettingsIssueSync.
   ///
@@ -22764,6 +22830,150 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'An agent can list your other conversations, read where they stand without waking them, hand them work (resumed if stopped, queued if busy) and wait for them. For one conversation that coordinates the others; agents started after the change have it.'**
   String get generalSettingsSessionToolsDescription;
+
+  /// No description provided for @generalSettingsCommandLine.
+  ///
+  /// In en, this message translates to:
+  /// **'Command Line'**
+  String get generalSettingsCommandLine;
+
+  /// No description provided for @baoBashRecommended.
+  ///
+  /// In en, this message translates to:
+  /// **'BaoCode Bash (recommended)'**
+  String get baoBashRecommended;
+
+  /// No description provided for @baoBashDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'A complete bash for agents on Windows: rg, grep, sed, awk, find, jq, tar and some 80 other common commands built in, no Git for Windows needed, and C:\\ and /c/ paths alike. Both the built-in core and Claude Code\'s run their agents\' commands with it.'**
+  String get baoBashDescription;
+
+  /// No description provided for @baoBashNotInstalled.
+  ///
+  /// In en, this message translates to:
+  /// **'Not installed yet.'**
+  String get baoBashNotInstalled;
+
+  /// No description provided for @baoBashInstalled.
+  ///
+  /// In en, this message translates to:
+  /// **'Version {version} installed.'**
+  String baoBashInstalled(String version);
+
+  /// No description provided for @baoBashUpdateAvailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Version {version} is out.'**
+  String baoBashUpdateAvailable(String version);
+
+  /// No description provided for @baoBashDownloading.
+  ///
+  /// In en, this message translates to:
+  /// **'Downloading… {percent}%'**
+  String baoBashDownloading(int percent);
+
+  /// No description provided for @baoBashInstall.
+  ///
+  /// In en, this message translates to:
+  /// **'Install'**
+  String get baoBashInstall;
+
+  /// No description provided for @baoBashInstallSize.
+  ///
+  /// In en, this message translates to:
+  /// **'Install ({size})'**
+  String baoBashInstallSize(String size);
+
+  /// No description provided for @baoBashUpdate.
+  ///
+  /// In en, this message translates to:
+  /// **'Update'**
+  String get baoBashUpdate;
+
+  /// No description provided for @baoBashUninstall.
+  ///
+  /// In en, this message translates to:
+  /// **'Uninstall'**
+  String get baoBashUninstall;
+
+  /// No description provided for @baoBashFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not install it: {error}'**
+  String baoBashFailed(String error);
+
+  /// No description provided for @baoBashNoticeTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'On Windows, BaoCode Bash is recommended'**
+  String get baoBashNoticeTitle;
+
+  /// No description provided for @baoBashNoticeBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Agents run commands more reliably with it. It brings bash with rg, grep, sed, awk, find, jq, tar and some 80 other common commands, no Git for Windows needed; it takes C:\\ and /c/ paths alike, so commands no longer fail on the differences between cmd and PowerShell.'**
+  String get baoBashNoticeBody;
+
+  /// No description provided for @baoBashNoticeLater.
+  ///
+  /// In en, this message translates to:
+  /// **'Not Now'**
+  String get baoBashNoticeLater;
+
+  /// No description provided for @baoBashSource.
+  ///
+  /// In en, this message translates to:
+  /// **'Open source:'**
+  String get baoBashSource;
+
+  /// No description provided for @baoBashHintInstall.
+  ///
+  /// In en, this message translates to:
+  /// **'Install and Use'**
+  String get baoBashHintInstall;
+
+  /// No description provided for @commandLineShell.
+  ///
+  /// In en, this message translates to:
+  /// **'Shell'**
+  String get commandLineShell;
+
+  /// No description provided for @commandLineShellDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'What agents run their commands in on Windows. Claude Code\'s CLI core takes bash alone: with cmd or PowerShell picked, it runs Git Bash.'**
+  String get commandLineShellDescription;
+
+  /// No description provided for @commandLineShellCustom.
+  ///
+  /// In en, this message translates to:
+  /// **'Custom…'**
+  String get commandLineShellCustom;
+
+  /// No description provided for @commandLineShellInUse.
+  ///
+  /// In en, this message translates to:
+  /// **'In use: {path}'**
+  String commandLineShellInUse(String path);
+
+  /// No description provided for @commandLineShellFallback.
+  ///
+  /// In en, this message translates to:
+  /// **'{shell} is not ready yet: commands run in {path} meanwhile.'**
+  String commandLineShellFallback(String shell, String path);
+
+  /// No description provided for @commandLineCustomPath.
+  ///
+  /// In en, this message translates to:
+  /// **'Custom shell'**
+  String get commandLineCustomPath;
+
+  /// No description provided for @commandLineCustomPathDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'The program to run commands with: a bash.exe, cmd.exe, powershell.exe or pwsh.exe.'**
+  String get commandLineCustomPathDescription;
 }
 
 class _AppLocalizationsDelegate

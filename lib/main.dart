@@ -16,6 +16,7 @@ import 'package:bao_editor/monaco/flutter/language_assets.dart';
 
 import 'base/quiet_view.dart';
 import 'base/smooth_scroll.dart' show BaoScrollBehavior;
+import 'bash_exe/bao_bash.dart';
 import 'bots/bots.dart';
 import 'browser/browser_bridge.dart';
 import 'browser/browser_tools.dart' show BrowserHistory;
@@ -231,6 +232,7 @@ Future<void> main(List<String> arguments) async {
         ? null
         : PreferenceStore.file(
             p.join(DataDirectory.current.stateDir, 'drafts.json'),
+            true,
           ),
     // The data folder's icons/, the upstreams of models' pictures too.
     icons: IconLibrary.current = IconLibrary(storage: IconStorage.directory()),
@@ -419,6 +421,7 @@ Future<void> main(List<String> arguments) async {
       link: link,
       customizations: customizations,
     );
+    BaoBash.current = settings.bash;
     _startTelemetry(files, link);
   }
   // The theme extensions (lib/extensions/): color and file icon themes

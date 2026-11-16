@@ -2489,6 +2489,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get imageDefaultSet => 'Set as default image model';
 
   @override
+  String get imageCopyPrompt => 'Copy prompt';
+
+  @override
   String get toolProposingGoal => 'Proposing a goal';
 
   @override
@@ -3574,6 +3577,17 @@ class AppLocalizationsEn extends AppLocalizations {
   String explorerDownloading(int done, int total) {
     return 'Downloading files... $done/$total';
   }
+
+  @override
+  String get explorerDownload => 'Download...';
+
+  @override
+  String explorerDownloadExists(String folder) {
+    return 'Some of them are already in $folder. Replace them?';
+  }
+
+  @override
+  String get explorerDownloadReplace => 'Replace';
 
   @override
   String get explorerPreparingTransfer => 'Preparing files...';
@@ -8335,6 +8349,25 @@ class AppLocalizationsEn extends AppLocalizations {
   String get newChatCreateWorkspaceDetail => 'Work across several folders';
 
   @override
+  String newChatAddFolderTo(String name) {
+    return 'Add Folder to $name…';
+  }
+
+  @override
+  String get newChatAddFolderToDetail => 'Its agents work there too';
+
+  @override
+  String newChatProjectAddedFolders(String path, int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count more folders',
+      one: '1 more folder',
+    );
+    return '$path · $_temp0';
+  }
+
+  @override
   String get workspaceCreateTitle => 'Create Workspace';
 
   @override
@@ -8395,6 +8428,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get sidebarEditProject => 'Edit Project…';
 
   @override
+  String get sidebarAddFolder => 'Add Folder…';
+
+  @override
   String get projectEditTitle => 'Edit Project';
 
   @override
@@ -8403,6 +8439,10 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get projectLocationDescription =>
       'Moved or renamed the folder? Point the project at it here, and its conversations move along. The folder itself is not moved.';
+
+  @override
+  String get projectFoldersDescription =>
+      'Agents working in this project can read and change the files in the folders added to it too. Conversations already started see them once they start again.';
 
   @override
   String projectChooseFolder(String app) {
@@ -10954,6 +10994,12 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get aboutOpen => 'Open';
+
+  @override
+  String get aboutDeviceId => 'Device ID';
+
+  @override
+  String get aboutCopy => 'Copy';
 
   @override
   String get stashSettingsIssueSync => 'Issues as stashes';
@@ -14032,4 +14078,94 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get generalSettingsSessionToolsDescription =>
       'An agent can list your other conversations, read where they stand without waking them, hand them work (resumed if stopped, queued if busy) and wait for them. For one conversation that coordinates the others; agents started after the change have it.';
+
+  @override
+  String get generalSettingsCommandLine => 'Command Line';
+
+  @override
+  String get baoBashRecommended => 'BaoCode Bash (recommended)';
+
+  @override
+  String get baoBashDescription =>
+      'A complete bash for agents on Windows: rg, grep, sed, awk, find, jq, tar and some 80 other common commands built in, no Git for Windows needed, and C:\\ and /c/ paths alike. Both the built-in core and Claude Code\'s run their agents\' commands with it.';
+
+  @override
+  String get baoBashNotInstalled => 'Not installed yet.';
+
+  @override
+  String baoBashInstalled(String version) {
+    return 'Version $version installed.';
+  }
+
+  @override
+  String baoBashUpdateAvailable(String version) {
+    return 'Version $version is out.';
+  }
+
+  @override
+  String baoBashDownloading(int percent) {
+    return 'Downloading… $percent%';
+  }
+
+  @override
+  String get baoBashInstall => 'Install';
+
+  @override
+  String baoBashInstallSize(String size) {
+    return 'Install ($size)';
+  }
+
+  @override
+  String get baoBashUpdate => 'Update';
+
+  @override
+  String get baoBashUninstall => 'Uninstall';
+
+  @override
+  String baoBashFailed(String error) {
+    return 'Could not install it: $error';
+  }
+
+  @override
+  String get baoBashNoticeTitle => 'On Windows, BaoCode Bash is recommended';
+
+  @override
+  String get baoBashNoticeBody =>
+      'Agents run commands more reliably with it. It brings bash with rg, grep, sed, awk, find, jq, tar and some 80 other common commands, no Git for Windows needed; it takes C:\\ and /c/ paths alike, so commands no longer fail on the differences between cmd and PowerShell.';
+
+  @override
+  String get baoBashNoticeLater => 'Not Now';
+
+  @override
+  String get baoBashSource => 'Open source:';
+
+  @override
+  String get baoBashHintInstall => 'Install and Use';
+
+  @override
+  String get commandLineShell => 'Shell';
+
+  @override
+  String get commandLineShellDescription =>
+      'What agents run their commands in on Windows. Claude Code\'s CLI core takes bash alone: with cmd or PowerShell picked, it runs Git Bash.';
+
+  @override
+  String get commandLineShellCustom => 'Custom…';
+
+  @override
+  String commandLineShellInUse(String path) {
+    return 'In use: $path';
+  }
+
+  @override
+  String commandLineShellFallback(String shell, String path) {
+    return '$shell is not ready yet: commands run in $path meanwhile.';
+  }
+
+  @override
+  String get commandLineCustomPath => 'Custom shell';
+
+  @override
+  String get commandLineCustomPathDescription =>
+      'The program to run commands with: a bash.exe, cmd.exe, powershell.exe or pwsh.exe.';
 }

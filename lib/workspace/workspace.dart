@@ -1948,14 +1948,87 @@ class Workspace extends ChangeNotifier implements ColorThemeStorage {
   /// [project]'s workspace; null when it is a folder.
   ProjectWorkspace? workspaceOf(Project project) => _workspaces[project.path];
 
-  KernelWorkspace? _kernelWorkspace(String? cwd) => switch (_workspaces[cwd]) {
-    final workspace? => KernelWorkspace(
-      folders: workspace.folders,
-      instructions: workspace.systemPrompt,
-    ),
-    null when cwd != null => agentSetup?.call(cwd)?.workspace(),
-    null => null,
-  };
+  /// The folders added to projects' own, by the project's folder: its
+  /// agents work across them too, its IDE shows each as a root besides
+  /// its own (see [multiRootAt]).
+  final Map<String, List<String>> _addedFolders = {};
+
+  /// The folders of the projects with folders added to them.
+  Iterable<String> get projectsWithFolders => _addedFolders.keys;
+
+  /// The folders the project at [path] spans, as roots: a workspace's, or
+  /// a project's with folders added to it ([ProjectWorkspace.inProject]);
+  /// null for a folder's alone.
+  ProjectWorkspace? multiRootAt(String path) =>
+      _workspaces[path] ??
+      switch (_addedFolders[path]) {
+        final added? when added.isNotEmpty => ProjectWorkspace(
+          id: '',
+          name: _projectNamed(path).name,
+          path: path,
+          folders: [path, ...added],
+          inProject: true,
+        ),
+        _ => null,
+      };
+
+  /// Whether folders can be added to the project at [path]: a workspace,
+  /// or a folder of this machine.
+  bool canAddFolders(String path) =>
+      _workspaces.containsKey(path) || !RemoteLocation.isRemote(path);
+
+  /// Adds [folder] to the project at [path] (see [canAddFolders]): its
+  /// agents started from then on work in it too.
+  void addFolder(String path, String folder) {
+    if (_workspaces[path] case final multi?) {
+      return addWorkspaceFolder(multi, folder);
+    }
+    final added = _addedFolders[path] ?? const [];
+    if (!canAddFolders(path) || folder == path || added.contains(folder)) {
+      return;
+    }
+    setAddedFolders(path, [...added, folder]);
+  }
+
+  /// Takes [folder] out of the project at [path]; nothing of it is
+  /// deleted. Not the project's own.
+  void removeFolder(String path, String folder) {
+    if (_workspaces[path] case final multi?) {
+      return removeWorkspaceFolder(multi, folder);
+    }
+    setAddedFolders(path, [
+      for (final kept in _addedFolders[path] ?? const <String>[])
+        if (kept != folder) kept,
+    ]);
+  }
+
+  /// Has the project at [path] (a folder's, not a workspace's) have
+  /// [folders] added to its own; none, it is its folder alone again.
+  void setAddedFolders(String path, List<String> folders) {
+    if (_workspaces.containsKey(path)) return;
+    final added = [
+      for (final folder in {...folders})
+        if (folder != path) folder,
+    ];
+    if (listEquals(added, _addedFolders[path] ?? const [])) return;
+    if (added.isEmpty) {
+      _addedFolders.remove(path);
+    } else {
+      _addedFolders[path] = added;
+    }
+    _save();
+    notifyListeners();
+  }
+
+  KernelWorkspace? _kernelWorkspace(String? cwd) =>
+      switch (cwd == null ? null : multiRootAt(cwd)) {
+        final multi? => KernelWorkspace(
+          folders: multi.added,
+          instructions: multi.systemPrompt,
+        ),
+        null when cwd != null => agentSetup?.call(cwd)?.workspace(),
+        null => null,
+      };
 
   /// Makes a workspace of [folders] named [name], listed first: new agents
   /// in it work across them. Null where workspaces cannot be kept (the
@@ -2234,6 +2307,7 @@ class Workspace extends ChangeNotifier implements ColorThemeStorage {
 
     move(_projectNames);
     move(_projectIcons);
+    move(_addedFolders);
     move(_order);
     move(_ideViews);
     _hiddenProjects
@@ -2380,6 +2454,7 @@ class Workspace extends ChangeNotifier implements ColorThemeStorage {
       _order.length,
       _projectIcons.length,
       _projectNames.length,
+      _addedFolders.length,
       for (final order in _order.values) order.length,
     ]);
     final before = size();
@@ -2393,6 +2468,7 @@ class Workspace extends ChangeNotifier implements ColorThemeStorage {
       (path, _) => !paths.contains(path) && !path.startsWith(_hostIcon),
     );
     _projectNames.removeWhere((path, _) => !paths.contains(path));
+    _addedFolders.removeWhere((path, _) => !paths.contains(path));
     for (final order in _order.values) {
       order.retainWhere(titles.containsKey);
     }
@@ -2500,13 +2576,27 @@ class Workspace extends ChangeNotifier implements ColorThemeStorage {
     'images': [
       for (final image in draft.images)
         {
-          'bytes': base64Encode(image.bytes),
+          'bytes': _base64Of(image.bytes),
           'mediaType': image.mediaType,
           'name': ?image.name,
           'number': ?image.number,
         },
     ],
   };
+
+  /// Each picture's bytes as base64, made once: a draft is encoded again
+  /// on every key, its pictures (megabytes each) with it (E0A7T8YQ).
+  static final _base64 = Expando<String>();
+
+  static String _base64Of(Uint8List bytes) =>
+      _base64[bytes] ??= base64Encode(bytes);
+
+  /// [base64]'s bytes, it kept for them.
+  static Uint8List _bytesOf(String base64) {
+    final bytes = base64Decode(base64);
+    _base64[bytes] = base64;
+    return bytes;
+  }
 
   /// Into [draft]; nothing of one that cannot be read.
   static void _decodeDraft(Map<String, Object?> kept, ComposerDraft draft) {
@@ -2518,7 +2608,7 @@ class Workspace extends ChangeNotifier implements ColorThemeStorage {
             'mediaType': final String mediaType,
           })
             ImageAttachment(
-              bytes: base64Decode(bytes),
+              bytes: _bytesOf(bytes),
               mediaType: mediaType,
               name: image['name'] as String?,
               number: image['number'] as int?,
@@ -2740,6 +2830,14 @@ class Workspace extends ChangeNotifier implements ColorThemeStorage {
         }
       }
     }
+    if (kept['addedFolders'] case final Map<Object?, Object?> added) {
+      for (final MapEntry(:key, :value) in added.entries) {
+        if ((key, value) case (final String path, final List<Object?> folders)
+            when folders.isNotEmpty) {
+          _addedFolders[path] = folders.whereType<String>().toList();
+        }
+      }
+    }
     if (kept['projectIcons'] case final Map<Object?, Object?> icons) {
       for (final MapEntry(:key, :value) in icons.entries) {
         if ((key, ProjectIcon.fromJson(value)) case (
@@ -2868,6 +2966,7 @@ class Workspace extends ChangeNotifier implements ColorThemeStorage {
       'workspaces': [
         for (final workspace in _workspaces.values) workspace.toJson(),
       ],
+      'addedFolders': _addedFolders,
       'projectIcons': {
         for (final MapEntry(:key, :value) in _projectIcons.entries)
           key: value.toJson(),
