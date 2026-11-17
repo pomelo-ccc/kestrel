@@ -907,6 +907,16 @@ class Workspace extends ChangeNotifier implements ColorThemeStorage {
     _save();
   }
 
+  /// What the remote browser shows (its hidden entries; see
+  /// `RemoteBrowserView`), for the next run.
+  Map<String, Object?>? get remoteBrowserView => _remoteBrowserView;
+  Map<String, Object?>? _remoteBrowserView;
+
+  void keepRemoteBrowserView(Map<String, Object?> state) {
+    _remoteBrowserView = state;
+    _save();
+  }
+
   /// [path]'s project: the listed one, or one that is not (yet) listed.
   Project projectAt(String path) {
     for (final project in _projects) {
@@ -2888,6 +2898,9 @@ class Workspace extends ChangeNotifier implements ColorThemeStorage {
     if (kept['sidePanel'] case final Map<Object?, Object?> panel) {
       _sidePanelView = panel.cast<String, Object?>();
     }
+    if (kept['remoteBrowser'] case final Map<Object?, Object?> view) {
+      _remoteBrowserView = view.cast<String, Object?>();
+    }
     if (!_colorThemeStored) {
       _autoDetectColorScheme = kept['autoDetectColorScheme'] == true;
       if (kept['colorTheme'] case final String setting) _colorTheme = setting;
@@ -2975,6 +2988,7 @@ class Workspace extends ChangeNotifier implements ColorThemeStorage {
       'emojiStyle': ?_emojiStyle?.name,
       'chat': ?_chatViewToSave(),
       'sidePanel': ?_sidePanelView,
+      'remoteBrowser': ?_remoteBrowserView,
       'colorTheme': ?_colorTheme,
       'colorThemeData': ?_colorThemeData,
       if (_autoDetectColorScheme) 'autoDetectColorScheme': true,

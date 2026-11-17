@@ -136,6 +136,8 @@ import 'window/code_args.dart';
 import 'window/window_settings.dart';
 import 'remote/open_remote.dart';
 import 'remote/project_host.dart';
+import 'remote/remote_browser.dart';
+import 'remote/remote_browser_view.dart';
 import 'remote/remote_customization_disk.dart';
 import 'remote/remote_files.dart';
 import 'remote/remote_location.dart';
@@ -3873,6 +3875,7 @@ class _WorkbenchState extends State<Workbench> implements WindowDelegate {
     late final OpenRemoteFlow flow;
     flow = OpenRemoteFlow(
       show: showQuickPick,
+      browse: _browseRemote,
       l10n: context.l10n,
       added: _workspace.sshHosts,
       labelOf: _workspace.hostLabel,
@@ -3904,6 +3907,29 @@ class _WorkbenchState extends State<Workbench> implements WindowDelegate {
     } else {
       unawaited(flow.start());
     }
+  }
+
+  /// The remote browser for [request]: the host by its name, the folders
+  /// opened there lately at its left, what it shows kept.
+  Future<String?> _browseRemote(RemoteBrowseRequest request) async {
+    if (!mounted) return null;
+    final host = request.host;
+    final recent = <String>{
+      for (final location in [
+        ..._workspace.recentFolders,
+        for (final project in _workspace.projects) project.path,
+      ])
+        if (RemoteLocation.hostOf(location) == host)
+          RemoteLocation.pathOf(location),
+    };
+    return showRemoteBrowser(
+      context,
+      request,
+      hostLabel: _workspace.hostLabel(host),
+      recent: [...recent],
+      view: RemoteBrowserView.fromJson(_workspace.remoteBrowserView),
+      onView: (view) => _workspace.keepRemoteBrowserView(view.toJson()),
+    );
   }
 
   /// The hosts of `~/.ssh/config`, as last read: edited there, not with
@@ -4002,6 +4028,7 @@ class _WorkbenchState extends State<Workbench> implements WindowDelegate {
     if (host == null || host.isEmpty) return;
     final flow = OpenRemoteFileFlow(
       show: showQuickPick,
+      browse: _browseRemote,
       l10n: context.l10n,
       hosts: SshHosts.instance,
       onOpen: (location) {
