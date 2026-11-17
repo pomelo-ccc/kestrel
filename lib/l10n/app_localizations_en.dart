@@ -14241,4 +14241,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String remoteBrowserMakeFailed(String error) {
     return 'Could not make the folder: $error';
   }
+
+  @override
+  String get remoteBrowserFolderAction => 'Open Folder';
+
+  @override
+  String get remoteBrowserFileAction => 'Open File';
 }
