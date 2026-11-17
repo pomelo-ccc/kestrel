@@ -1,5 +1,7 @@
 import 'dart:typed_data';
 
+import 'reply_suggestions.dart';
+
 /// UI-only view models for the conversation history.
 sealed class ChatItem {
   const ChatItem();

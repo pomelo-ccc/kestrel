@@ -51,6 +51,16 @@ import '../../ide/ide_notifications.dart';
 import '../../ide/transfer_progress.dart';
 import 'remote_drops.dart';
 
+/// The key that takes the first suggested reply (see
+/// [ChatSession.replySuggestions]), as the keybindings have it now; none
+/// when unbound.
+String? replySuggestionKey() =>
+    ChatKeys.keyLabel(ChatCommandIds.acceptPromptSuggestion, const {
+      ChatContextKeys.inChatInput: true,
+      ChatContextKeys.hasPromptSuggestion: true,
+      ChatContextKeys.inputHasText: false,
+    });
+
 /// An open query: a /command's (a slash starting a word), or a mention's
 /// (an @ starting a word: a file, a folder or a conversation);
 /// [query] is the text between it and the caret.
@@ -610,8 +620,8 @@ class ChatComposerState extends State<ChatComposer>
   static final bool _isFlutterTest =
       Platform.environment['FLUTTER_TEST'] == 'true';
 
-  /// What the agent suggests sending next, shown as the placeholder of an
-  /// empty dock composer; Tab takes it.
+  /// The first of what the agent suggests sending next, shown over an empty
+  /// dock composer (see ReplySuggestionBar); Tab takes it.
   String? _suggestion;
 
   /// Contextual next-step suggestions for the empty dock composer.
