@@ -9,7 +9,6 @@ import '../../ide/explorer_excludes.dart';
 import '../../ide/ide_button.dart';
 import '../../ide/ide_menu.dart';
 import '../../ide/ide_notifications.dart' show IdeSeverity;
-import '../../kernel/antigravity/antigravity_cli.dart';
 import '../../kernel/claude_code/claude_core_setting.dart';
 import '../../kernel/claude_code/claude_path_setting.dart';
 import '../../kernel/commit_attribution.dart';
@@ -546,7 +545,7 @@ class GeneralSettingsPage extends StatelessWidget {
             ),
             if (claudeStatus case final claudeStatus? when !kIsWeb)
               SettingsGroup(
-                title: 'Claude Code / Antigravity CLI',
+                title: 'Claude Code',
                 children: [
                   SettingsCard(
                     children: [
@@ -558,7 +557,6 @@ class GeneralSettingsPage extends StatelessWidget {
                         values: {
                           ClaudeCore.cli.name:
                               l10n.generalSettingsClaudeCoreCli,
-                          ClaudeCore.antigravity.name: 'Antigravity CLI',
                           ClaudeCore.builtin.name:
                               l10n.generalSettingsClaudeCoreBuiltin,
                         },
@@ -571,16 +569,6 @@ class GeneralSettingsPage extends StatelessWidget {
                         status: claudeStatus,
                         onChanged: (path) => _write(
                           ClaudePathSetting.settingKey,
-                          path.isEmpty ? null : path,
-                        ),
-                      ),
-                      _AntigravityPathSetting(
-                        path: AntigravityPathSetting.parse(
-                          settings?[AntigravityPathSetting.settingKey],
-                        ),
-                        status: LocalAntigravity.status,
-                        onChanged: (path) => _write(
-                          AntigravityPathSetting.settingKey,
                           path.isEmpty ? null : path,
                         ),
                       ),
@@ -915,85 +903,6 @@ class _ClaudePathSettingState extends State<_ClaudePathSetting> {
         value: widget.path ?? '',
         hint: l10n.claudePathSettingHint,
         semanticLabel: 'Claude Code ${l10n.claudePathSetting}',
-        width: 260,
-        onSubmitted: widget.onChanged,
-      ),
-    );
-  }
-}
-
-/// The Antigravity CLI (`agy`) executable path setting and status display.
-class _AntigravityPathSetting extends StatefulWidget {
-  const _AntigravityPathSetting({
-    required this.path,
-    required this.status,
-    required this.onChanged,
-  });
-
-  final String? path;
-  final Future<LocalClaudeStatus?> Function() status;
-  final ValueChanged<String> onChanged;
-
-  @override
-  State<_AntigravityPathSetting> createState() =>
-      _AntigravityPathSettingState();
-}
-
-class _AntigravityPathSettingState extends State<_AntigravityPathSetting> {
-  late Future<LocalClaudeStatus?> _status = widget.status();
-
-  @override
-  void didUpdateWidget(_AntigravityPathSetting old) {
-    super.didUpdateWidget(old);
-    if (old.path != widget.path) _status = widget.status();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = context.l10n;
-    return SettingsRow(
-      label: 'Antigravity CLI ${l10n.claudePathSetting}',
-      description: 'Antigravity CLI (agy) 可执行文件路径（留空则自动查找）',
-      below: [
-        FutureBuilder(
-          future: _status,
-          builder: (context, snapshot) {
-            final (text, failed) = switch (snapshot.data) {
-              _ when snapshot.connectionState != ConnectionState.done => (
-                l10n.claudePathChecking,
-                false,
-              ),
-              LocalClaudeFound(:final path, :final version?) => (
-                l10n.claudePathInUse(path, version),
-                false,
-              ),
-              LocalClaudeFound(:final path) => (
-                l10n.claudePathInUseUnknown(path),
-                false,
-              ),
-              LocalClaudeMissing() => (
-                '未找到 Antigravity CLI (agy)',
-                false,
-              ),
-              LocalClaudeFailed(:final message) => (message, true),
-              null => ('', false),
-            };
-            if (text.isEmpty) return const SizedBox.shrink();
-            return SelectableText(
-              text,
-              style: failed
-                  ? SettingsText.path.copyWith(
-                      color: themeColors['errorForeground'],
-                    )
-                  : SettingsText.path,
-            );
-          },
-        ),
-      ],
-      trailing: SettingsTextField(
-        value: widget.path ?? '',
-        hint: '~/.gemini/bin/agy',
-        semanticLabel: 'Antigravity CLI ${l10n.claudePathSetting}',
         width: 260,
         onSubmitted: widget.onChanged,
       ),

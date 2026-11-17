@@ -6,6 +6,7 @@ import '../../l10n/l10n.dart';
 import '../chat_models.dart';
 import '../chat_session.dart';
 import '../edit_detail.dart';
+import '../session_links.dart';
 import 'activity_row.dart';
 import 'agent_message_card.dart';
 import 'agent_step.dart';

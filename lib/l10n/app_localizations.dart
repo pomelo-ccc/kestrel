@@ -16867,30 +16867,6 @@ abstract class AppLocalizations {
   /// **'Extension {version}'**
   String browserSettingsExtensionVersion(String version);
 
-  /// No description provided for @browserSettingsUse.
-  ///
-  /// In en, this message translates to:
-  /// **'Use This Browser'**
-  String get browserSettingsUse;
-
-  /// No description provided for @browserSettingsUsing.
-  ///
-  /// In en, this message translates to:
-  /// **'In Use'**
-  String get browserSettingsUsing;
-
-  /// No description provided for @browserSettingsChosenMissing.
-  ///
-  /// In en, this message translates to:
-  /// **'The browser chosen is not connected'**
-  String get browserSettingsChosenMissing;
-
-  /// Under browserSettingsChosenMissing: the chosen browser's executable, and the connected one used meanwhile.
-  ///
-  /// In en, this message translates to:
-  /// **'{path}: agents use {browser} until it connects again.'**
-  String browserSettingsChosenMissingDescription(String path, String browser);
-
   /// No description provided for @browserSettingsExtensionOld.
   ///
   /// In en, this message translates to:
@@ -23226,6 +23202,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'“{name}” already exists. Replace it?'**
   String remoteBrowserReplace(String name);
+
+  /// No description provided for @browserSettingsUse.
+  ///
+  /// In en, this message translates to:
+  /// **'Use This Browser'**
+  String get browserSettingsUse;
+
+  /// No description provided for @browserSettingsUsing.
+  ///
+  /// In en, this message translates to:
+  /// **'In Use'**
+  String get browserSettingsUsing;
+
+  /// No description provided for @browserSettingsChosenMissing.
+  ///
+  /// In en, this message translates to:
+  /// **'The browser chosen is not connected'**
+  String get browserSettingsChosenMissing;
+
+  /// Under browserSettingsChosenMissing: the chosen browser's executable, and the connected one used meanwhile.
+  ///
+  /// In en, this message translates to:
+  /// **'{path}: agents use {browser} until it connects again.'**
+  String browserSettingsChosenMissingDescription(String path, String browser);
 }
 
 class _AppLocalizationsDelegate

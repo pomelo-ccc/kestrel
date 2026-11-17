@@ -10373,21 +10373,6 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get browserSettingsUse => 'Use This Browser';
-
-  @override
-  String get browserSettingsUsing => 'In Use';
-
-  @override
-  String get browserSettingsChosenMissing =>
-      'The browser chosen is not connected';
-
-  @override
-  String browserSettingsChosenMissingDescription(String path, String browser) {
-    return '$path: agents use $browser until it connects again.';
-  }
-
-  @override
   String get browserSettingsExtensionOld =>
       'The extension is out of date. From the store, it updates automatically, or click Update in chrome://extensions; installed manually, download the zip again, replace the folder\'s contents and click reload.';
 
@@ -14352,5 +14337,20 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String remoteBrowserReplace(String name) {
     return '“$name” already exists. Replace it?';
+  }
+
+  @override
+  String get browserSettingsUse => 'Use This Browser';
+
+  @override
+  String get browserSettingsUsing => 'In Use';
+
+  @override
+  String get browserSettingsChosenMissing =>
+      'The browser chosen is not connected';
+
+  @override
+  String browserSettingsChosenMissingDescription(String path, String browser) {
+    return '$path: agents use $browser until it connects again.';
   }
 }

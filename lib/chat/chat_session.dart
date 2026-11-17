@@ -534,6 +534,9 @@ class ChatSession extends ChangeNotifier implements ChatFeed {
 
   bool get acceptsImages => _kernel is AcceptsImages;
 
+  /// First suggested next reply, if any.
+  String? get promptSuggestion => replySuggestions.firstOrNull;
+
   /// What the agent suggests the user send next, at the end of its last
   /// turn (see [ReplySuggestions]): offered while it waits for them, if
   /// they have them on.

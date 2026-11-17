@@ -3441,7 +3441,7 @@
   "gitReviewCommitAndPushAnyway": "仍然提交并推送",
   "gitReviewFailed": "审查失败：{error}",
   "gitAskAiCommit": "问 AI 这个提交",
-  "gitAskAiCommitPrompt": "解释提交 {id}（\u201c{subject}\u201d）：改了什么、为什么改，以及有没有看起来有风险的地方。可以用 `git show {id}` 查看。",
+  "gitAskAiCommitPrompt": "解释提交 {id}（“{subject}”）：改了什么、为什么改，以及有没有看起来有风险的地方。可以用 `git show {id}` 查看。",
   "gitAskAiCommits": "问 AI 这 {count} 个提交",
   "gitAskAiCommitsPrompt": "解释提交 {ids}：它们合起来改了什么，以及有没有看起来有风险的地方。可以用 `git show` 查看。",
   "gitAskAiHunk": "问 AI 这处改动",
@@ -3453,12 +3453,12 @@
   "gitLogFixup": "用勾选的改动修正 (Fixup)",
   "compareWith": "比较",
   "compareWithClipboard": "剪贴板",
-  "compareWithClipboardLabel": "{name}（剪贴板 \u2194 文件）",
+  "compareWithClipboardLabel": "{name}（剪贴板 ↔ 文件）",
   "gitCompareWithBranch": "分支或标签…",
   "gitCompareWithRevision": "某个版本…",
   "gitCompareWithBranchPlaceholder": "选择要与文件比较的分支或标签",
   "gitCompareWithRevisionPlaceholder": "选择要比较的文件版本",
-  "gitCompareLabel": "{name}（{other} \u2194 工作区）",
+  "gitCompareLabel": "{name}（{other} ↔ 工作区）",
   "explorerSelectForCompare": "选择以进行比较",
   "explorerCompareWithSelected": "与“{name}”比较",
   "compareFoldersSame": "“{original}”和“{modified}”的文件完全相同。",
@@ -3471,7 +3471,7 @@
   "localHistoryPick": "选择“{name}”的一个版本来比较",
   "localHistoryLabel": "{name}（本地历史，{time}）",
   "explorerCompareSelected": "比较所选文件",
-  "compareFilesLabel": "{original} \u2194 {modified}",
+  "compareFilesLabel": "{original} ↔ {modified}",
   "settingsSectionUsage": "调用统计",
   "sidePanelUsage": "用量",
   "ustatKeywords": "用量 统计 调用 令牌 token 缓存 看板 上游 模型",
@@ -3682,7 +3682,13 @@
   "ustatTraceRawResponse": "原始响应",
   "ustatTraceToUpstream": "发往上游",
   "ustatTraceResponseHeaders": "响应头 · {count}",
-  "@ustatTraceResponseHeaders": {"placeholders": {"count": {"type": "int"}}},
+  "@ustatTraceResponseHeaders": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "ustatTraceAnswerOnly": "Claude Code 输出的原样内容；发给官方的请求看不到",
   "ustatTraceTry": "第 {n} 次",
   "ustatTraceCopyAll": "复制全部",

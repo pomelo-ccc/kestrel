@@ -23,6 +23,7 @@ import 'channel/channel_gate.dart';
 import 'channel/channel_setup_welcome.dart';
 import 'chat/aside_layers.dart';
 import 'chat/chat_keys.dart';
+import 'chat/session_links.dart';
 import 'chat/chat_models.dart'
     show
         AssistantTextItem,

@@ -667,50 +667,89 @@
   "sidePanelTerminal": "Terminal",
   "browserOtherApp": "Another Byte is connected to the browser.",
   "browserWatchTitle": "Watching you in the browser",
-  "@browserWatchTitle": {"description": "The card in the conversation while an agent watches the user do something in their browser (browser_watch), recording it."},
+  "@browserWatchTitle": {
+    "description": "The card in the conversation while an agent watches the user do something in their browser (browser_watch), recording it."
+  },
   "browserWatchHint": "Do it in the Byte tab of your browser. When you're done, click Done here or the Byte button in the browser's toolbar.",
   "browserWatchSteps": "{count, plural, =0{Nothing recorded yet} =1{1 step recorded} other{{count} steps recorded}}",
-  "@browserWatchSteps": {"placeholders": {"count": {"type": "int"}}},
+  "@browserWatchSteps": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "browserWatchCancel": "Cancel",
   "browserWatchDone": "Done",
   "browserWatchedStep": "{kind, select, click{Clicked} input{Set} key{Pressed} submit{Submitted} navigate{Went to} closed{Closed the tab} other{Did}}",
   "@browserWatchedStep": {
     "description": "A step the user took while watched, by its kind; what it was on follows (an element, a URL).",
-    "placeholders": {"kind": {"type": "String"}}
+    "placeholders": {
+      "kind": {
+        "type": "String"
+      }
+    }
   },
   "browserTraceReveal": "Show the trace in {app} (drop it into DevTools' Performance panel to look closer)",
   "@browserTraceReveal": {
     "description": "{app} is the system's file manager, as the system names it (Finder, File Explorer).",
-    "placeholders": {"app": {"type": "String", "example": "Finder"}}
+    "placeholders": {
+      "app": {
+        "type": "String",
+        "example": "Finder"
+      }
+    }
   },
   "browserStepDone": "{action, select, tabs{Listed tabs} open{Opened} navigate{Went to} back{Went back} forward{Went forward} reload{Reloaded} snapshot{Read the page} screenshot{Took a screenshot} click{Clicked} type{Typed} press{Pressed} scroll{Scrolled} evaluate{Ran} close{Closed the tab} console{Read the console} network{Listed requests} request{Read the request} performance{Profiled} recordStart{Started profiling} recordStop{Profiled} emulate{Emulated} watch{Watched you} act{Acted} inspect{Inspected} sources{Read the sources} breakpoints{Set breakpoints} debugger{Debugged} intercept{Intercepted requests} storage{Read site data} dialog{Answered the dialog} coverage{Measured coverage} memory{Measured memory} history{Read the debugging history} other{Used the browser}}",
   "@browserStepDone": {
     "description": "A browser step's verb once done, by the browser tool it called; what it did it on follows (a URL, an element's name).",
-    "placeholders": {"action": {"type": "String"}}
+    "placeholders": {
+      "action": {
+        "type": "String"
+      }
+    }
   },
   "browserStepRunning": "{action, select, tabs{Listing tabs} open{Opening} navigate{Going to} back{Going back} forward{Going forward} reload{Reloading} snapshot{Reading the page} screenshot{Taking a screenshot} click{Clicking} type{Typing} press{Pressing} scroll{Scrolling} evaluate{Running} close{Closing the tab} console{Reading the console} network{Listing requests} request{Reading the request} performance{Profiling} recordStart{Starting to profile} recordStop{Profiling} emulate{Emulating} watch{Watching you} act{Acting} inspect{Inspecting} sources{Reading the sources} breakpoints{Setting breakpoints} debugger{Debugging} intercept{Intercepting requests} storage{Reading site data} dialog{Answering the dialog} coverage{Measuring coverage} memory{Measuring memory} history{Reading the debugging history} other{Using the browser}}",
   "@browserStepRunning": {
     "description": "A browser step's verb while it runs (see browserStepDone).",
-    "placeholders": {"action": {"type": "String"}}
+    "placeholders": {
+      "action": {
+        "type": "String"
+      }
+    }
   },
   "sessionStepDone": "{action, select, new{Started} send{Handed work to} wait{Waited for} read{Read} stop{Stopped} changes{Checked the changes of} list{Listed the conversations} other{Coordinated}}",
   "@sessionStepDone": {
     "description": "A coordinating step's verb once done, by the session tool it called; the conversation's title follows.",
-    "placeholders": {"action": {"type": "String"}}
+    "placeholders": {
+      "action": {
+        "type": "String"
+      }
+    }
   },
   "sessionStepRunning": "{action, select, new{Starting} send{Handing work to} wait{Waiting for} read{Reading} stop{Stopping} changes{Checking the changes of} list{Listing the conversations} other{Coordinating}}",
   "@sessionStepRunning": {
     "description": "A coordinating step's verb while it runs (see sessionStepDone).",
-    "placeholders": {"action": {"type": "String"}}
+    "placeholders": {
+      "action": {
+        "type": "String"
+      }
+    }
   },
   "sessionOpen": "Open the conversation",
   "sessionStatus": "{status, select, running{Working} waiting{Waiting on you} done{Done} failed{Failed} other{}}",
   "@sessionStatus": {
     "description": "How a conversation handed work stands, in the strip over the composer.",
-    "placeholders": {"status": {"type": "String"}}
+    "placeholders": {
+      "status": {
+        "type": "String"
+      }
+    }
   },
   "sessionAnswer": "Answer",
-  "@sessionAnswer": {"description": "Goes to a conversation that waits on the user, to answer it there."},
+  "@sessionAnswer": {
+    "description": "Goes to a conversation that waits on the user, to answer it there."
+  },
   "sessionShowMore": "Show more",
   "sessionShowLess": "Show less",
   "sidePanelPlan": "Plan",
@@ -952,7 +991,9 @@
   "@sidebarHoverModel": {
     "description": "A conversation's hover in the sidebar: the model it runs on.",
     "placeholders": {
-      "model": {"type": "String"}
+      "model": {
+        "type": "String"
+      }
     }
   },
   "sidebarDone": "Done",
@@ -2480,7 +2521,9 @@
   "@composerCopyToHostFailed": {
     "description": "Files of this computer put in a remote project's composer could not be copied to its host, for its agent to read.",
     "placeholders": {
-      "error": {"type": "String"}
+      "error": {
+        "type": "String"
+      }
     }
   },
   "explorerNewFile": "New File...",
@@ -4806,20 +4849,28 @@
   "modelsAccountsImportSummary": "Accounts imported: {count}",
   "@modelsAccountsImportSummary": {
     "placeholders": {
-      "count": {"type": "int"}
+      "count": {
+        "type": "int"
+      }
     }
   },
   "modelsAccountsImportKept": "Already here, kept as signed in: {count}",
   "@modelsAccountsImportKept": {
     "placeholders": {
-      "count": {"type": "int"}
+      "count": {
+        "type": "int"
+      }
     }
   },
   "modelsAccountsImportItemFailed": "Entry {index}: {error}",
   "@modelsAccountsImportItemFailed": {
     "placeholders": {
-      "index": {"type": "int"},
-      "error": {"type": "String"}
+      "index": {
+        "type": "int"
+      },
+      "error": {
+        "type": "String"
+      }
     }
   },
   "modelsAccountSigningIn": "Waiting for sign-in…",
@@ -4837,7 +4888,9 @@
   "modelsAccountRefreshQuota": "Refresh quota for {name}",
   "@modelsAccountRefreshQuota": {
     "placeholders": {
-      "name": {"type": "String"}
+      "name": {
+        "type": "String"
+      }
     }
   },
   "modelsAccountRemove": "Remove account",
@@ -6607,7 +6660,9 @@
   "mobileGetOpen": "Click to open {url}",
   "@mobileGetOpen": {
     "placeholders": {
-      "url": {"type": "String"}
+      "url": {
+        "type": "String"
+      }
     }
   },
   "mobilePairCopied": "Copied",
@@ -6666,10 +6721,22 @@
   "mobilePairRequestBody": "It found this computer nearby. Allow it only if the phone shows the same code.",
   "mobilePairAllow": "Allow",
   "mobileStatusOnline": "On, reachable through {relay}",
-  "@mobileStatusOnline": {"placeholders": {"relay": {"type": "String"}}},
+  "@mobileStatusOnline": {
+    "placeholders": {
+      "relay": {
+        "type": "String"
+      }
+    }
+  },
   "mobileStatusNoRelay": "On; no relay reached yet, so only phones on the same network can connect",
   "mobileStatusDenied": "On, but the relay turned this computer away: {reason}",
-  "@mobileStatusDenied": {"placeholders": {"reason": {"type": "String"}}},
+  "@mobileStatusDenied": {
+    "placeholders": {
+      "reason": {
+        "type": "String"
+      }
+    }
+  },
   "mobileRelayInvalid": "Not a relay address; one looks like https://relay.example.com",
   "mobileRelayPinned": "Relay Used",
   "mobileRelayCustom": "Custom",
@@ -6693,7 +6760,13 @@
   "mobilePathDirect": "Direct",
   "mobilePathRelay": "Through the relay",
   "mobilePathRtt": "{ms} ms",
-  "@mobilePathRtt": {"placeholders": {"ms": {"type": "int"}}},
+  "@mobilePathRtt": {
+    "placeholders": {
+      "ms": {
+        "type": "int"
+      }
+    }
+  },
   "mobileLegacyPhone": "Needs pairing again: paired before the connection was rebuilt",
   "mobileLegacyRepair": "Pair Again",
   "settingsSectionStash": "Stash",
@@ -6783,9 +6856,21 @@
   "generalSettingsLiveTurnStats": "Live Speed and Time",
   "generalSettingsLiveTurnStatsDescription": "While the agent works, a line under the reply with how long the turn has taken, how fast the model writes and the tokens so far, changing as it goes. The figures under a finished turn always show.",
   "usageLimitScheduled": "Usage limit reached · continues automatically after it resets at {time}",
-  "@usageLimitScheduled": {"placeholders": {"time": {"type": "String"}}},
+  "@usageLimitScheduled": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
   "usageLimitTomorrow": "tomorrow {time}",
-  "@usageLimitTomorrow": {"placeholders": {"time": {"type": "String"}}},
+  "@usageLimitTomorrow": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
   "resumeAfterResetPrompt": "The usage limit has reset. Continue where you left off.",
   "resumeAfterLimitToggle": "Continue After Limit Reset",
   "stashPolishFailed": "Could not polish: {error}",
@@ -7418,11 +7503,32 @@
   "browserSettingsSandboxed": "Snap and Flatpak browsers can't connect",
   "browserSettingsSandboxedDescription": "Their sandbox keeps Byte's helper from running. Install the browser from its own .deb or .rpm package instead, such as Google Chrome from google.com/chrome.",
   "browserSettingsConnected": "{browser} connected",
-  "@browserSettingsConnected": {"description": "A browser connected, by its name (Google Chrome, Microsoft Edge…).", "placeholders": {"browser": {"type": "String"}}},
+  "@browserSettingsConnected": {
+    "description": "A browser connected, by its name (Google Chrome, Microsoft Edge…).",
+    "placeholders": {
+      "browser": {
+        "type": "String"
+      }
+    }
+  },
   "browserSettingsIncompatible": "{browser}: extension version doesn't match",
-  "@browserSettingsIncompatible": {"description": "A browser connected whose extension Byte cannot use: one too old, or newer than the app.", "placeholders": {"browser": {"type": "String"}}},
+  "@browserSettingsIncompatible": {
+    "description": "A browser connected whose extension Byte cannot use: one too old, or newer than the app.",
+    "placeholders": {
+      "browser": {
+        "type": "String"
+      }
+    }
+  },
   "browserSettingsExtensionVersion": "Extension {version}",
-  "@browserSettingsExtensionVersion": {"description": "The version of Byte's extension in a connected browser.", "placeholders": {"version": {"type": "String"}}},
+  "@browserSettingsExtensionVersion": {
+    "description": "The version of Byte's extension in a connected browser.",
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
   "browserSettingsExtensionOld": "The extension is out of date. From the store, it updates automatically, or click Update in chrome://extensions; installed manually, download the zip again, replace the folder's contents and click reload.",
   "browserSettingsAppOld": "The extension is newer than this Byte. Update Byte.",
   "browserSettingsNoFileAccess": "File access is off",
@@ -7440,12 +7546,24 @@
   "browserHistoryDetailed": "Detailed history",
   "browserHistoryDetailedDescription": "Also keeps the request and response bodies, what you do (clicks and typing, never passwords) and every console message. Takes more space.",
   "browserHistorySize": "Using {size}",
-  "@browserHistorySize": {"placeholders": {"size": {"type": "String"}}},
+  "@browserHistorySize": {
+    "placeholders": {
+      "size": {
+        "type": "String"
+      }
+    }
+  },
   "browserHistoryClear": "Clear",
   "browserHistoryClearConfirm": "Clear the debugging history?",
   "browserHistoryClearDetail": "The pages, requests and console messages kept are deleted. This cannot be undone.",
   "browserHistoryTooLarge": "The browser's debugging history takes {size}",
-  "@browserHistoryTooLarge": {"placeholders": {"size": {"type": "String"}}},
+  "@browserHistoryTooLarge": {
+    "placeholders": {
+      "size": {
+        "type": "String"
+      }
+    }
+  },
   "browserHistoryTooLargeDetail": "Clear it, or look at it in Settings → Browser.",
   "browserHistoryOpenSettings": "Browser settings",
   "browserWelcomeTitle": "Agents can use your browser now",
@@ -7460,7 +7578,14 @@
   "browserWelcomeInstall": "For Chrome, Edge, Brave and Arc. It connects by itself, and this turns green.",
   "browserWelcomeTurnedOff": "The browser is turned off in Settings → Browser.",
   "browserWelcomeConnected": "{browser} is connected",
-  "@browserWelcomeConnected": {"description": "The welcome's step once a browser connected, by its name.", "placeholders": {"browser": {"type": "String"}}},
+  "@browserWelcomeConnected": {
+    "description": "The welcome's step once a browser connected, by its name.",
+    "placeholders": {
+      "browser": {
+        "type": "String"
+      }
+    }
+  },
   "browserWelcomeTry": "Try telling an agent: “Open kestrel.dev and look at the download page.”",
   "browserWelcomeUnpacked": "Developer Mode Zip",
   "browserWelcomeDone": "Got It",
@@ -7504,12 +7629,30 @@
   "sshSettingsConnect": "Connect",
   "sshSettingsDisconnect": "Disconnect",
   "sshSettingsDisconnectTitle": "Disconnect from {host}?",
-  "@sshSettingsDisconnectTitle": {"placeholders": {"host": {"type": "String"}}},
+  "@sshSettingsDisconnectTitle": {
+    "placeholders": {
+      "host": {
+        "type": "String"
+      }
+    }
+  },
   "sshSettingsDisconnectDetail": "The conversations and terminals running there end.",
   "sshSettingsCore": "Core: {core}",
-  "@sshSettingsCore": {"placeholders": {"core": {"type": "String"}}},
+  "@sshSettingsCore": {
+    "placeholders": {
+      "core": {
+        "type": "String"
+      }
+    }
+  },
   "sshSettingsVia": "through {host}",
-  "@sshSettingsVia": {"placeholders": {"host": {"type": "String"}}},
+  "@sshSettingsVia": {
+    "placeholders": {
+      "host": {
+        "type": "String"
+      }
+    }
+  },
   "sshSettingsTyped": "As typed",
   "sshSettingsConfigHosts": "Hosts of ~/.ssh/config",
   "sshSettingsConfigHostsDescription": "Changed in that file; their core is Automatic.",
@@ -7605,21 +7748,48 @@
   "channelSetupUnavailable": "The channel this installer came from doesn't have accounts set up yet. If you downloaded it through another channel, confirm where you came from in your browser; otherwise contact whoever gave you the installer, or download the standard edition from kestrel.dev.",
   "channelSetupConfirmAgain": "Confirm in Browser",
   "channelWelcomeTitle": "Welcome to {channel}",
-  "@channelWelcomeTitle": {"description": "A channel's welcome's title when its channels.json entry has none, by its name.", "placeholders": {"channel": {"type": "String"}}},
+  "@channelWelcomeTitle": {
+    "description": "A channel's welcome's title when its channels.json entry has none, by its name.",
+    "placeholders": {
+      "channel": {
+        "type": "String"
+      }
+    }
+  },
   "channelWelcomeText": "Sign in to your {channel} account to get started.",
-  "@channelWelcomeText": {"description": "A channel's welcome's text when its entry has none.", "placeholders": {"channel": {"type": "String"}}},
+  "@channelWelcomeText": {
+    "description": "A channel's welcome's text when its entry has none.",
+    "placeholders": {
+      "channel": {
+        "type": "String"
+      }
+    }
+  },
   "channelWelcomeSignIn": "Sign In",
   "channelWelcomeSigningIn": "Sign in in the window that opened…",
   "channelWelcomePreparing": "Getting ready…",
   "channelWelcomeFailed": "Couldn't finish signing in: {error}",
-  "@channelWelcomeFailed": {"description": "Signing in to the channel's account site failed; the site's or the network's error.", "placeholders": {"error": {"type": "String"}}},
+  "@channelWelcomeFailed": {
+    "description": "Signing in to the channel's account site failed; the site's or the network's error.",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
   "channelAccountTitle": "Account",
   "channelAccountBalance": "Balance",
   "channelAccountRefresh": "Refresh",
   "channelAccountSignOut": "Sign Out",
   "channelAccountSignOutTitle": "Sign out?",
   "channelAccountSignOutDetail": "You'll need to sign in to {channel} again to keep using Byte.",
-  "@channelAccountSignOutDetail": {"placeholders": {"channel": {"type": "String"}}},
+  "@channelAccountSignOutDetail": {
+    "placeholders": {
+      "channel": {
+        "type": "String"
+      }
+    }
+  },
   "channelAccountOpenSite": "Open Website",
   "channelAccountDefaultModel": "Default model for new chats",
   "channelAccountNoModels": "The key in use doesn't reach any models.",
@@ -7633,15 +7803,47 @@
   "channelAccountSignedOut": "You're not signed in.",
   "channelAccountUnavailable": "This channel isn't available. Contact whoever gave you the installer.",
   "channelAccountFailed": "Something went wrong: {error}",
-  "@channelAccountFailed": {"placeholders": {"error": {"type": "String"}}},
+  "@channelAccountFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
   "channelAccountBlocked": "{site} refused this computer's connection ({request}); its firewall may be blocking the IP of your network or proxy. Try another network, or reach {site} without the proxy.",
-  "@channelAccountBlocked": {"description": "The channel's account site's firewall (e.g. Cloudflare) refused the app's requests; not a sign-out.", "placeholders": {"site": {"type": "String"}, "request": {"type": "String", "example": "POST /api/v1/auth/refresh"}}},
+  "@channelAccountBlocked": {
+    "description": "The channel's account site's firewall (e.g. Cloudflare) refused the app's requests; not a sign-out.",
+    "placeholders": {
+      "site": {
+        "type": "String"
+      },
+      "request": {
+        "type": "String",
+        "example": "POST /api/v1/auth/refresh"
+      }
+    }
+  },
   "settingsSectionAbout": "About",
   "aboutTagline": "An awesome, easy-to-use desktop UI for Claude Code, with a millisecond-fast IDE built in.",
   "aboutVersion": "Version {version} ({build})",
-  "@aboutVersion": {"placeholders": {"version": {"type": "String"}, "build": {"type": "int"}}},
+  "@aboutVersion": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      },
+      "build": {
+        "type": "int"
+      }
+    }
+  },
   "aboutRepository": "{repository} · free and open source, under the GPL-3.0",
-  "@aboutRepository": {"placeholders": {"repository": {"type": "String"}}},
+  "@aboutRepository": {
+    "placeholders": {
+      "repository": {
+        "type": "String"
+      }
+    }
+  },
   "aboutWebsite": "Website",
   "aboutChangelog": "Changelog",
   "aboutChangelogDetail": "What each version changed",
@@ -7652,7 +7854,7 @@
   "aboutCopy": "Copy",
   "stashSettingsIssueSync": "Issues as stashes",
   "stashSettingsIssueSyncDescription": "A project that is a Git repository on GitHub, GitLab or Gitee (signed in under Accounts): its open issues are stashes, each once, kept in step both ways. A stash deleted, or unlinked from its issue, does not come back.",
-    "stashIssueSyncMine": "Only those assigned to or opened by me",
+  "stashIssueSyncMine": "Only those assigned to or opened by me",
   "stashIssueSyncOff": "Off: imported or published ones only",
   "stashIssueLocal": "Local only",
   "stashIssueAllow": "Allow publishing as an issue",
@@ -8028,7 +8230,13 @@
   },
   "gitLogInNoBranch": "No branch has this commit.",
   "gitLogInBranches": "In {count, plural, =1{1 branch} other{{count} branches}}",
-  "@gitLogInBranches": {"placeholders": {"count": {"type": "int"}}},
+  "@gitLogInBranches": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "gitLogList": "List",
   "gitLogTree": "Tree",
   "gitLogFilterFiles": "Filter files (* and ? match any)",
@@ -8041,38 +8249,98 @@
   "checkpointsTitle": "Checkpoints",
   "checkpointsDescription": "Snapshots of the projects agents work in, kept to undo their changes. A conversation's are tidied away 30 days after it last changed anything.",
   "checkpointsSize": "Using {size}",
-  "@checkpointsSize": {"placeholders": {"size": {"type": "String"}}},
+  "@checkpointsSize": {
+    "placeholders": {
+      "size": {
+        "type": "String"
+      }
+    }
+  },
   "checkpointsMeasuring": "Measuring…",
   "checkpointsClear": "Clear",
   "checkpointsClearing": "Clearing…",
   "checkpointsClearConfirm": "Clear the checkpoints?",
   "checkpointsClearDetail": "The changes agents made in conversations that are not open can no longer be undone. The files themselves stay as they are.",
   "gitLogToday": "Today {time}",
-  "@gitLogToday": {"placeholders": {"time": {"type": "String"}}},
+  "@gitLogToday": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
   "gitLogYesterday": "Yesterday {time}",
-  "@gitLogYesterday": {"placeholders": {"time": {"type": "String"}}},
+  "@gitLogYesterday": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
   "gitLogCheckoutRevision": "Checkout Revision",
   "gitLogNewBranch": "New Branch…",
   "gitLogNewBranchAt": "New branch at {commit}",
-  "@gitLogNewBranchAt": {"placeholders": {"commit": {"type": "String"}}},
+  "@gitLogNewBranchAt": {
+    "placeholders": {
+      "commit": {
+        "type": "String"
+      }
+    }
+  },
   "gitLogCheckoutBranch": "Checkout '{branch}'",
-  "@gitLogCheckoutBranch": {"placeholders": {"branch": {"type": "String"}}},
+  "@gitLogCheckoutBranch": {
+    "placeholders": {
+      "branch": {
+        "type": "String"
+      }
+    }
+  },
   "gitLogCopyHash": "Copy the full hash",
   "gitLogCopyRefNames": "Copy Branch or Tag Name",
   "gitLogCopyName": "Copy '{name}'",
-  "@gitLogCopyName": {"placeholders": {"name": {"type": "String"}}},
+  "@gitLogCopyName": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "gitLogLoading": "Loading history…",
   "gitLogWorktree": "Worktree",
   "gitLogWorktreeOf": "Worktree: {path}",
-  "@gitLogWorktreeOf": {"placeholders": {"path": {"type": "String"}}},
+  "@gitLogWorktreeOf": {
+    "placeholders": {
+      "path": {
+        "type": "String"
+      }
+    }
+  },
   "gitLogFollowAgent": "Follow the Agent",
   "gitLogAgentHere": "The agent works here",
   "gitLogWorktreeAt": "Checked out in worktree {name}\n{path}",
-  "@gitLogWorktreeAt": {"placeholders": {"name": {"type": "String"}, "path": {"type": "String"}}},
+  "@gitLogWorktreeAt": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "path": {
+        "type": "String"
+      }
+    }
+  },
   "gitLogMainWorktree": "main worktree",
   "gitLogWorktreeMissing": "missing",
   "branchBarWorktree": "In worktree {name}\n{path}",
-  "@branchBarWorktree": {"placeholders": {"name": {"type": "String"}, "path": {"type": "String"}}},
+  "@branchBarWorktree": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "path": {
+        "type": "String"
+      }
+    }
+  },
   "gitCommitChanges": "Changes",
   "gitCommitUnversioned": "Unversioned Files",
   "gitCommitConflicts": "Merge Conflicts",
@@ -8082,7 +8350,13 @@
   "gitCommitAndPush": "Commit and Push",
   "gitCommitRollback": "Rollback…",
   "gitCommitRollbackConfirm": "Roll back the changes of {count, plural, =1{1 file} other{{count} files}}?",
-  "@gitCommitRollbackConfirm": {"placeholders": {"count": {"type": "int"}}},
+  "@gitCommitRollbackConfirm": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "gitCommitRollbackDetail": "They go back to how they were last committed; files not committed yet are deleted.",
   "gitCommitRollbackButton": "Rollback",
   "gitCommitShowDiff": "Show Diff",
@@ -8095,23 +8369,71 @@
   "gitCommitNothingSelected": "Check the files to commit.",
   "gitCommitNoChanges": "No local changes",
   "gitCommitSelected": "{checked} of {total} files checked",
-  "@gitCommitSelected": {"placeholders": {"checked": {"type": "int"}, "total": {"type": "int"}}},
+  "@gitCommitSelected": {
+    "placeholders": {
+      "checked": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
   "gitLogUndoCommit": "Undo Commit",
   "branchBarNewWorktree": "New Worktree…",
   "branchBarNewWorktreeFrom": "A new branch from “{branch}”, in a worktree of its own beside “{folder}”: the agent works there, your checkout stays as it is",
-  "@branchBarNewWorktreeFrom": {"placeholders": {"branch": {"type": "String"}, "folder": {"type": "String"}}},
+  "@branchBarNewWorktreeFrom": {
+    "placeholders": {
+      "branch": {
+        "type": "String"
+      },
+      "folder": {
+        "type": "String"
+      }
+    }
+  },
   "branchBarInWorktree": "In worktree {name}",
-  "@branchBarInWorktree": {"placeholders": {"name": {"type": "String"}}},
+  "@branchBarInWorktree": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "branchBarWorkIn": "From now on, work in {path} (branch {branch}): read and edit the files and run the commands there.",
-  "@branchBarWorkIn": {"placeholders": {"path": {"type": "String"}, "branch": {"type": "String"}}},
+  "@branchBarWorkIn": {
+    "placeholders": {
+      "path": {
+        "type": "String"
+      },
+      "branch": {
+        "type": "String"
+      }
+    }
+  },
   "diffRevertChange": "Undo this change (back to the left side)",
   "diffRemoveChange": "Undo this change (remove the added lines)",
   "diffPreviousDifference": "Previous Difference",
   "diffNextDifference": "Next Difference",
   "diffDifferenceOf": "{current} of {count}",
-  "@diffDifferenceOf": {"placeholders": {"current": {"type": "int"}, "count": {"type": "int"}}},
+  "@diffDifferenceOf": {
+    "placeholders": {
+      "current": {
+        "type": "int"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "diffDifferences": "{count, plural, =0{No differences} =1{1 difference} other{{count} differences}}",
-  "@diffDifferences": {"placeholders": {"count": {"type": "int"}}},
+  "@diffDifferences": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "diffSettings": "Viewer Settings",
   "diffLayoutAuto": "Side by Side When Wide Enough",
   "diffSideBySide": "Side-by-Side Viewer",
@@ -8153,46 +8475,130 @@
   "gitLogResetHard": "Hard: discard the changes",
   "gitLogResetKeep": "Keep: keep the local changes",
   "gitLogResetHardConfirm": "Reset “{branch}” to {commit} and discard every change since, committed or not?",
-  "@gitLogResetHardConfirm": {"placeholders": {"branch": {"type": "String"}, "commit": {"type": "String"}}},
+  "@gitLogResetHardConfirm": {
+    "placeholders": {
+      "branch": {
+        "type": "String"
+      },
+      "commit": {
+        "type": "String"
+      }
+    }
+  },
   "gitLogResetButton": "Reset",
   "gitLogRevertCommit": "Revert Commit",
   "gitLogEditMessage": "Edit Commit Message…",
   "gitLogDropCommit": "Drop Commit",
   "gitLogDropConfirm": "Take {commit} “{subject}” out of the branch?",
-  "@gitLogDropConfirm": {"placeholders": {"commit": {"type": "String"}, "subject": {"type": "String"}}},
+  "@gitLogDropConfirm": {
+    "placeholders": {
+      "commit": {
+        "type": "String"
+      },
+      "subject": {
+        "type": "String"
+      }
+    }
+  },
   "gitLogDropButton": "Drop",
   "gitLogPushUpToHere": "Push All up to Here",
   "gitLogNewTag": "New Tag…",
   "gitLogNewTagAt": "New tag at {commit}",
-  "@gitLogNewTagAt": {"placeholders": {"commit": {"type": "String"}}},
+  "@gitLogNewTagAt": {
+    "placeholders": {
+      "commit": {
+        "type": "String"
+      }
+    }
+  },
   "gitTagName": "Tag name",
   "gitTagMessage": "Message (optional: an annotated tag)",
   "gitLogCreateTag": "Create Tag",
   "gitLogGoToParent": "Go to Parent Commit",
   "gitLogGoToChild": "Go to Child Commit",
   "gitLogComparedWithLocal": "{commit} ↔ Local",
-  "@gitLogComparedWithLocal": {"placeholders": {"commit": {"type": "String"}}},
+  "@gitLogComparedWithLocal": {
+    "placeholders": {
+      "commit": {
+        "type": "String"
+      }
+    }
+  },
   "gitLogNoDifferences": "No differences from the working tree",
   "gitLogCopyHashes": "Copy Commit Hashes",
   "gitLogCherryPickCount": "Cherry-Pick {count} Commits",
-  "@gitLogCherryPickCount": {"placeholders": {"count": {"type": "int"}}},
+  "@gitLogCherryPickCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "gitLogCompareCommits": "Compare Commits",
   "gitLogRevertCommits": "Revert {count} Commits",
-  "@gitLogRevertCommits": {"placeholders": {"count": {"type": "int"}}},
+  "@gitLogRevertCommits": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "gitLogSquashCommits": "Squash {count} Commits into One",
-  "@gitLogSquashCommits": {"placeholders": {"count": {"type": "int"}}},
+  "@gitLogSquashCommits": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "gitLogCommitsSelected": "{count} commits selected",
-  "@gitLogCommitsSelected": {"placeholders": {"count": {"type": "int"}}},
+  "@gitLogCommitsSelected": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "gitLogPaths": "Paths",
   "gitLogAllPaths": "All Paths",
   "gitLogCurrentFile": "Current File: {path}",
-  "@gitLogCurrentFile": {"placeholders": {"path": {"type": "String"}}},
+  "@gitLogCurrentFile": {
+    "placeholders": {
+      "path": {
+        "type": "String"
+      }
+    }
+  },
   "gitLogCurrentFolder": "Its Folder: {path}",
-  "@gitLogCurrentFolder": {"placeholders": {"path": {"type": "String"}}},
+  "@gitLogCurrentFolder": {
+    "placeholders": {
+      "path": {
+        "type": "String"
+      }
+    }
+  },
   "gitLogPathCount": "{count} paths",
-  "@gitLogPathCount": {"placeholders": {"count": {"type": "int"}}},
+  "@gitLogPathCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "gitLogLinesOf": "{file}: lines {start}–{end}",
-  "@gitLogLinesOf": {"placeholders": {"file": {"type": "String"}, "start": {"type": "int"}, "end": {"type": "int"}}},
+  "@gitLogLinesOf": {
+    "placeholders": {
+      "file": {
+        "type": "String"
+      },
+      "start": {
+        "type": "int"
+      },
+      "end": {
+        "type": "int"
+      }
+    }
+  },
   "gitShowHistory": "Show History",
   "gitShowHistoryForSelection": "Show History for Selection",
   "gitShowBranches": "Show Branches",
@@ -8201,29 +8607,89 @@
   "gitBranchesHead": "HEAD (Current Branch)",
   "gitBranchCheckout": "Checkout",
   "gitBranchNewFrom": "New Branch from “{name}”…",
-  "@gitBranchNewFrom": {"placeholders": {"name": {"type": "String"}}},
+  "@gitBranchNewFrom": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "gitBranchCheckoutRebase": "Checkout and Rebase onto “{current}”",
-  "@gitBranchCheckoutRebase": {"placeholders": {"current": {"type": "String"}}},
+  "@gitBranchCheckoutRebase": {
+    "placeholders": {
+      "current": {
+        "type": "String"
+      }
+    }
+  },
   "gitBranchCompare": "Compare with “{current}”",
-  "@gitBranchCompare": {"placeholders": {"current": {"type": "String"}}},
+  "@gitBranchCompare": {
+    "placeholders": {
+      "current": {
+        "type": "String"
+      }
+    }
+  },
   "gitBranchDiffWorkingTree": "Show Diff with Working Tree",
   "gitBranchRebaseOnto": "Rebase “{current}” onto “{name}”",
-  "@gitBranchRebaseOnto": {"placeholders": {"current": {"type": "String"}, "name": {"type": "String"}}},
+  "@gitBranchRebaseOnto": {
+    "placeholders": {
+      "current": {
+        "type": "String"
+      },
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "gitBranchMerge": "Merge “{name}” into “{current}”",
-  "@gitBranchMerge": {"placeholders": {"name": {"type": "String"}, "current": {"type": "String"}}},
+  "@gitBranchMerge": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "current": {
+        "type": "String"
+      }
+    }
+  },
   "gitBranchPullRebase": "Pull into “{current}” Using Rebase",
-  "@gitBranchPullRebase": {"placeholders": {"current": {"type": "String"}}},
+  "@gitBranchPullRebase": {
+    "placeholders": {
+      "current": {
+        "type": "String"
+      }
+    }
+  },
   "gitBranchPullMerge": "Pull into “{current}” Using Merge",
-  "@gitBranchPullMerge": {"placeholders": {"current": {"type": "String"}}},
+  "@gitBranchPullMerge": {
+    "placeholders": {
+      "current": {
+        "type": "String"
+      }
+    }
+  },
   "gitBranchUpdate": "Update",
   "gitBranchPush": "Push",
   "gitBranchPushTo": "Push to {upstream}",
-  "@gitBranchPushTo": {"placeholders": {"upstream": {"type": "String"}}},
+  "@gitBranchPushTo": {
+    "placeholders": {
+      "upstream": {
+        "type": "String"
+      }
+    }
+  },
   "gitBranchUpstream": "Upstream",
   "gitBranchUnsetUpstream": "Unset Upstream",
   "gitBranchRename": "Rename…",
   "gitBranchRenameTitle": "Rename the branch “{name}”",
-  "@gitBranchRenameTitle": {"placeholders": {"name": {"type": "String"}}},
+  "@gitBranchRenameTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "gitBranchRenameButton": "Rename",
   "gitBranchFavorite": "Add to Favorites",
   "gitBranchUnfavorite": "Remove from Favorites",
@@ -8232,19 +8698,67 @@
   "gitTagDelete": "Delete Tag",
   "gitBranchDeleteButton": "Delete",
   "gitBranchDeleteRemoteConfirm": "Delete the branch “{name}” on its remote?",
-  "@gitBranchDeleteRemoteConfirm": {"placeholders": {"name": {"type": "String"}}},
+  "@gitBranchDeleteRemoteConfirm": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "gitBranchNotMergedConfirm": "“{name}” has commits merged into no other branch. Delete it anyway?",
-  "@gitBranchNotMergedConfirm": {"placeholders": {"name": {"type": "String"}}},
+  "@gitBranchNotMergedConfirm": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "gitBranchDeleted": "Deleted the branch “{name}”.",
-  "@gitBranchDeleted": {"placeholders": {"name": {"type": "String"}}},
+  "@gitBranchDeleted": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "gitTagDeleted": "Deleted the tag “{name}”.",
-  "@gitTagDeleted": {"placeholders": {"name": {"type": "String"}}},
+  "@gitTagDeleted": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "gitBranchRestore": "Restore",
   "gitBranchCompared": "“{name}” has {ahead} commits “{current}” has not; “{current}” has {behind} it has not.",
-  "@gitBranchCompared": {"placeholders": {"name": {"type": "String"}, "current": {"type": "String"}, "ahead": {"type": "int"}, "behind": {"type": "int"}}},
+  "@gitBranchCompared": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "current": {
+        "type": "String"
+      },
+      "ahead": {
+        "type": "int"
+      },
+      "behind": {
+        "type": "int"
+      }
+    }
+  },
   "gitBranchCompareFiles": "Show Changed Files",
   "scmGraphRangeIn": "Commits in “{to}” Not in “{from}”",
-  "@scmGraphRangeIn": {"placeholders": {"to": {"type": "String"}, "from": {"type": "String"}}},
+  "@scmGraphRangeIn": {
+    "placeholders": {
+      "to": {
+        "type": "String"
+      },
+      "from": {
+        "type": "String"
+      }
+    }
+  },
   "gitBranchesRecent": "Recent",
   "gitBranchesSearch": "Search for branches and actions",
   "gitUpdateProject": "Update Project",
@@ -8262,7 +8776,13 @@
   "gitPushTags": "Push tags",
   "gitPushForce": "Force Push",
   "gitPushForceConfirm": "Force push to {targets}?",
-  "@gitPushForceConfirm": {"placeholders": {"targets": {"type": "String"}}},
+  "@gitPushForceConfirm": {
+    "placeholders": {
+      "targets": {
+        "type": "String"
+      }
+    }
+  },
   "gitPushForceDetail": "What is there is replaced by what you push (with lease: only as last fetched, so nobody's newer commits are lost).",
   "gitPushNothing": "Nothing to push",
   "gitPushRemote": "Remote",
@@ -8274,25 +8794,55 @@
   "gitOperationCherryPicking": "Cherry-picking",
   "gitOperationReverting": "Reverting",
   "gitOperationConflicts": "{count, plural, =1{1 conflict left} other{{count} conflicts left}}",
-  "@gitOperationConflicts": {"placeholders": {"count": {"type": "int"}}},
+  "@gitOperationConflicts": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "gitOperationResolved": "conflicts resolved",
   "gitOperationContinue": "Continue",
   "gitOperationSkip": "Skip",
   "gitOperationAbort": "Abort",
   "gitOperationAbortConfirm": "Abort? {what} stops and what it did so far is undone.",
-  "@gitOperationAbortConfirm": {"placeholders": {"what": {"type": "String"}}},
+  "@gitOperationAbortConfirm": {
+    "placeholders": {
+      "what": {
+        "type": "String"
+      }
+    }
+  },
   "gitConflictAcceptCurrent": "Accept Current (Ours)",
   "gitConflictAcceptIncoming": "Accept Incoming (Theirs)",
   "gitConflictMerge": "Merge…",
   "gitMergeTitle": "Merge Revisions for {path}",
-  "@gitMergeTitle": {"placeholders": {"path": {"type": "String"}}},
+  "@gitMergeTitle": {
+    "placeholders": {
+      "path": {
+        "type": "String"
+      }
+    }
+  },
   "gitMergeOurs": "Current (Ours)",
   "gitMergeResult": "Result",
   "gitMergeTheirs": "Incoming (Theirs)",
   "gitMergeConflictsLeft": "{count, plural, =0{All conflicts resolved} =1{1 conflict left} other{{count} conflicts left}}",
-  "@gitMergeConflictsLeft": {"placeholders": {"count": {"type": "int"}}},
+  "@gitMergeConflictsLeft": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "gitMergeChangesApplied": "{count, plural, =0{} =1{1 change applied without conflict} other{{count} changes applied without conflict}}",
-  "@gitMergeChangesApplied": {"placeholders": {"count": {"type": "int"}}},
+  "@gitMergeChangesApplied": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "gitMergePrevious": "Previous Conflict",
   "gitMergeNext": "Next Conflict",
   "gitMergeApply": "Apply",
@@ -8301,12 +8851,24 @@
   "gitMergeAi": "Merge with AI",
   "gitMergeAiAll": "Merge Conflicts with AI",
   "gitMergeAiFailed": "AI could not merge the conflict: {error}",
-  "@gitMergeAiFailed": {"placeholders": {"error": {"type": "String"}}},
+  "@gitMergeAiFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
   "gitMergeAiNoAnswer": "the reply had no merged lines",
   "gitMergeAcceptOurs": "Accept Current",
   "gitMergeAcceptTheirs": "Accept Incoming",
   "gitMergeUnresolved": "{count, plural, =1{1 conflict is not resolved.} other{{count} conflicts are not resolved.}}",
-  "@gitMergeUnresolved": {"placeholders": {"count": {"type": "int"}}},
+  "@gitMergeUnresolved": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "gitMergeUnresolvedDetail": "Save the result as it is and mark the file resolved?",
   "gitMergeSaveAnyway": "Save and Mark Resolved",
   "gitMergeDiscard": "Discard the merge result?",
@@ -8327,7 +8889,13 @@
   "gitChangelistDelete": "Delete Changelist",
   "gitStashChangesTitle": "Stash Changes",
   "gitStashFilesTitle": "{count, plural, =1{Stash 1 File} other{Stash {count} Files}}",
-  "@gitStashFilesTitle": {"placeholders": {"count": {"type": "int"}}},
+  "@gitStashFilesTitle": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "gitStashButton": "Stash",
   "gitStashMessage": "Message (optional)",
   "gitStashUntracked": "Include untracked files",
@@ -8338,7 +8906,13 @@
   "gitStashCopyMessage": "Copy Message",
   "gitStashDrop": "Drop…",
   "gitStashDropConfirm": "Drop {ref}?",
-  "@gitStashDropConfirm": {"placeholders": {"ref": {"type": "String"}}},
+  "@gitStashDropConfirm": {
+    "placeholders": {
+      "ref": {
+        "type": "String"
+      }
+    }
+  },
   "gitStashDropButton": "Drop",
   "gitStashClear": "Clear Stashes…",
   "gitStashClearConfirm": "Drop every stash?",
@@ -8352,14 +8926,26 @@
   "gitCommitIgnored": "Ignored Files",
   "gitCommitShowIgnored": "Show Ignored Files",
   "gitCommitLongSubject": "The subject is longer than {limit} characters",
-  "@gitCommitLongSubject": {"placeholders": {"limit": {"type": "int"}}},
+  "@gitCommitLongSubject": {
+    "placeholders": {
+      "limit": {
+        "type": "int"
+      }
+    }
+  },
   "gitCommitNoBlankLine": "Separate the subject from the body with a blank line",
   "gitCommitMessageHistory": "Commit Message History (Ctrl+M)",
   "gitCommitNoMessageHistory": "No messages yet",
   "gitCommitOptions": "Commit Options",
   "gitCommitAuthor": "Author…",
   "gitCommitAuthorIs": "Author: {author}",
-  "@gitCommitAuthorIs": {"placeholders": {"author": {"type": "String"}}},
+  "@gitCommitAuthorIs": {
+    "placeholders": {
+      "author": {
+        "type": "String"
+      }
+    }
+  },
   "gitCommitAuthorReset": "Use the Configured Author",
   "gitCommitAuthorPlaceholder": "Name <email>",
   "gitCommitSignOff": "Sign-off Commit",
@@ -8368,7 +8954,16 @@
   "gitCommitNoHooks": "Hooks skipped",
   "gitLogInteractiveRebase": "Interactively Rebase from Here…",
   "gitRebaseTitle": "Rebasing {count, plural, =1{1 Commit} other{{count} Commits}} from {base}",
-  "@gitRebaseTitle": {"placeholders": {"count": {"type": "int"}, "base": {"type": "String"}}},
+  "@gitRebaseTitle": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "base": {
+        "type": "String"
+      }
+    }
+  },
   "gitRebasePick": "Pick",
   "gitRebaseReword": "Reword",
   "gitRebaseEdit": "Edit",
@@ -8386,13 +8981,40 @@
   "gitRebaseAiPlanning": "Planning… (click to stop)",
   "gitRebaseAiNoPlan": "The model's answer was not a rebase list of these commits.",
   "gitRebaseAiFailed": "Could not clean up with AI: {error}",
-  "@gitRebaseAiFailed": {"placeholders": {"error": {"type": "String"}}},
+  "@gitRebaseAiFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
   "gitTagPushTo": "Push Tag to {remote}",
-  "@gitTagPushTo": {"placeholders": {"remote": {"type": "String"}}},
+  "@gitTagPushTo": {
+    "placeholders": {
+      "remote": {
+        "type": "String"
+      }
+    }
+  },
   "gitTagDeleteOn": "Delete Tag on {remote}",
-  "@gitTagDeleteOn": {"placeholders": {"remote": {"type": "String"}}},
+  "@gitTagDeleteOn": {
+    "placeholders": {
+      "remote": {
+        "type": "String"
+      }
+    }
+  },
   "gitTagDeleteOnConfirm": "Delete the tag {name} on {remote}?",
-  "@gitTagDeleteOnConfirm": {"placeholders": {"name": {"type": "String"}, "remote": {"type": "String"}}},
+  "@gitTagDeleteOnConfirm": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "remote": {
+        "type": "String"
+      }
+    }
+  },
   "gitRemotesManage": "Manage Remotes…",
   "gitRemotesTitle": "Git Remotes",
   "gitRemotesNone": "No remotes",
@@ -8402,7 +9024,13 @@
   "gitRemoteName": "Name",
   "gitRemoteUrl": "URL",
   "gitRemoteRemoveConfirm": "Remove the remote {name}?",
-  "@gitRemoteRemoveConfirm": {"placeholders": {"name": {"type": "String"}}},
+  "@gitRemoteRemoveConfirm": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "gitRemoteRemoveDetail": "Its remote branches go with it; nothing on the server changes.",
   "gitCloneTitle": "Get from Version Control",
   "gitCloneUrl": "URL",
@@ -8417,59 +9045,191 @@
   "gitReviewRunning": "Reviewing the changes…",
   "gitReviewClean": "No problems found",
   "gitReviewFound": "{count, plural, =1{1 problem found} other{{count} problems found}}",
-  "@gitReviewFound": {"placeholders": {"count": {"type": "int"}}},
+  "@gitReviewFound": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "gitReviewCommitAnyway": "Commit Anyway",
   "gitReviewCommitAndPushAnyway": "Commit and Push Anyway",
   "gitReviewFailed": "Could not review the changes: {error}",
-  "@gitReviewFailed": {"placeholders": {"error": {"type": "String"}}},
+  "@gitReviewFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
   "gitAskAiCommit": "Ask AI About This Commit",
-  "gitAskAiCommitPrompt": "Explain commit {id} (\u201c{subject}\u201d): what it changes and why, and anything in it that looks risky. Read it with `git show {id}`.",
-  "@gitAskAiCommitPrompt": {"placeholders": {"id": {"type": "String"}, "subject": {"type": "String"}}},
+  "gitAskAiCommitPrompt": "Explain commit {id} (“{subject}”): what it changes and why, and anything in it that looks risky. Read it with `git show {id}`.",
+  "@gitAskAiCommitPrompt": {
+    "placeholders": {
+      "id": {
+        "type": "String"
+      },
+      "subject": {
+        "type": "String"
+      }
+    }
+  },
   "gitAskAiCommits": "{count, plural, =1{Ask AI About This Commit} other{Ask AI About These {count} Commits}}",
-  "@gitAskAiCommits": {"placeholders": {"count": {"type": "int"}}},
+  "@gitAskAiCommits": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "gitAskAiCommitsPrompt": "Explain commits {ids}: what they change together, and anything in them that looks risky. Read them with `git show`.",
-  "@gitAskAiCommitsPrompt": {"placeholders": {"ids": {"type": "String"}}},
+  "@gitAskAiCommitsPrompt": {
+    "placeholders": {
+      "ids": {
+        "type": "String"
+      }
+    }
+  },
   "gitAskAiHunk": "Ask AI About This Change",
   "gitAskAiHunkPrompt": "About this change in {path} at line {line}: explain what it does and whether anything in it is wrong.\n\n```diff\n{change}\n```",
-  "@gitAskAiHunkPrompt": {"placeholders": {"path": {"type": "String"}, "line": {"type": "int"}, "change": {"type": "String"}}},
+  "@gitAskAiHunkPrompt": {
+    "placeholders": {
+      "path": {
+        "type": "String"
+      },
+      "line": {
+        "type": "int"
+      },
+      "change": {
+        "type": "String"
+      }
+    }
+  },
   "gitAskAiChanges": "Ask AI About These Changes",
   "gitAskAiChangesPrompt": "Review my uncommitted changes in {paths} (`git diff HEAD -- {paths}`): explain what they do and point out anything wrong.",
-  "@gitAskAiChangesPrompt": {"placeholders": {"paths": {"type": "String"}}},
+  "@gitAskAiChangesPrompt": {
+    "placeholders": {
+      "paths": {
+        "type": "String"
+      }
+    }
+  },
   "gitAskAiConflicts": "Ask AI to Resolve the Conflicts",
   "gitAskAiConflictsPrompt": "Resolve the merge conflicts in {paths}: keep what both sides meant, then tell me what you chose. Don't stage or commit.",
-  "@gitAskAiConflictsPrompt": {"placeholders": {"paths": {"type": "String"}}},
+  "@gitAskAiConflictsPrompt": {
+    "placeholders": {
+      "paths": {
+        "type": "String"
+      }
+    }
+  },
   "gitLogFixup": "Fixup with Checked Changes",
   "compareWith": "Compare With",
   "compareWithClipboard": "Clipboard",
-  "compareWithClipboardLabel": "{name} (Clipboard \u2194 File)",
-  "@compareWithClipboardLabel": {"placeholders": {"name": {"type": "String"}}},
+  "compareWithClipboardLabel": "{name} (Clipboard ↔ File)",
+  "@compareWithClipboardLabel": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "gitCompareWithBranch": "Branch or Tag…",
   "gitCompareWithRevision": "Revision…",
   "gitCompareWithBranchPlaceholder": "Select a branch or tag to compare the file with",
   "gitCompareWithRevisionPlaceholder": "Select a revision of the file to compare it with",
-  "gitCompareLabel": "{name} ({other} \u2194 Working Tree)",
-  "@gitCompareLabel": {"placeholders": {"name": {"type": "String"}, "other": {"type": "String"}}},
+  "gitCompareLabel": "{name} ({other} ↔ Working Tree)",
+  "@gitCompareLabel": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "other": {
+        "type": "String"
+      }
+    }
+  },
   "explorerSelectForCompare": "Select for Compare",
   "explorerCompareWithSelected": "Compare with '{name}'",
-  "@explorerCompareWithSelected": {"placeholders": {"name": {"type": "String"}}},
+  "@explorerCompareWithSelected": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "compareFoldersSame": "“{original}” and “{modified}” have the same files.",
-  "@compareFoldersSame": {"placeholders": {"original": {"type": "String"}, "modified": {"type": "String"}}},
+  "@compareFoldersSame": {
+    "placeholders": {
+      "original": {
+        "type": "String"
+      },
+      "modified": {
+        "type": "String"
+      }
+    }
+  },
   "compareFoldersPick": "Files “{original}” and “{modified}” differ in",
-  "@compareFoldersPick": {"placeholders": {"original": {"type": "String"}, "modified": {"type": "String"}}},
+  "@compareFoldersPick": {
+    "placeholders": {
+      "original": {
+        "type": "String"
+      },
+      "modified": {
+        "type": "String"
+      }
+    }
+  },
   "compareFoldersOnlyIn": "Only in “{name}”",
-  "@compareFoldersOnlyIn": {"placeholders": {"name": {"type": "String"}}},
+  "@compareFoldersOnlyIn": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "compareFoldersModified": "Changed",
   "compareWithLocalHistory": "Local History…",
   "localHistoryShow": "Show Local History",
   "localHistoryNone": "No local history of “{name}” yet: it is kept as the file is saved.",
-  "@localHistoryNone": {"placeholders": {"name": {"type": "String"}}},
+  "@localHistoryNone": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "localHistoryPick": "A version of “{name}” to compare with",
-  "@localHistoryPick": {"placeholders": {"name": {"type": "String"}}},
+  "@localHistoryPick": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "localHistoryLabel": "{name} (Local History, {time})",
-  "@localHistoryLabel": {"placeholders": {"name": {"type": "String"}, "time": {"type": "String"}}},
+  "@localHistoryLabel": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "time": {
+        "type": "String"
+      }
+    }
+  },
   "explorerCompareSelected": "Compare Selected",
-  "compareFilesLabel": "{original} \u2194 {modified}",
-  "@compareFilesLabel": {"placeholders": {"original": {"type": "String"}, "modified": {"type": "String"}}},
+  "compareFilesLabel": "{original} ↔ {modified}",
+  "@compareFilesLabel": {
+    "placeholders": {
+      "original": {
+        "type": "String"
+      },
+      "modified": {
+        "type": "String"
+      }
+    }
+  },
   "settingsSectionUsage": "Usage",
   "sidePanelUsage": "Usage",
   "ustatKeywords": "usage statistics tokens cache calls cost dashboard upstream model",
@@ -8512,27 +9272,81 @@
   "ustatTokenReasoning": "Reasoning",
   "ustatTotalTokens": "Tokens",
   "ustatTokensDetail": "{input} in · {output} out",
-  "@ustatTokensDetail": {"placeholders": {"input": {"type": "String"}, "output": {"type": "String"}}},
+  "@ustatTokensDetail": {
+    "placeholders": {
+      "input": {
+        "type": "String"
+      },
+      "output": {
+        "type": "String"
+      }
+    }
+  },
   "ustatCalls": "Calls",
   "ustatCallsDetail": "{count} tool calls asked",
-  "@ustatCallsDetail": {"placeholders": {"count": {"type": "String"}}},
+  "@ustatCallsDetail": {
+    "placeholders": {
+      "count": {
+        "type": "String"
+      }
+    }
+  },
   "ustatCallsOk": "Succeeded",
   "ustatCallsShort": "{count} calls",
-  "@ustatCallsShort": {"placeholders": {"count": {"type": "int"}}},
+  "@ustatCallsShort": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "ustatCacheHit": "Cache hit rate",
   "ustatCacheDetail": "{read} read · {written} written",
-  "@ustatCacheDetail": {"placeholders": {"read": {"type": "String"}, "written": {"type": "String"}}},
+  "@ustatCacheDetail": {
+    "placeholders": {
+      "read": {
+        "type": "String"
+      },
+      "written": {
+        "type": "String"
+      }
+    }
+  },
   "ustatFirstToken": "Time to first token",
   "ustatDurationDetail": "{duration} per call on average",
-  "@ustatDurationDetail": {"placeholders": {"duration": {"type": "String"}}},
+  "@ustatDurationDetail": {
+    "placeholders": {
+      "duration": {
+        "type": "String"
+      }
+    }
+  },
   "ustatSpeed": "Output speed",
   "ustatOutputDetail": "{tokens} output in all",
-  "@ustatOutputDetail": {"placeholders": {"tokens": {"type": "String"}}},
+  "@ustatOutputDetail": {
+    "placeholders": {
+      "tokens": {
+        "type": "String"
+      }
+    }
+  },
   "ustatReasoningDetail": "{tokens} of it reasoning",
-  "@ustatReasoningDetail": {"placeholders": {"tokens": {"type": "String"}}},
+  "@ustatReasoningDetail": {
+    "placeholders": {
+      "tokens": {
+        "type": "String"
+      }
+    }
+  },
   "ustatErrors": "Failed",
   "ustatErrorRate": "{rate} of calls",
-  "@ustatErrorRate": {"placeholders": {"rate": {"type": "String"}}},
+  "@ustatErrorRate": {
+    "placeholders": {
+      "rate": {
+        "type": "String"
+      }
+    }
+  },
   "ustatOverTime": "Over time",
   "ustatMetricTokens": "Tokens",
   "ustatMetricCalls": "Calls",
@@ -8544,7 +9358,16 @@
   "ustatByTurn": "By turn",
   "ustatByTurnDetail": "Each of your messages and all the requests that answered it",
   "ustatTurnDetail": "{duration} · context up to {peak}",
-  "@ustatTurnDetail": {"placeholders": {"duration": {"type": "String"}, "peak": {"type": "String"}}},
+  "@ustatTurnDetail": {
+    "placeholders": {
+      "duration": {
+        "type": "String"
+      },
+      "peak": {
+        "type": "String"
+      }
+    }
+  },
   "ustatNoConversations": "No conversation named its session",
   "ustatTools": "Tools",
   "ustatToolsDetail": "What their results brought into the context (estimated), how often they were called, how long they ran",
@@ -8555,24 +9378,66 @@
   "ustatToolCalled": "Called",
   "ustatToolResult": "result",
   "ustatShowAll": "Show all {count}",
-  "@ustatShowAll": {"placeholders": {"count": {"type": "int"}}},
+  "@ustatShowAll": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "ustatShowLess": "Show less",
   "ustatContextGrowth": "Context growth",
   "ustatContextNow": "{tokens} now",
-  "@ustatContextNow": {"placeholders": {"tokens": {"type": "String"}}},
+  "@ustatContextNow": {
+    "placeholders": {
+      "tokens": {
+        "type": "String"
+      }
+    }
+  },
   "ustatContextPeak": "peak {tokens}",
-  "@ustatContextPeak": {"placeholders": {"tokens": {"type": "String"}}},
+  "@ustatContextPeak": {
+    "placeholders": {
+      "tokens": {
+        "type": "String"
+      }
+    }
+  },
   "ustatCompactions": "{count, plural, =1{1 compaction} other{{count} compactions}}",
-  "@ustatCompactions": {"placeholders": {"count": {"type": "int"}}},
+  "@ustatCompactions": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "ustatCompactedFrom": "Compacted at {tokens}",
-  "@ustatCompactedFrom": {"placeholders": {"tokens": {"type": "String"}}},
+  "@ustatCompactedFrom": {
+    "placeholders": {
+      "tokens": {
+        "type": "String"
+      }
+    }
+  },
   "ustatContextMakeup": "What fills the context",
   "ustatRecentCalls": "Recent calls",
   "ustatCallsTitle": "Calls",
   "ustatRecentCallsDetail": "{count} in all, newest first",
-  "@ustatRecentCallsDetail": {"placeholders": {"count": {"type": "int"}}},
+  "@ustatRecentCallsDetail": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "ustatShowMoreCalls": "Show more ({count} left)",
-  "@ustatShowMoreCalls": {"placeholders": {"count": {"type": "int"}}},
+  "@ustatShowMoreCalls": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "ustatNoCalls": "No calls",
   "ustatCopyJson": "Copy the call as JSON",
   "ustatFieldTime": "Time",
@@ -8587,11 +9452,17 @@
   "ustatFieldAccount": "Account",
   "ustatFieldUpstreamLatency": "Upstream answered",
   "ustatCallAsking": "Requesting",
-  "@ustatCallAsking": {"description": "A call under way, nothing of its answer yet"},
+  "@ustatCallAsking": {
+    "description": "A call under way, nothing of its answer yet"
+  },
   "ustatCallAnswering": "Answering",
-  "@ustatCallAnswering": {"description": "A call under way, its answer coming"},
+  "@ustatCallAnswering": {
+    "description": "A call under way, its answer coming"
+  },
   "ustatCallCancelled": "Cancelled",
-  "@ustatCallCancelled": {"description": "A call Claude Code gave up on before it was answered in full (it timed out, or was interrupted)"},
+  "@ustatCallCancelled": {
+    "description": "A call Claude Code gave up on before it was answered in full (it timed out, or was interrupted)"
+  },
   "ustatFieldFirstToken": "First token",
   "ustatFieldDuration": "Duration",
   "ustatFieldSpeed": "Speed",
@@ -8618,73 +9489,211 @@
   "ustatRetention": "Keep records for",
   "ustatRetentionDescription": "Older days are deleted as they pass.",
   "ustatKeepDays": "{days} days",
-  "@ustatKeepDays": {"placeholders": {"days": {"type": "int"}}},
+  "@ustatKeepDays": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
   "ustatKeepForever": "Forever",
   "ustatSpace": "Using {size}",
-  "@ustatSpace": {"placeholders": {"size": {"type": "String"}}},
+  "@ustatSpace": {
+    "placeholders": {
+      "size": {
+        "type": "String"
+      }
+    }
+  },
   "ustatSpaceDetail": "{days} days kept, since {oldest}",
-  "@ustatSpaceDetail": {"placeholders": {"days": {"type": "int"}, "oldest": {"type": "String"}}},
+  "@ustatSpaceDetail": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      },
+      "oldest": {
+        "type": "String"
+      }
+    }
+  },
   "ustatSpaceEmpty": "Nothing kept yet",
   "ustatLoading": "Reading the calls…",
   "ustatClearEllipsis": "Clear…",
   "ustatClear": "Clear",
   "ustatClearOlderThan": "Clear all but the last {days} days",
-  "@ustatClearOlderThan": {"placeholders": {"days": {"type": "int"}}},
+  "@ustatClearOlderThan": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
   "ustatClearShown": "Clear the time shown",
   "ustatClearShownFiltered": "Clear what the filters show",
   "ustatClearAll": "Clear everything",
   "ustatClearConfirm": "{what}?",
-  "@ustatClearConfirm": {"placeholders": {"what": {"type": "String"}}},
+  "@ustatClearConfirm": {
+    "placeholders": {
+      "what": {
+        "type": "String"
+      }
+    }
+  },
   "ustatClearDetail": "The calls are deleted from this computer. This cannot be undone.",
   "autoResetCreditsToggle": "Auto-Use Reset Credits",
   "modelsResetCredits": "{count, plural, =1{1 reset left} other{{count} resets left}}",
-  "@modelsResetCredits": {"placeholders": {"count": {"type": "int"}}},
+  "@modelsResetCredits": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "modelsResetCreditsTitle": "{count, plural, =1{1 reset credit} other{{count} reset credits}}",
-  "@modelsResetCreditsTitle": {"placeholders": {"count": {"type": "int"}}},
+  "@modelsResetCreditsTitle": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "modelsResetCreditsDetail": "Using one starts this account's quota windows over at once.",
   "modelsResetCreditExpires": "Expires {time}",
-  "@modelsResetCreditExpires": {"placeholders": {"time": {"type": "String"}}},
+  "@modelsResetCreditExpires": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
   "modelsResetCreditUse": "Reset Now",
   "modelsResetCreditConfirm": "Use a reset credit of {account}?",
-  "@modelsResetCreditConfirm": {"placeholders": {"account": {"type": "String"}}},
+  "@modelsResetCreditConfirm": {
+    "placeholders": {
+      "account": {
+        "type": "String"
+      }
+    }
+  },
   "modelsResetCreditConfirmDetail": "Its quota starts over at once. The credit can't be given back, and whatever quota is left now is lost.",
   "claudeResets": "{count, plural, =1{1 reset} other{{count} resets}}",
-  "@claudeResets": {"placeholders": {"count": {"type": "int"}}},
+  "@claudeResets": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "claudeResetsTitle": "Claude limit resets",
   "claudeResetsDetail": "Granted by Anthropic. Using one sets the limits it lists back to nothing used. With more than one, they are used one at a time, in the order Anthropic sets.",
   "claudeResetClears": "Clears {windows}",
-  "@claudeResetClears": {"placeholders": {"windows": {"type": "String"}}},
+  "@claudeResetClears": {
+    "placeholders": {
+      "windows": {
+        "type": "String"
+      }
+    }
+  },
   "claudeResetWindowUsed": "{window} ({percent}% used)",
-  "@claudeResetWindowUsed": {"placeholders": {"window": {"type": "String"}, "percent": {"type": "int"}}},
+  "@claudeResetWindowUsed": {
+    "placeholders": {
+      "window": {
+        "type": "String"
+      },
+      "percent": {
+        "type": "int"
+      }
+    }
+  },
   "claudeResetWeeklyOf": "{model} weekly",
-  "@claudeResetWeeklyOf": {"placeholders": {"model": {"type": "String"}}},
+  "@claudeResetWeeklyOf": {
+    "placeholders": {
+      "model": {
+        "type": "String"
+      }
+    }
+  },
   "claudeResetNext": "Usable now",
   "claudeResetQueued": "Waits its turn: usable once the one above is used",
   "claudeResetUse": "Use This One…",
   "claudeResetConfirm": "Use a Claude limit reset?",
   "claudeResetConfirmDetail": "“{label}” sets {windows} back to nothing used, at once. The reset can't be given back, and what is left of these limits now is lost.",
-  "@claudeResetConfirmDetail": {"placeholders": {"label": {"type": "String"}, "windows": {"type": "String"}}},
+  "@claudeResetConfirmDetail": {
+    "placeholders": {
+      "label": {
+        "type": "String"
+      },
+      "windows": {
+        "type": "String"
+      }
+    }
+  },
   "claudeResetPaused": "Paused",
   "claudeResetCooldown": "Usable again {time}",
-  "@claudeResetCooldown": {"placeholders": {"time": {"type": "String"}}},
+  "@claudeResetCooldown": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
   "claudeResetUnavailable": "Not usable now ({reason})",
-  "@claudeResetUnavailable": {"placeholders": {"reason": {"type": "String"}}},
+  "@claudeResetUnavailable": {
+    "placeholders": {
+      "reason": {
+        "type": "String"
+      }
+    }
+  },
   "claudeResetSignedOut": "The Claude.ai sign-in has expired; Claude Code renews it as it next runs.",
   "claudeResetDone": "Reset: {windows}",
-  "@claudeResetDone": {"placeholders": {"windows": {"type": "String"}}},
+  "@claudeResetDone": {
+    "placeholders": {
+      "windows": {
+        "type": "String"
+      }
+    }
+  },
   "claudeResetNotDone": "Not reset: {reason}",
-  "@claudeResetNotDone": {"placeholders": {"reason": {"type": "String"}}},
+  "@claudeResetNotDone": {
+    "placeholders": {
+      "reason": {
+        "type": "String"
+      }
+    }
+  },
   "claudeResetNotNext": "Another reset is the one usable now; nothing was used. Refresh and try again.",
   "claudeResetNotLimited": "This reset can only be used once a limit is reached; nothing was used.",
   "claudeResetAlreadyUsed": "This reset was already used; nothing was used now.",
   "claudeResetCoolingDown": "A reset was just used; wait a little before the next. Nothing was used.",
   "claudeResetsRefresh": "Refresh",
   "resetCreditsHint": "{count, plural, =1{A reset credit expires} other{{count} reset credits expire}} within a week. To get their worth, use Codex models on this plan, resetting once the quota runs out:",
-  "@resetCreditsHint": {"placeholders": {"count": {"type": "int"}}},
+  "@resetCreditsHint": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "resetCreditsHintDay": "{day}: reset {count, plural, =1{once} other{{count} times}}",
-  "@resetCreditsHintDay": {"placeholders": {"day": {"type": "String"}, "count": {"type": "int"}}},
+  "@resetCreditsHintDay": {
+    "placeholders": {
+      "day": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "resetCreditsHintBy": "by {time}",
-  "@resetCreditsHintBy": {"placeholders": {"time": {"type": "String"}}},
+  "@resetCreditsHintBy": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
   "resetCreditsHintToday": "Today",
   "resetCreditsHintTomorrow": "Tomorrow",
   "resetCreditsHintAuto": "Reset Automatically",
@@ -8694,24 +9703,57 @@
   "ustatPartMcp": "MCP",
   "ustatPartMessages": "Conversation",
   "ustatCacheHitShort": "{rate} cached",
-  "@ustatCacheHitShort": {"placeholders": {"rate": {"type": "String"}}},
+  "@ustatCacheHitShort": {
+    "placeholders": {
+      "rate": {
+        "type": "String"
+      }
+    }
+  },
   "ustatCompactedAfter": "First after compacting",
   "ustatContextPickHint": "Click to see what filled it",
   "ustatRequests": "{count, plural, =1{1 request} other{{count} requests}}",
-  "@ustatRequests": {"placeholders": {"count": {"type": "int"}}},
+  "@ustatRequests": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "ustatRequestOf": "#{index} of {count}",
-  "@ustatRequestOf": {"placeholders": {"index": {"type": "int"}, "count": {"type": "int"}}},
+  "@ustatRequestOf": {
+    "placeholders": {
+      "index": {
+        "type": "int"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "ustatPreviousRequest": "Previous request",
   "ustatNextRequest": "Next request",
   "ustatNoMakeup": "What filled this request's context was not recorded (turn on Detailed recording).",
   "ustatMakeupNoDetail": "Recorded before the breakdown by tool, MCP server and skill: requests from now on have it.",
   "ustatMakeupShapeMissing": "The breakdown of this request's tools and skills was not found.",
   "ustatMcpTools": "{count, plural, =0{instructions only} =1{1 tool} other{{count} tools}}",
-  "@ustatMcpTools": {"placeholders": {"count": {"type": "int"}}},
+  "@ustatMcpTools": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "ustatMcpInstructions": "Instructions",
   "ustatSkillPlugin": "plugin",
   "ustatToolInputs": "inputs {tokens}",
-  "@ustatToolInputs": {"placeholders": {"tokens": {"type": "String"}}},
+  "@ustatToolInputs": {
+    "placeholders": {
+      "tokens": {
+        "type": "String"
+      }
+    }
+  },
   "ustatSwitchedHint": "Saved to Settings → Customize. The agent's next requests go without what was turned off.",
   "ustatShowAuxiliary": "Show auxiliary requests",
   "ustatShowAuxiliaryDescription": "Count Claude Code's requests beside the conversation (suggesting the next prompt, naming the conversation, summing up a web page) in the charts and totals. They are kept either way.",
@@ -8725,37 +9767,88 @@
   "ustatTraceRawResponse": "Raw response",
   "ustatTraceToUpstream": "Sent upstream",
   "ustatTraceResponseHeaders": "Response headers · {count}",
-  "@ustatTraceResponseHeaders": {"placeholders": {"count": {"type": "int"}}},
+  "@ustatTraceResponseHeaders": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "ustatTraceAnswerOnly": "As Claude Code printed it; the request to Anthropic is not seen",
   "ustatTraceTry": "Try {n}",
-  "@ustatTraceTry": {"placeholders": {"n": {"type": "int"}}},
+  "@ustatTraceTry": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
   "ustatTraceCopyAll": "Copy all",
   "ustatTraceCopyBody": "Copy",
   "ustatTraceHeaders": "Request headers · {count}",
-  "@ustatTraceHeaders": {"placeholders": {"count": {"type": "int"}}},
+  "@ustatTraceHeaders": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "ustatTraceRaw": "As sent",
   "ustatTraceFormatted": "Formatted",
   "ustatTraceEmpty": "Empty",
   "ustatTraceMore": "Show more ({size} left)",
-  "@ustatTraceMore": {"placeholders": {"size": {"type": "String"}}},
+  "@ustatTraceMore": {
+    "placeholders": {
+      "size": {
+        "type": "String"
+      }
+    }
+  },
   "ustatTraceTruncated": "cut at 24M characters",
   "ustatSpaceTraces": "; raw exchanges {size} ({count})",
-  "@ustatSpaceTraces": {"placeholders": {"size": {"type": "String"}, "count": {"type": "int"}}},
+  "@ustatSpaceTraces": {
+    "placeholders": {
+      "size": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "ustatClearTraces": "Clear the raw exchanges only",
   "ustatClearTracesDetail": "The calls stay; their raw requests and answers are deleted from this computer.",
   "ustatColumnTotal": "Total",
   "ustatColumnMix": "Breakdown",
   "ustatDeferred": "deferred, {size}",
-  "@ustatDeferred": {"placeholders": {"size": {"type": "String"}}},
+  "@ustatDeferred": {
+    "placeholders": {
+      "size": {
+        "type": "String"
+      }
+    }
+  },
   "ustatSwitchedOff": "turned off",
   "usageUntilCompaction": "{tokens} to auto-compact",
-  "@usageUntilCompaction": {"placeholders": {"tokens": {"type": "String"}}},
+  "@usageUntilCompaction": {
+    "placeholders": {
+      "tokens": {
+        "type": "String"
+      }
+    }
+  },
   "usageAgentDefinition": "agent",
   "usageAttachments": "Reminders & attachments",
   "ustatCost": "Cost",
   "ustatCostEstimated": "At the prices as they are now",
   "ustatCostUnpriced": "{count, plural, =1{1 call unpriced} other{{count} calls unpriced}}",
-  "@ustatCostUnpriced": {"placeholders": {"count": {"type": "int"}}},
+  "@ustatCostUnpriced": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "ustatCostNoPrices": "No prices set",
   "ustatPrices": "Model prices",
   "ustatPricesDetail": "A million tokens each. Costs are worked out at the prices as they are now, the calls before a change included, unless a price is set from a date on.",
@@ -8764,7 +9857,13 @@
   "ustatPriceAnyUpstream": "any upstream",
   "ustatPriceSource": "Where the price was read",
   "ustatPriceUpdated": "updated {when}",
-  "@ustatPriceUpdated": {"placeholders": {"when": {"type": "String"}}},
+  "@ustatPriceUpdated": {
+    "placeholders": {
+      "when": {
+        "type": "String"
+      }
+    }
+  },
   "ustatPriceClear": "Clear the price",
   "ustatPriceIncomplete": "Fill in both the input and the output price",
   "ustatPriceSpent": "In this time",
@@ -8779,38 +9878,125 @@
   "ustatQuotaFiveHour": "5-hour limit",
   "ustatQuotaWeek": "Weekly limit",
   "ustatQuotaWeekOf": "Weekly {model} limit",
-  "@ustatQuotaWeekOf": {"placeholders": {"model": {"type": "String"}}},
+  "@ustatQuotaWeekOf": {
+    "placeholders": {
+      "model": {
+        "type": "String"
+      }
+    }
+  },
   "ustatQuotaUsed": "{percent} used in this time",
-  "@ustatQuotaUsed": {"placeholders": {"percent": {"type": "String"}}},
+  "@ustatQuotaUsed": {
+    "placeholders": {
+      "percent": {
+        "type": "String"
+      }
+    }
+  },
   "ustatQuotaPeak": "Peak {percent} in this time · reset {count, plural, =1{once} other{{count} times}}",
-  "@ustatQuotaPeak": {"placeholders": {"percent": {"type": "String"}, "count": {"type": "int"}}},
+  "@ustatQuotaPeak": {
+    "placeholders": {
+      "percent": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "ustatQuotaPerPercent": "1% of the weekly limit ≈ {tokens} tokens",
-  "@ustatQuotaPerPercent": {"placeholders": {"tokens": {"type": "String"}}},
+  "@ustatQuotaPerPercent": {
+    "placeholders": {
+      "tokens": {
+        "type": "String"
+      }
+    }
+  },
   "ustatQuotaPerPercentCost": "≈ {cost} at API prices",
-  "@ustatQuotaPerPercentCost": {"placeholders": {"cost": {"type": "String"}}},
+  "@ustatQuotaPerPercentCost": {
+    "placeholders": {
+      "cost": {
+        "type": "String"
+      }
+    }
+  },
   "ustatCacheSaved": "{amount} saved",
-  "@ustatCacheSaved": {"placeholders": {"amount": {"type": "String"}}},
+  "@ustatCacheSaved": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
   "ustatCostIn": "In {currency} only; the other currencies are in the totals",
-  "@ustatCostIn": {"placeholders": {"currency": {"type": "String"}}},
+  "@ustatCostIn": {
+    "placeholders": {
+      "currency": {
+        "type": "String"
+      }
+    }
+  },
   "ustatPriceClaudeDefault": "Claude Code's own models without a price of yours are priced at Anthropic's API prices: the grey figures.",
   "ustatPriceRuleTiers": "{count} tiers by prompt length",
-  "@ustatPriceRuleTiers": {"placeholders": {"count": {"type": "int"}}},
+  "@ustatPriceRuleTiers": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "ustatPriceRuleSchedule": "peak and off-peak hours",
   "ustatPriceRuleFast": "fast mode ×{factor}",
-  "@ustatPriceRuleFast": {"placeholders": {"factor": {"type": "String"}}},
+  "@ustatPriceRuleFast": {
+    "placeholders": {
+      "factor": {
+        "type": "String"
+      }
+    }
+  },
   "ustatPriceRuleServiceTiers": "by service tier",
   "ustatPriceRuleGeo": "by region",
   "ustatPriceRulePerCall": "{amount} a call",
-  "@ustatPriceRulePerCall": {"placeholders": {"amount": {"type": "String"}}},
+  "@ustatPriceRulePerCall": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
   "ustatPriceRuleTools": "tools priced a use",
   "ustatPriceRuleVersions": "{count} prices by date",
-  "@ustatPriceRuleVersions": {"placeholders": {"count": {"type": "int"}}},
+  "@ustatPriceRuleVersions": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "ustatPriceRuleRate": "upstream rate ×{factor}",
-  "@ustatPriceRuleRate": {"placeholders": {"factor": {"type": "String"}}},
+  "@ustatPriceRuleRate": {
+    "placeholders": {
+      "factor": {
+        "type": "String"
+      }
+    }
+  },
   "ustatPriceRuleTime": "time of week ×{factor}",
-  "@ustatPriceRuleTime": {"placeholders": {"factor": {"type": "String"}}},
+  "@ustatPriceRuleTime": {
+    "placeholders": {
+      "factor": {
+        "type": "String"
+      }
+    }
+  },
   "ustatPriceRuleFees": "fees {amount}",
-  "@ustatPriceRuleFees": {"placeholders": {"amount": {"type": "String"}}},
+  "@ustatPriceRuleFees": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
   "ustatFees": "Fees",
   "ustatPricedBy": "Priced by",
   "ustatUpstreamRates": "Upstream rates",
@@ -8885,7 +10071,11 @@
   "branchBarFolder": "{path}\nClick to copy its path",
   "@branchBarFolder": {
     "description": "Hover of the project folder shown under the chat in place of a Git branch (no repository): its path, then that a click copies it.",
-    "placeholders": {"path": {"type": "String"}}
+    "placeholders": {
+      "path": {
+        "type": "String"
+      }
+    }
   },
   "branchBarPathCopied": "Path copied",
   "@branchBarPathCopied": {
@@ -8893,13 +10083,37 @@
   },
   "rewindFilesTitle": "Undo the file changes made after this message?",
   "rewindFilesChanged": "The agent changed {count, plural, =1{1 file} other{{count} files}} after this message:",
-  "@rewindFilesChanged": {"placeholders": {"count": {"type": "int"}}},
+  "@rewindFilesChanged": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "rewindFilesMore": "…and {count} more",
-  "@rewindFilesMore": {"placeholders": {"count": {"type": "int"}}},
+  "@rewindFilesMore": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "rewindFilesMerged": "{count, plural, =1{1 of them was} other{{count} of them were}} also changed elsewhere since: those changes are kept.",
-  "@rewindFilesMerged": {"placeholders": {"count": {"type": "int"}}},
+  "@rewindFilesMerged": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "rewindFilesConflicts": "{count, plural, =1{1 file can't} other{{count} files can't}} be undone cleanly and will stay as {count, plural, =1{it is} other{they are}}:",
-  "@rewindFilesConflicts": {"placeholders": {"count": {"type": "int"}}},
+  "@rewindFilesConflicts": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "rewindFilesCommands": "What commands changed (Bash) isn't tracked and stays.",
   "rewindFilesRevert": "Undo and Send",
   "rewindFilesKeep": "Keep and Send",
@@ -8918,14 +10132,32 @@
   "settingsTransferExportDetail": "Settings, keybindings and upstreams go into the file. The upstreams' API keys only if you tick the box below: they are then in the file as plain text, so keep it to yourself and delete it once imported.",
   "settingsTransferWithKeys": "Include the upstreams' API keys",
   "settingsTransferExported": "Exported to {path}",
-  "@settingsTransferExported": {"placeholders": {"path": {"type": "String"}}},
+  "@settingsTransferExported": {
+    "placeholders": {
+      "path": {
+        "type": "String"
+      }
+    }
+  },
   "settingsTransferImportQuestion": "Import the settings in {file}?",
-  "@settingsTransferImportQuestion": {"placeholders": {"file": {"type": "String"}}},
+  "@settingsTransferImportQuestion": {
+    "placeholders": {
+      "file": {
+        "type": "String"
+      }
+    }
+  },
   "settingsTransferImportDetail": "Its settings, keybindings and upstreams replace yours; settings it does not have stay as they are.",
   "settingsTransferImported": "Imported. Some settings take effect once BaoCode restarts.",
   "settingsTransferNotAFile": "This is not a settings file BaoCode exported.",
   "settingsTransferFailed": "Not done: {error}",
-  "@settingsTransferFailed": {"placeholders": {"error": {"type": "String"}}},
+  "@settingsTransferFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
   "generalSettingsSessionTools": "Agents can coordinate other conversations",
   "generalSettingsSessionToolsDescription": "An agent can list your other conversations, read where they stand without waking them, start new ones or hand work to others (in a worktree of their own if need be), and hears back by itself when each is done, fails or waits on you; it can also stop them and see which files they changed. For one conversation that coordinates the others. Off, agents neither see nor act on other conversations, and those handed work no longer report back.",
   "generalSettingsCommandLine": "Command Line",
@@ -9005,16 +10237,34 @@
   "commandLineCustomPath": "Custom shell",
   "commandLineCustomPathDescription": "The program to run commands with: a bash.exe, cmd.exe, powershell.exe or pwsh.exe.",
   "remoteBrowserFolderTitle": "Open a Folder on {host}",
-  "@remoteBrowserFolderTitle": {"placeholders": {"host": {"type": "String"}}},
+  "@remoteBrowserFolderTitle": {
+    "placeholders": {
+      "host": {
+        "type": "String"
+      }
+    }
+  },
   "remoteBrowserFileTitle": "Open a File on {host}",
-  "@remoteBrowserFileTitle": {"placeholders": {"host": {"type": "String"}}},
+  "@remoteBrowserFileTitle": {
+    "placeholders": {
+      "host": {
+        "type": "String"
+      }
+    }
+  },
   "remoteBrowserPlaces": "Locations",
   "remoteBrowserRecent": "Recent Locations",
   "remoteBrowserHome": "Home",
   "remoteBrowserThisPc": "This PC",
   "remoteBrowserRoot": "Root",
   "remoteBrowserLocalDisk": "Local Disk ({drive})",
-  "@remoteBrowserLocalDisk": {"placeholders": {"drive": {"type": "String"}}},
+  "@remoteBrowserLocalDisk": {
+    "placeholders": {
+      "drive": {
+        "type": "String"
+      }
+    }
+  },
   "remoteBrowserBack": "Back",
   "remoteBrowserForward": "Forward",
   "remoteBrowserRefresh": "Refresh",
@@ -9027,25 +10277,82 @@
   "remoteBrowserEmpty": "This folder is empty.",
   "remoteBrowserNoFolders": "No folders here.",
   "remoteBrowserNoMatch": "Nothing here matches “{filter}”.",
-  "@remoteBrowserNoMatch": {"placeholders": {"filter": {"type": "String"}}},
+  "@remoteBrowserNoMatch": {
+    "placeholders": {
+      "filter": {
+        "type": "String"
+      }
+    }
+  },
   "remoteBrowserHiddenCount": "{count, plural, =1{1 hidden item} other{{count} hidden items}}",
-  "@remoteBrowserHiddenCount": {"placeholders": {"count": {"type": "int"}}},
+  "@remoteBrowserHiddenCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "remoteBrowserShowHiddenNow": "Show",
   "remoteBrowserEditPath": "Go to a Path",
   "remoteBrowserPathPlaceholder": "A path: ~/code, /srv/app, D:\\work",
   "remoteBrowserNotFound": "{path} does not exist.",
-  "@remoteBrowserNotFound": {"placeholders": {"path": {"type": "String"}}},
+  "@remoteBrowserNotFound": {
+    "placeholders": {
+      "path": {
+        "type": "String"
+      }
+    }
+  },
   "remoteBrowserNotFolder": "{path} is a file, not a folder.",
-  "@remoteBrowserNotFolder": {"placeholders": {"path": {"type": "String"}}},
+  "@remoteBrowserNotFolder": {
+    "placeholders": {
+      "path": {
+        "type": "String"
+      }
+    }
+  },
   "remoteBrowserMakeFailed": "Could not make the folder: {error}",
-  "@remoteBrowserMakeFailed": {"placeholders": {"error": {"type": "String"}}},
+  "@remoteBrowserMakeFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
   "remoteBrowserFolderAction": "Open Folder",
   "remoteBrowserFileAction": "Open File",
   "remoteBrowserSaveTitle": "Save to {host}",
-  "@remoteBrowserSaveTitle": {"placeholders": {"host": {"type": "String"}}},
+  "@remoteBrowserSaveTitle": {
+    "placeholders": {
+      "host": {
+        "type": "String"
+      }
+    }
+  },
   "remoteBrowserSaveAction": "Save As",
   "remoteBrowserSaveName": "Save As:",
   "remoteBrowserSave": "Save",
   "remoteBrowserReplace": "“{name}” already exists. Replace it?",
-  "@remoteBrowserReplace": {"placeholders": {"name": {"type": "String"}}}
+  "@remoteBrowserReplace": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "browserSettingsUse": "Use This Browser",
+  "browserSettingsUsing": "In Use",
+  "browserSettingsChosenMissing": "The browser chosen is not connected",
+  "browserSettingsChosenMissingDescription": "{path}: agents use {browser} until it connects again.",
+  "@browserSettingsChosenMissingDescription": {
+    "description": "Under browserSettingsChosenMissing: the chosen browser's executable, and the connected one used meanwhile.",
+    "placeholders": {
+      "path": {
+        "type": "String"
+      },
+      "browser": {
+        "type": "String"
+      }
+    }
+  }
 }

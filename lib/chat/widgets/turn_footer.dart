@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
 import '../../ide/ide_hover.dart';
@@ -13,7 +14,7 @@ import '../chat_feed.dart';
 import '../chat_models.dart';
 import '../chat_session.dart';
 import 'agent_step.dart';
-import 'copy_button.dart';
+import 'hover_builder.dart';
 import 'rolling_text.dart';
 import 'turn_power_tools.dart';
 
@@ -21,6 +22,8 @@ import 'turn_power_tools.dart';
 const _zapIcon = 'assets/icons/lucide-zap.svg';
 const _clockIcon = 'assets/icons/lucide-clock.svg';
 const _arrowDownIcon = 'assets/icons/lucide-arrow-down.svg';
+const _copyIcon = 'assets/icons/lucide-copy.svg';
+const _checkIcon = 'assets/icons/lucide-check.svg';
 
 /// Whether the turn under way has its line of figures (`chat.liveTurnStats`),
 /// on unless set to false. A finished turn's figures always show.

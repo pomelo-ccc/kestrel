@@ -147,12 +147,20 @@ final imageReferencePattern = RegExp(r'\[Image #(\d+)\]');
 
 /// Plain assistant prose. Supports `inline code` and `- ` bullet lines.
 class AssistantTextItem extends ChatItem {
-  const AssistantTextItem(this.text, {this.duration});
+  const AssistantTextItem(this.raw, {this.duration});
 
-  final String text;
+  /// All of it, as the agent wrote it.
+  final String raw;
 
   /// How long generating this reply block took, when known.
   final Duration? duration;
+
+  /// What it said: without what it suggests the user send next, at its end
+  /// ([suggestions]).
+  String get text => ReplySuggestions.strip(raw);
+
+  /// What it suggests the user send next (see [ReplySuggestions]).
+  List<String> get suggestions => ReplySuggestions.of(raw);
 }
 
 /// [text] (what an agent said, or asks) on one line, its markup's marks

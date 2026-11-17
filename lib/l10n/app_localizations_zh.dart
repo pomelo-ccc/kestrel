@@ -9822,20 +9822,6 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
-  String get browserSettingsUse => '使用这个浏览器';
-
-  @override
-  String get browserSettingsUsing => '使用中';
-
-  @override
-  String get browserSettingsChosenMissing => '所选的浏览器没有连接';
-
-  @override
-  String browserSettingsChosenMissingDescription(String path, String browser) {
-    return '$path：它重新连上之前，agent 先用 $browser。';
-  }
-
-  @override
   String get browserSettingsExtensionOld =>
       '扩展版本太旧，需要更新。商店版会自动更新，也可以在 chrome://extensions 里点「更新」；手动安装的请重新下载 zip，覆盖原来的文件夹后点刷新。';
 
@@ -13541,5 +13527,19 @@ class AppLocalizationsZh extends AppLocalizations {
   @override
   String remoteBrowserReplace(String name) {
     return '“$name”已存在，要替换它吗？';
+  }
+
+  @override
+  String get browserSettingsUse => '使用这个浏览器';
+
+  @override
+  String get browserSettingsUsing => '使用中';
+
+  @override
+  String get browserSettingsChosenMissing => '所选的浏览器没有连接';
+
+  @override
+  String browserSettingsChosenMissingDescription(String path, String browser) {
+    return '$path：它重新连上之前，agent 先用 $browser。';
   }
 }
