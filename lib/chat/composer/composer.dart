@@ -105,6 +105,11 @@ class ChatComposer extends StatefulWidget {
   final bool contextPanelOpen;
   final VoidCallback? onToggleContextPanel;
 
+  /// Whether the live desktop composer renders the unified floating suggestion
+  /// shelf directly above the input card.
+  static bool get showsFloatingSuggestionShelf =>
+      !kIsWeb && Platform.environment['FLUTTER_TEST'] != 'true';
+
   /// Text to start from; `@paths`, `[path:lines]` and a leading `/command`
   /// in it become tags again.
   final String? initialText;
@@ -624,7 +629,7 @@ class ChatComposerState extends State<ChatComposer>
   String? _dismissedSuggestionTurnKey;
 
   String get _suggestionTurnKey =>
-      '${widget.session.sessionId ?? 'new'}:${widget.session.itemCount}:${widget.session.promptSuggestion ?? ''}';
+      '${widget.session.sessionId ?? 'new'}:${widget.session.itemCount}:${widget.session.replySuggestions.join('|')}';
 
   /// The key that takes it, as the keybindings have it now: shown after
   /// it; none when unbound.
@@ -686,6 +691,20 @@ class ChatComposerState extends State<ChatComposer>
     return null;
   }
 
+  void _sendSuggestion(String chosen) {
+    final text = MdAtoms.strip(chosen).trim();
+    if (text.isEmpty || _showsStop) return;
+    final message = ComposerMessage(text: text);
+    if (widget.onIntercept case final intercept? when intercept(message)) {
+      return;
+    }
+    widget.session.send(
+      message,
+      editor: widget.openEditor,
+      from: UserPlace.computer,
+    );
+  }
+
   /// Contextual next-step prompt suggestions when the input box is empty.
   List<String> _computeEmptySuggestions() {
     if (widget.onSubmit != null) return const [];
@@ -706,6 +725,12 @@ class ChatComposerState extends State<ChatComposer>
       }
     }
 
+    for (final reply in session.replySuggestions) {
+      addUnique(reply);
+    }
+    if (results.isNotEmpty) {
+      return results.take(3).toList(growable: false);
+    }
     if (fromKernel != null && fromKernel.isNotEmpty) {
       addUnique(fromKernel);
     }
@@ -2063,12 +2088,15 @@ class ChatComposerState extends State<ChatComposer>
               itemBuilder: (context, index) {
                 final item = _emptySuggestions[index];
                 final isPrimary = index == 0;
-                return HoverBuilder(
-                  cursor: SystemMouseCursors.click,
-                  builder: (context, hovered) => GestureDetector(
-                    onTapDown: (_) {},
-                    onTap: () => _acceptSuggestion(item),
-                    child: AnimatedContainer(
+                return IdeHover(
+                  message: context.l10n.replySuggestionHint,
+                  child: HoverBuilder(
+                    cursor: SystemMouseCursors.click,
+                    builder: (context, hovered) => GestureDetector(
+                      onTapDown: (_) {},
+                      onTap: () => _acceptSuggestion(item),
+                      onDoubleTap: () => _sendSuggestion(item),
+                      child: AnimatedContainer(
                       duration: const Duration(milliseconds: 130),
                       padding: EdgeInsets.only(
                         left: isPrimary ? 9 : 10,
@@ -2139,6 +2167,7 @@ class ChatComposerState extends State<ChatComposer>
                             _KeycapBadge(label: 'Tab', dark: dark),
                           ],
                         ],
+                      ),
                       ),
                     ),
                   ),

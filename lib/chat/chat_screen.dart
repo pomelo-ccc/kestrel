@@ -976,6 +976,7 @@ class _ChatScreenState extends State<ChatScreen>
   /// What the agent suggests the user send next, while nothing is typed:
   /// one picked is put in the composer, to be edited and sent.
   Widget? _buildReplySuggestions() {
+    if (ChatComposer.showsFloatingSuggestionShelf) return null;
     final suggestions = _session.replySuggestions;
     if (suggestions.isEmpty) return null;
     final draft = _session.draft;
