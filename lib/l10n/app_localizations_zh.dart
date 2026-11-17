@@ -1590,6 +1590,60 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
+  String sessionStepDone(String action) {
+    String _temp0 = intl.Intl.selectLogic(action, {
+      'new': '开了对话',
+      'send': '派活给',
+      'wait': '等了',
+      'read': '看了',
+      'stop': '停下了',
+      'changes': '查看了改动',
+      'list': '列出了对话',
+      'other': '统筹了',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String sessionStepRunning(String action) {
+    String _temp0 = intl.Intl.selectLogic(action, {
+      'new': '正在开对话',
+      'send': '正在派活给',
+      'wait': '正在等',
+      'read': '正在看',
+      'stop': '正在停下',
+      'changes': '正在查看改动',
+      'list': '正在列出对话',
+      'other': '正在统筹',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String get sessionOpen => '打开对话';
+
+  @override
+  String sessionStatus(String status) {
+    String _temp0 = intl.Intl.selectLogic(status, {
+      'running': '进行中',
+      'waiting': '等你回答',
+      'done': '已完成',
+      'failed': '出错了',
+      'other': '',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String get sessionAnswer => '去回答';
+
+  @override
+  String get sessionShowMore => '展开';
+
+  @override
+  String get sessionShowLess => '收起';
+
+  @override
   String get sidePanelPlan => '计划';
 
   @override
@@ -3571,7 +3625,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get generalSettingsPromptSuggestionsDescription =>
-      '每轮结束后，在输入框上方给出两三句你可能想发的话：点一下放进输入框，改完再发；按 Tab 采用第一句。由 Agent 在回复末尾顺手写出，不额外请求模型。从下一条消息起生效。';
+      '每轮结束后，在输入框上方给出两三句你可能想发的话：单击放进输入框润色，双击直接发送；输入框空着时按 Tab 采用第一句。由 Agent 在回复末尾顺手写出，不额外请求模型。从下一条消息起生效。';
 
   @override
   String generalSettingsCommitAttributionLabel(String name) {

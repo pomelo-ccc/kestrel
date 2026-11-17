@@ -1135,6 +1135,7 @@ class ClaudeCodeKernel
       images: turn.images,
       sentAt: DateTime.now(),
       fromAgent: fromAgent?.from,
+      fromSession: fromAgent?.session,
     );
   }
 

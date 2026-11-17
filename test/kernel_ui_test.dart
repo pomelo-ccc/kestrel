@@ -704,7 +704,9 @@ void main() {
   });
 
   testWidgets('after a turn, its suggested replies show over the composer: '
-      'Tab takes the first, a click any', (tester) async {
+      'Tab takes the first, a click puts one in, a double click sends it', (
+    tester,
+  ) async {
     final session = await pumpSession(tester, MockKernels.claudeCode);
     session.send(const ComposerMessage(text: '把输入框改成随内容增高'));
     await tester.pump();
@@ -734,14 +736,9 @@ void main() {
       tester.getBottomLeft(bar).dy,
       lessThan(tester.getTopLeft(find.byType(ActivityStrip)).dy),
     );
+    // No key shown on them.
     expect(
-      find.descendant(
-        of: bar,
-        matching: find.textContaining(
-          '${MockScript.suggestions.first}  Tab',
-          findRichText: true,
-        ),
-      ),
+      find.descendant(of: bar, matching: find.text(MockScript.suggestions[0])),
       findsOneWidget,
     );
     expect(

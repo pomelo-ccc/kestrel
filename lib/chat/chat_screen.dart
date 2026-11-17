@@ -40,6 +40,7 @@ import 'chat_history_view.dart';
 import 'chat_keys.dart';
 import 'chat_models.dart';
 import 'chat_session.dart';
+import 'session_links.dart';
 import 'open_editor.dart';
 import 'resume_after_reset.dart';
 import 'chat_width.dart';
@@ -984,7 +985,6 @@ class _ChatScreenState extends State<ChatScreen>
     }
     return ReplySuggestionBar(
       suggestions: suggestions,
-      firstKey: replySuggestionKey(),
       onPick: (said) => draft.restore(said, const []),
       onSend: (said) => _session.send(
         ComposerMessage(text: said),
@@ -994,10 +994,22 @@ class _ChatScreenState extends State<ChatScreen>
     );
   }
 
-  Widget? _buildActivityStrip() {
+  /// The strip over the composer, with the conversations this one handed
+  /// work to as they stand (see [SessionLinks]).
+  Widget _activityStrip() {
+    final handed = SessionLinks.of(context)?.handedFrom(_session);
+    if (handed == null) return _PanelSlot(child: _buildActivityStrip());
+    return ValueListenableBuilder(
+      valueListenable: handed,
+      builder: (context, handed, _) =>
+          _PanelSlot(child: _buildActivityStrip(handed)),
+    );
+  }
+
+  Widget? _buildActivityStrip([List<HandedConversation> handed = const []]) {
     final tasks = _session.tasks ?? const [];
     final changes = _session.fileChanges;
-    if (!ActivityStrip.hasContent(tasks, changes)) return null;
+    if (!ActivityStrip.hasContent(tasks, changes, handed: handed)) return null;
     final links = widget.fileLinks;
     final open = links == null
         ? widget.onOpenChange
@@ -1012,6 +1024,11 @@ class _ChatScreenState extends State<ChatScreen>
     return ActivityStrip(
       tasks: tasks,
       changes: changes,
+      handed: handed,
+      onOpenHanded: switch (SessionLinks.of(context)) {
+        final links? => (conversation) => links.open(conversation.id),
+        null => null,
+      },
       root: _session.root ?? '.',
       paths: _session.paths,
       onKeep: _session.keepAllChanges,
@@ -1867,7 +1884,7 @@ class _ChatScreenState extends State<ChatScreen>
             _ => null,
           },
         ),
-        _PanelSlot(child: _buildActivityStrip()),
+        _activityStrip(),
         ChatComposer(
           key: _composerKey,
           session: _session,

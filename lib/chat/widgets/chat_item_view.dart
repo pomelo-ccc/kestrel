@@ -13,6 +13,7 @@ import 'assistant_text.dart';
 import 'command_step.dart';
 import 'notice_row.dart';
 import 'plan_card.dart';
+import 'session_step.dart';
 import 'step_header.dart';
 import 'edit_step.dart';
 import 'terminal_output.dart';
@@ -65,10 +66,12 @@ class ChatItemView extends StatelessWidget {
 
   Widget _build() {
     return switch (item) {
-      UserMessageItem(:final text, fromAgent: final agent?) => AgentMessageCard(
-        agent: agent,
-        text: text,
-      ),
+      UserMessageItem(
+        :final text,
+        fromAgent: final agent?,
+        :final fromSession,
+      ) =>
+        AgentMessageCard(agent: agent, text: text, session: fromSession),
       UserMessageItem(:final text, :final images) => UserMessageBubble(
         text: text,
         images: images,
@@ -85,6 +88,9 @@ class ChatItemView extends StatelessWidget {
         expanded: expanded,
         onToggle: onToggle,
       ),
+      final ToolCallItem tool
+          when tool.kind == ToolKind.other && isSessionTool(tool.tool) =>
+        SessionStep(item: tool, expanded: expanded, onToggle: onToggle),
       ThinkingItem(:final text, :final seconds, :final startedAt) =>
         ThinkingSection(
           text: text,
