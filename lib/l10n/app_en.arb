@@ -7410,6 +7410,7 @@
   "browserSettingsEnabled": "Let Agents Use the Browser",
   "browserSettingsEnabledDescription": "When off, agents have no browser tools and the extension disconnects.",
   "browserSettingsStatus": "Status",
+  "browserSettingsStatusDescription": "Agents use the browser marked In Use; choose another to switch.",
   "browserSettingsNotInstalled": "No browser has connected yet",
   "browserSettingsNotInstalledDescription": "Install the extension either way below, then open the browser: it connects automatically.",
   "browserSettingsNotRunning": "No browser connected",
