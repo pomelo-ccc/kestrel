@@ -3,7 +3,6 @@ import 'package:path/path.dart' as p;
 
 import '../../platform/data_dir.dart';
 import '../agent_kernel.dart';
-import '../antigravity/antigravity_transport.dart';
 
 /// Claude Code's own record of its sessions on this machine (see
 /// [ClaudeSessions]).
@@ -62,12 +61,7 @@ class ClaudeStorage implements SessionCatalog, MovesSessions {
 
   /// The session's conversation along the branch it ended on.
   static Future<List<Map<String, Object?>>> read(SessionRecord session) {
-    final path =
-        session.path ??
-        syncAntigravityTranscriptIfNeeded(
-          cwd: session.cwd,
-          sessionId: session.id,
-        );
+    final path = session.path;
     if (path == null) return Future.value(const []);
     return ClaudeSessions.read(path);
   }
@@ -78,12 +72,7 @@ class ClaudeStorage implements SessionCatalog, MovesSessions {
     required int turns,
     String? before,
   }) {
-    final path =
-        session.path ??
-        syncAntigravityTranscriptIfNeeded(
-          cwd: session.cwd,
-          sessionId: session.id,
-        );
+    final path = session.path;
     if (path == null) return Future.value(const ClaudeHistoryPage([]));
     return ClaudeSessions.readPage(path, turns: turns, before: before);
   }

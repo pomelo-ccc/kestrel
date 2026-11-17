@@ -22,7 +22,6 @@ import '../../usage/claude_usage_meter.dart';
 import '../../usage/usage_ledger.dart';
 import '../../workspace/editor_launcher.dart' show openExternal;
 import '../agent_kernel.dart';
-import '../antigravity/antigravity_cli.dart';
 import '../commit_attribution.dart';
 import '../extension_switches.dart';
 import '../kernel_event.dart';
@@ -31,7 +30,6 @@ import '../transcript.dart';
 import '../queued_messages.dart';
 import 'claude_code_transport.dart';
 import 'claude_code_translator.dart';
-import 'claude_core_setting.dart';
 import 'claude_elicitation.dart';
 import 'claude_goal.dart';
 import 'claude_numbers.dart';
@@ -157,13 +155,6 @@ class ClaudeCodeKernel
       'default',
     );
     _model = settings[KernelChoiceKind.model.name];
-    if (descriptor.id == antigravityBuiltinProviderId &&
-        !AntigravityModels.isAntigravityModel(_model)) {
-      _model = modelRef(
-        antigravityBuiltinProviderId,
-        AntigravityModels.current.first.id,
-      );
-    }
     _effort = settings[KernelChoiceKind.effort.name];
     _window = switch (parseTokens(
       settings[KernelChoiceKind.context.name] ?? '',
@@ -377,33 +368,10 @@ class ClaudeCodeKernel
   /// if offered there, else to the first upstream's.
   String? get _model {
     final picked = _pickedModel;
-    if (AntigravityModels.isAntigravityModel(picked) &&
-        (_providers.antigravityAvailable ||
-            descriptor.id == antigravityBuiltinProviderId)) {
-      return picked!.startsWith('@$antigravityBuiltinProviderId/')
-          ? picked
-          : modelRef(antigravityBuiltinProviderId, picked);
-    }
     if (_providers.resolve(picked) != null) return picked;
-    if (descriptor.id == antigravityBuiltinProviderId ||
-        ClaudeCore.current() == ClaudeCore.antigravity) {
-      if (_providers.antigravityAvailable ||
-          descriptor.id == antigravityBuiltinProviderId) {
-        return modelRef(
-          antigravityBuiltinProviderId,
-          AntigravityModels.current.first.id,
-        );
-      }
-    }
     if (_providers.builtinAvailable &&
         (parseModelRef(picked) == null || _providers.builtinOffered)) {
       return picked;
-    }
-    if (_providers.antigravityOffered) {
-      return modelRef(
-        antigravityBuiltinProviderId,
-        AntigravityModels.current.first.id,
-      );
     }
     return _providers.firstModel ??
         (_providers.builtinAvailable ? picked : null);
@@ -594,22 +562,6 @@ class ClaudeCodeKernel
   /// the CLI's.
   ({String provider, String? model, String? effort}) get _launchTarget {
     final custom = _custom;
-    if (custom == null &&
-        (AntigravityModels.isAntigravityModel(_model) ||
-            descriptor.id == antigravityBuiltinProviderId ||
-            ClaudeCore.current() == ClaudeCore.antigravity)) {
-      final modelId =
-          _model ??
-          modelRef(
-            antigravityBuiltinProviderId,
-            AntigravityModels.current.first.id,
-          );
-      return (
-        provider: antigravityBuiltinProviderId,
-        model: modelId,
-        effort: _pickedEfforts[modelId] ?? _effort,
-      );
-    }
     final effort = switch (custom) {
       (_, final info) => _effortFor(info),
       null => _effort,
@@ -1946,9 +1898,7 @@ class ClaudeCodeKernel
           emit(InteractionResolved(nextSeq, id));
         }
       case 'system' when message['subtype'] == 'init':
-        if (message['session_id'] case final String id when id.isNotEmpty) {
-          _sessionId = id;
-        }
+        _sessionId = message['session_id'] as String? ?? _sessionId;
         _reportedModel = message['model'] as String?;
         // Started again on the model picked, not on the one in its place.
         if (_reportedModel != _fallback) _fallback = null;
@@ -3284,19 +3234,10 @@ class ClaudeCodeKernel
 
   /// What a session on [model] is started on: '' for Claude Code as the
   /// user set it up, else the provider and its setup.
-  String _providerKeyOf(String? model) {
-    if (AntigravityModels.isAntigravityModel(model)) {
-      return antigravityBuiltinProviderId;
-    }
-    return switch (_providers.resolve(model)) {
-      (final provider, _) => '${provider.id}|${provider.launchFingerprint}',
-      null =>
-        descriptor.id == antigravityBuiltinProviderId ||
-                ClaudeCore.current() == ClaudeCore.antigravity
-            ? antigravityBuiltinProviderId
-            : '',
-    };
-  }
+  String _providerKeyOf(String? model) => switch (_providers.resolve(model)) {
+    (final provider, _) => '${provider.id}|${provider.launchFingerprint}',
+    null => '',
+  };
 
   String get _providerKey => _providerKeyOf(_model);
 
@@ -3349,13 +3290,6 @@ class ClaudeCodeKernel
     iconBuilder: _providerIcon(builtinProviderId),
   );
 
-  /// The heading Antigravity CLI's own models are listed under.
-  static final _antigravityGroup = KernelOptionGroup(
-    antigravityBuiltinProviderId,
-    'Antigravity CLI',
-    iconBuilder: _providerIcon(antigravityBuiltinProviderId),
-  );
-
   /// Provider [id]'s icon, as its models' heading shows it.
   static Widget Function(double, Color) _providerIcon(String id) =>
       (size, color) => ProviderIcon(id, size: size, color: color);
@@ -3394,27 +3328,6 @@ class ClaudeCodeKernel
         : _pickedWindows[id] == null
         ? _variantOf(id)
         : _variantFor(id, long: _window! > _windows['200k']!);
-    if (sameProvider && AntigravityModels.isAntigravityModel(id)) {
-      _model = id;
-      final effort =
-          recalled != null &&
-              recalled != _appliedEffort &&
-              _effortLevelsOf(id).contains(recalled)
-          ? recalled
-          : null;
-      if (effort != null) _appliedEffort = effort;
-      _change([
-        ('set_model', {'model': AntigravityModels.bareModelId(id)}),
-        if (effort != null)
-          (
-            'apply_flag_settings',
-            {
-              'settings': {'effortLevel': effort},
-            },
-          ),
-      ]);
-      return;
-    }
     if (sameProvider && target == null) {
       final effort =
           recalled != null &&
@@ -3542,38 +3455,15 @@ class ClaudeCodeKernel
     if (_providers.resolve(model) case (_, final info)) {
       return info.effortLevels;
     }
-    if (AntigravityModels.isAntigravityModel(model)) {
-      return const ['low', 'medium', 'high'];
-    }
     if (parseModelRef(model) != null) return const [];
     return _variantOf(model)?.effortLevels ?? const [];
   }
-
-  List<KernelOption> _antigravityModelOptions() => [
-    for (final m in AntigravityModels.current)
-      KernelOption(
-        modelRef(antigravityBuiltinProviderId, m.id),
-        m.label,
-        Icons.rocket_launch_rounded,
-        m.description,
-        group: _antigravityGroup,
-        iconBuilder: _modelIcon(antigravityBuiltinProviderId, m.id),
-      ),
-  ];
 
   @override
   late final KernelChoiceSource model = _Choice(
     options: () {
       final providers = _providers.enabled;
-      final preferAntigravity =
-          descriptor.id == antigravityBuiltinProviderId ||
-          ClaudeCore.current() == ClaudeCore.antigravity;
-      final includeAntigravity =
-          _providers.antigravityOffered ||
-          descriptor.id == antigravityBuiltinProviderId;
       return [
-        if (preferAntigravity && includeAntigravity)
-          ..._antigravityModelOptions(),
         // Shown unless turned off in Settings → Models; never on BaoCode's
         // own core, which runs on the upstreams alone.
         if (_providers.builtinOffered)
@@ -3603,8 +3493,6 @@ class ClaudeCodeKernel
                 group: _builtinGroup,
                 iconBuilder: _modelIcon(builtinProviderId, id),
               ),
-        if (!preferAntigravity && includeAntigravity)
-          ..._antigravityModelOptions(),
         for (final provider in providers)
           for (final info in provider.enabledModels)
             KernelOption(
@@ -3627,15 +3515,6 @@ class ClaudeCodeKernel
     },
     selected: () {
       if (_custom != null) return _model;
-      if (AntigravityModels.isAntigravityModel(_model)) {
-        final bare = AntigravityModels.bareModelId(_model);
-        return modelRef(antigravityBuiltinProviderId, bare);
-      }
-      if (descriptor.id == antigravityBuiltinProviderId ||
-          ClaudeCore.current() == ClaudeCore.antigravity) {
-        final bare = AntigravityModels.bareModelId(_reportedModel ?? _model);
-        return modelRef(antigravityBuiltinProviderId, bare);
-      }
       // BaoCode's own core with no upstream: none to run on.
       if (!_providers.builtinAvailable) return null;
       return switch (_currentModel?.value) {
