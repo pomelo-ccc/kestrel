@@ -202,6 +202,10 @@ class SessionModelPicker extends StatelessWidget {
         onTap: () => unawaited(showModelWelcome(context)),
       );
     }
+    // Another answering in the picked one's place: its name, cautioned,
+    // the picked one a click away.
+    final fallback = session.fallbackModel;
+    final picked = model.selected.label;
     return ComposerPicker(
       key: pickerKey,
       options: model.options,
@@ -225,10 +229,18 @@ class SessionModelPicker extends StatelessWidget {
         ?_resumeAfterLimit(context, option.id),
         ?_autoResetCredits(context, option.id),
       ],
-      tooltip: tooltip,
+      tooltip: fallback == null
+          ? tooltip
+          : l10n.modelsFallbackHint(picked, fallback),
       menuWidth: 260,
       searchPlaceholder: l10n.modelsSearch,
       footers: [
+        if (fallback != null)
+          (
+            label: l10n.modelsFallbackSwitchBack(picked),
+            icon: Icons.undo_rounded,
+            onTap: session.endModelFallback,
+          ),
         if (SettingsOpener.maybeOf(context) case final open?)
           (
             label: ChannelSetup.channelBuild
