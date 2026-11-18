@@ -205,6 +205,20 @@ class AgentSidePanel extends ChangeNotifier {
     if (state?['layout'] case final String name) {
       _layout = ChatLayout.values.asNameMap()[name] ?? _layout;
     }
+    if (state?['sections'] case final List<Object?> rawSections) {
+      final byName = SidePanelSection.values.asNameMap();
+      final parsed = <SidePanelSection>[
+        for (final item in rawSections)
+          if (item is String)
+            if (byName[item] case final s?
+                when alwaysShownSections.contains(s))
+              s,
+      ];
+      if (parsed.isNotEmpty) {
+        _enabledSections = parsed;
+        _sectionsCustomized = true;
+      }
+    }
     if (state?['searches'] case final Map<Object?, Object?> searches) {
       for (final MapEntry(:key, :value) in searches.entries) {
         if (value is Map) _keptSearches['$key'] = value.cast<String, Object?>();
@@ -576,7 +590,87 @@ class AgentSidePanel extends ChangeNotifier {
     show();
   }
 
+  /// The user-configured visible sections among [alwaysShownSections].
+  List<SidePanelSection> _enabledSections = List.of(alwaysShownSections);
+  bool _sectionsCustomized = false;
+
+  List<SidePanelSection> get enabledSections =>
+      List.unmodifiable(_enabledSections);
+
+  bool get sectionsCustomized => _sectionsCustomized;
+
+  bool isSectionEnabled(SidePanelSection section) =>
+      _enabledSections.contains(section);
+
+  SidePanelSection resolveShownSection(SidePanelTabs tabs) {
+    final candidate = tabs.shown;
+    if (candidate == SidePanelSection.plan ||
+        candidate == SidePanelSection.ports) {
+      return candidate;
+    }
+    if (_enabledSections.contains(candidate)) return candidate;
+    return _enabledSections.isNotEmpty
+        ? _enabledSections.first
+        : SidePanelSection.changes;
+  }
+
+  void _ensureSectionEnabled(SidePanelSection section) {
+    if (!alwaysShownSections.contains(section) ||
+        _enabledSections.contains(section)) {
+      return;
+    }
+    _enabledSections = [
+      for (final s in alwaysShownSections)
+        if (_enabledSections.contains(s) || s == section) s,
+    ];
+    _changed = true;
+    onSave?.call();
+  }
+
+  void setSectionEnabled(
+    SidePanelSection section,
+    bool enabled, {
+    Object? conversation,
+  }) {
+    if (!alwaysShownSections.contains(section)) return;
+    if (enabled) {
+      if (!_enabledSections.contains(section)) {
+        _enabledSections = [
+          for (final s in alwaysShownSections)
+            if (_enabledSections.contains(s) || s == section) s,
+        ];
+      }
+      if (conversation != null) {
+        tabsOf(conversation).section = section;
+      }
+    } else {
+      if (_enabledSections.length <= 1 || !_enabledSections.contains(section)) {
+        return;
+      }
+      _enabledSections = [
+        for (final s in _enabledSections)
+          if (s != section) s,
+      ];
+      if (conversation != null && tabsOf(conversation).section == section) {
+        tabsOf(conversation).section = _enabledSections.first;
+      }
+    }
+    _sectionsCustomized = true;
+    _changed = true;
+    notifyListeners();
+    onSave?.call();
+  }
+
+  void resetEnabledSections() {
+    _enabledSections = List.of(alwaysShownSections);
+    _sectionsCustomized = false;
+    _changed = true;
+    notifyListeners();
+    onSave?.call();
+  }
+
   void showSection(Object conversation, SidePanelSection section) {
+    _ensureSectionEnabled(section);
     tabsOf(conversation).section = section;
     _showFor(conversation);
   }
@@ -685,10 +779,12 @@ class AgentSidePanel extends ChangeNotifier {
         ..diffScroll = null;
     }
     if (request.diff) {
+      _ensureSectionEnabled(SidePanelSection.changes);
       tabs
         ..activeDiff = tab
         ..section = SidePanelSection.changes;
     } else {
+      _ensureSectionEnabled(SidePanelSection.files);
       tabs
         ..active = tab
         ..section = SidePanelSection.files;
@@ -743,6 +839,7 @@ class AgentSidePanel extends ChangeNotifier {
     _listShown = true;
     _listAway = false;
     _changed = true;
+    _ensureSectionEnabled(SidePanelSection.files);
     tabsOf(conversation).section = SidePanelSection.files;
     if (!_revealFolder(directory)) _folderAsked = directory;
     _showAsked(conversation);
@@ -881,6 +978,8 @@ class AgentSidePanel extends ChangeNotifier {
     'listWidth': _listWidth,
     'listShown': _listShown,
     'changesAsTree': _changesAsTree,
+    if (_sectionsCustomized)
+      'sections': [for (final s in _enabledSections) s.name],
     if (_layout != ChatLayout.sidebarChatPanel) 'layout': _layout.name,
     if (_keptSearches.isNotEmpty) 'searches': {..._keptSearches},
     if (_viewStates.toJson((_) => true) case final states

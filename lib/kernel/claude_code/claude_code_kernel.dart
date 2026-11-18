@@ -154,6 +154,7 @@ class ClaudeCodeKernel
       _approvals,
       'default',
     );
+    _hasExplicitSessionModel = settings['__explicitSessionModel'] == '1';
     _model = settings[KernelChoiceKind.model.name];
     _effort = settings[KernelChoiceKind.effort.name];
     _window = switch (parseTokens(
@@ -379,6 +380,7 @@ class ClaudeCodeKernel
 
   set _model(String? model) => _pickedModel = model;
   String? _pickedModel;
+  late final bool _hasExplicitSessionModel;
 
   /// The provider's model the process was started on, which its
   /// environment names for each of Claude Code's own (`ANTHROPIC_MODEL`,
@@ -2976,8 +2978,15 @@ class ClaudeCodeKernel
         ..keptTurns = kept;
       var counted = false;
       var whole = page.earlier == null;
+      String? lastHistoryModel;
       for (final line in page.entries) {
-        if (line['type'] == 'assistant') counted |= _countRequest(line);
+        if (line['type'] == 'assistant') {
+          counted |= _countRequest(line);
+          if (line['message'] case {'model': final String m}
+              when m.trim().isNotEmpty) {
+            lastHistoryModel = m.trim();
+          }
+        }
         _results.add(line);
         // What the model told before it is no longer what it holds.
         if (line case {'type': 'system', 'subtype': 'compact_boundary'}) {
@@ -2985,6 +2994,9 @@ class ClaudeCodeKernel
           whole = true;
         }
         _translator.translate(line);
+      }
+      if (!_hasExplicitSessionModel && lastHistoryModel != null) {
+        _restoreModelFromHistory(lastHistoryModel);
       }
       if (whole) {
         _resultsKnown = true;
@@ -3009,6 +3021,42 @@ class ClaudeCodeKernel
         ..keptTurns = const {};
       _loadingHistory = false;
       if (!_disposed) emitInfoChanged();
+    }
+  }
+
+  /// Restores the model, effort, and context window a historical conversation
+  /// actually used on its latest assistant turn when the user has not
+  /// explicitly pinned a different model for this session.
+  void _restoreModelFromHistory(String rawModel) {
+    final candidate = _ownModel(rawModel);
+    if (_providers.resolve(candidate) case (_, final info)) {
+      _model = candidate;
+      if (_pickedEfforts[candidate] case final recalled?) _effort = recalled;
+      _effort = _effortFor(info);
+      _window = _pickedWindows[candidate] ?? _windowFor(info);
+      return;
+    }
+    for (final provider in _providers.enabled) {
+      if (provider.model(rawModel) case final info?) {
+        final ref = modelRef(provider.id, info.id);
+        _model = ref;
+        if (_pickedEfforts[ref] case final recalled?) _effort = recalled;
+        _effort = _effortFor(info);
+        _window = _pickedWindows[ref] ?? _windowFor(info);
+        return;
+      }
+    }
+    _reportedModel = rawModel;
+    final matched = _catalog.models
+        .where((m) => m.value == rawModel || m.resolved == rawModel)
+        .firstOrNull;
+    if (matched != null) {
+      final base = _baseOf(matched.value);
+      _model = matched.value;
+      if (_pickedEfforts[base] case final recalled?) _effort = recalled;
+      if (_pickedWindows[base] case final recalledWindow?) {
+        _window = recalledWindow;
+      }
     }
   }
 

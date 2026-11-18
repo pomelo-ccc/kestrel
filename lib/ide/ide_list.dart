@@ -205,6 +205,11 @@ class IdeListRow extends StatefulWidget {
     this.keepSelectionActive = false,
     this.height = IdeListColors.rowHeight,
     this.tooltip,
+    this.margin,
+    this.borderRadius,
+    this.selectedColor,
+    this.hoverColor,
+    this.showOutline = true,
   });
 
   final Widget Function(BuildContext context, bool hovered) builder;
@@ -225,6 +230,11 @@ class IdeListRow extends StatefulWidget {
   final bool keepSelectionActive;
   final double height;
   final String? tooltip;
+  final EdgeInsetsGeometry? margin;
+  final BorderRadius? borderRadius;
+  final Color? selectedColor;
+  final Color? hoverColor;
+  final bool showOutline;
 
   @override
   State<IdeListRow> createState() => _IdeListRowState();
@@ -293,11 +303,11 @@ class _IdeListRowState extends State<IdeListRow> {
   @override
   Widget build(BuildContext context) {
     final selected = widget.selected;
-    final outline = _outline;
+    final outline = widget.showOutline ? _outline : null;
     // Rounder where the parts are islands (see [IslandStyle]).
-    final radius = BorderRadius.circular(
-      Islands.on(context) ? Islands.rowRadius : 4,
-    );
+    final radius =
+        widget.borderRadius ??
+        BorderRadius.circular(Islands.on(context) ? Islands.rowRadius : 4);
     final row = MouseRegion(
       onEnter: (_) => setState(() => _hover = true),
       onExit: (_) => setState(() => _hover = false),
@@ -315,15 +325,18 @@ class _IdeListRowState extends State<IdeListRow> {
               : (details) => widget.onContextMenu!(details.globalPosition),
           child: Container(
             height: widget.height,
-            margin: const EdgeInsets.symmetric(horizontal: IdeListColors.inset),
+            margin:
+                widget.margin ??
+                const EdgeInsets.symmetric(horizontal: IdeListColors.inset),
             decoration: BoxDecoration(
               borderRadius: radius,
               color: selected
-                  ? (widget.focused || widget.keepSelectionActive
-                        ? IdeListColors.activeSelection
-                        : IdeListColors.inactiveSelection)
+                  ? (widget.selectedColor ??
+                        (widget.focused || widget.keepSelectionActive
+                            ? IdeListColors.activeSelection
+                            : IdeListColors.inactiveSelection))
                   : _hover
-                  ? IdeListColors.hover
+                  ? (widget.hoverColor ?? IdeListColors.hover)
                   : null,
             ),
             // `outline: 1px solid; outline-offset: -1px`: drawn over the

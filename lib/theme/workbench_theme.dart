@@ -12,9 +12,18 @@
 // (`ThemeSettingDefaults`, `COLOR_THEME_*_INITIAL_COLORS`,
 // `migrateThemeSettingsId`). The themes are the ones bundled under
 // packages/bao_editor/assets/textmate (textmate_manifest.dart).
+//
+// Deviations: settings and storage are two preference entries the app keeps
+// (`ColorThemeStorage`), read once at startup; no customizations, transient
+// colors, theme watching, telemetry, or file or product icon themes.
+// Auto (`window.autoDetectColorScheme`) is Bao Light or Bao Dark by the
+// system's appearance; no preferred light or dark theme settings.
+// Widgets read colors through [WorkbenchThemeService.colors] and are all
+// rebuilt when the theme changes ([WorkbenchThemeScope]), as a theme change
+// restyles the whole workbench upstream.
 
 import 'dart:async';
-import 'dart:convert' show JsonEncoder, jsonEncode;
+import 'dart:convert' show JsonEncoder, jsonDecode, jsonEncode;
 import 'dart:io' show Directory, File;
 import 'dart:ui' as ui;
 
@@ -22,7 +31,6 @@ import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 
 import 'package:bao_editor/monaco/vs/base/common/color.dart' as vs;
-import 'package:bao_editor/monaco/vs/base/common/json.dart' as vs_json;
 import 'package:bao_editor/monaco/vs/platform/theme/common/color_utils.dart';
 import 'package:bao_editor/monaco/vs/platform/theme/common/theme.dart';
 import 'package:bao_editor/monaco/vs/workbench/services/themes/common/color_theme_data.dart';
@@ -98,62 +106,6 @@ abstract interface class ColorThemeStorage {
   });
 }
 
-/// Metadata for a user-created custom color theme stored under
-/// `<dataDir>/themes/`.
-class CustomThemeRecord {
-  const CustomThemeRecord({
-    required this.id,
-    required this.label,
-    required this.uiTheme,
-    required this.path,
-    this.baseTheme,
-  });
-
-  final String id;
-  final String label;
-
-  /// `'vs'` for Light, `'vs-dark'` for Dark.
-  final String uiTheme;
-
-  /// Relative filename inside `<dataDir>/themes/`.
-  final String path;
-  final String? baseTheme;
-
-  bool get dark => uiTheme != 'vs';
-
-  Map<String, Object?> toJson() => {
-    'id': id,
-    'label': label,
-    'uiTheme': uiTheme,
-    'path': path,
-    if (baseTheme != null) 'baseTheme': baseTheme,
-  };
-
-  static CustomThemeRecord? fromJson(Object? raw) {
-    if (raw is! Map) return null;
-    final id = raw['id'];
-    final label = raw['label'];
-    final uiTheme = raw['uiTheme'];
-    final path = raw['path'];
-    final baseTheme = raw['baseTheme'];
-    if (id is! String ||
-        id.isEmpty ||
-        label is! String ||
-        label.isEmpty ||
-        path is! String ||
-        path.isEmpty) {
-      return null;
-    }
-    return CustomThemeRecord(
-      id: id,
-      label: label,
-      uiTheme: uiTheme is String && uiTheme.isNotEmpty ? uiTheme : 'vs-dark',
-      path: path,
-      baseTheme: baseTheme is String ? baseTheme : null,
-    );
-  }
-}
-
 /// Persistent per-theme color overrides (`workbench.themeOverrides`), custom
 /// user themes (`workbench.customThemes`), and deleted built-in themes
 /// (`workbench.deletedThemes`).
@@ -179,27 +131,18 @@ abstract final class ThemePaletteOverrides {
   ];
 
   static const defaultLightBackground = ui.Color(0xFFFAF9F5);
-  static const defaultLightSidebar = ui.Color(0xFFEFEEEA);
-  static const defaultLightCard = ui.Color(0xFFFFFFFF);
-  static const defaultLightForeground = ui.Color(0xFF282624);
-  static const defaultLightAccent = ui.Color(0xFFCF795A);
-  static const defaultLightInlineCode = ui.Color(0xFF9E2825);
+  static const defaultLightForeground = ui.Color(0xFF2B2A28);
+  static const defaultLightAccent = ui.Color(0xFF3E8ED1);
 
   static const defaultDarkBackground = ui.Color(0xFF1D1C1A);
-  static const defaultDarkSidebar = ui.Color(0xFF161514);
-  static const defaultDarkCard = ui.Color(0xFF252421);
   static const defaultDarkForeground = ui.Color(0xFFE6E3DC);
   static const defaultDarkAccent = ui.Color(0xFFD47F60);
-  static const defaultDarkInlineCode = ui.Color(0xFFE58C7D);
 
   static final ValueNotifier<int> _revision = ValueNotifier<int>(0);
   static Listenable get changes => _revision;
 
   /// `themeId -> { slot -> Color }`.
   static final Map<String, Map<String, ui.Color>> _overrides = {};
-  static final Map<String, CustomThemeRecord> _customRecords = {};
-  static final Set<String> _deletedThemes = {};
-
   static Future<void> Function(String key, Object? value)? _writer;
   static String? _dataDir;
   static bool _syncingFromSettings = false;
@@ -221,14 +164,12 @@ abstract final class ThemePaletteOverrides {
     void sync() {
       if (_syncingFromSettings) return;
       _loadOverridesFromRaw(read(overridesKey));
-      _loadCustomRecordsFromRaw(read(customThemesKey));
-      _loadDeletedFromRaw(read(deletedThemesKey));
-      unawaited(
-        WorkbenchThemeService.instance.syncUserThemes(
-          records: _customRecords.values.toList(growable: false),
-          deletedIds: Set<String>.of(_deletedThemes),
-          dataDir: dataDir,
-        ),
+      final customRaw = read(customThemesKey);
+      final deletedRaw = read(deletedThemesKey);
+      WorkbenchThemeService.instance.syncUserThemes(
+        customRaw: customRaw,
+        deletedRaw: deletedRaw,
+        dataDir: dataDir,
       );
       _notify();
     }
@@ -260,29 +201,6 @@ abstract final class ThemePaletteOverrides {
     }
   }
 
-  static void _loadCustomRecordsFromRaw(Object? raw) {
-    _customRecords.clear();
-    if (raw is! List) return;
-    for (final item in raw) {
-      if (CustomThemeRecord.fromJson(item) case final record?) {
-        _customRecords[record.id] = record;
-      }
-    }
-  }
-
-  static void _loadDeletedFromRaw(Object? raw) {
-    _deletedThemes.clear();
-    if (raw is! List) return;
-    for (final item in raw) {
-      if (item is String &&
-          item.isNotEmpty &&
-          item != ThemeSettingDefaults.colorThemeLight &&
-          item != ThemeSettingDefaults.colorThemeDark) {
-        _deletedThemes.add(item);
-      }
-    }
-  }
-
   static Map<String, Object?>? _serializeOverrides() {
     if (_overrides.isEmpty) return null;
     final out = <String, Object?>{};
@@ -293,16 +211,6 @@ abstract final class ThemePaletteOverrides {
       };
     }
     return out.isEmpty ? null : out;
-  }
-
-  static List<Object?>? _serializeCustomRecords() {
-    if (_customRecords.isEmpty) return null;
-    return [for (final r in _customRecords.values) r.toJson()];
-  }
-
-  static List<Object?>? _serializeDeleted() {
-    if (_deletedThemes.isEmpty) return null;
-    return _deletedThemes.toList()..sort();
   }
 
   static Future<void> _persistKey(String key, Object? value) async {
@@ -327,25 +235,13 @@ abstract final class ThemePaletteOverrides {
   static bool hasCustomFor(String themeId) =>
       (_overrides[themeId]?.isNotEmpty ?? false);
 
-  static bool isCustomTheme(String themeId) =>
-      _customRecords.containsKey(themeId);
-
-  static Set<String> get deletedThemes =>
-      Set<String>.unmodifiable(_deletedThemes);
-
-  static bool canDeleteTheme(
-    String themeId, {
-    required int sameSchemeCount,
-  }) =>
-      sameSchemeCount > 1 &&
-      themeId != ThemeSettingDefaults.colorThemeLight &&
-      themeId != ThemeSettingDefaults.colorThemeDark;
-
-  static Future<void> setSlotColor(
+  /// Updates [slot] in memory and repaints immediately without disk I/O (used
+  /// during live HSV color picker dragging; call [setSlotColor] on commit).
+  static void previewSlotColor(
     String themeId,
     String slot,
     ui.Color? color,
-  ) async {
+  ) {
     if (color == null) {
       final slots = _overrides[themeId];
       slots?.remove(slot);
@@ -354,6 +250,14 @@ abstract final class ThemePaletteOverrides {
       (_overrides[themeId] ??= {})[slot] = color;
     }
     _notify();
+  }
+
+  static Future<void> setSlotColor(
+    String themeId,
+    String slot,
+    ui.Color? color,
+  ) async {
+    previewSlotColor(themeId, slot, color);
     await _persistKey(overridesKey, _serializeOverrides());
   }
 
@@ -363,214 +267,21 @@ abstract final class ThemePaletteOverrides {
     await _persistKey(overridesKey, _serializeOverrides());
   }
 
-  /// Creates a brand-new standalone theme cloned from [baseThemeId] (baking in
-  /// [baseThemeId]'s current color tweaks when [copyBaseOverrides] is true),
-  /// saves it under `<dataDir>/themes/`, and selects it immediately.
-  static Future<String> createCustomTheme({
-    required String label,
-    required bool dark,
-    required String baseThemeId,
-    bool copyBaseOverrides = true,
-  }) async {
-    final trimmed = label.trim().isEmpty
-        ? (dark ? 'Custom Dark' : 'Custom Light')
-        : label.trim();
-    final service = WorkbenchThemeService.instance;
-    final existingIds = {
-      for (final t in service.colorThemes) t.id,
-      ..._customRecords.keys,
-    };
-    var id = trimmed;
-    var suffix = 2;
-    while (existingIds.contains(id)) {
-      id = '$trimmed ($suffix)';
-      suffix++;
-    }
-    final displayLabel = id;
-    final rawMap = await service.readStandaloneThemeMap(
-      baseThemeId,
-      dark: dark,
-    );
-    rawMap['name'] = displayLabel;
-    rawMap['type'] = dark ? 'dark' : 'light';
-    final colorsMap = <String, Object?>{
-      if (rawMap['colors'] case final Map m)
-        for (final e in m.entries) '${e.key}': e.value,
-    };
-    final bakedSlots = copyBaseOverrides
-        ? Map<String, ui.Color>.of(_overrides[baseThemeId] ?? const {})
-        : <String, ui.Color>{};
-    if (bakedSlots.isNotEmpty) {
-      applySlotsToColorMap(colorsMap, bakedSlots, dark: dark);
-    }
-    rawMap['colors'] = colorsMap;
-
-    final slug =
-        'custom-${DateTime.now().millisecondsSinceEpoch}-'
-        '${id.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]+'), '-').replaceAll(RegExp(r'^-+|-+$'), '')}';
-    final fileName = '${slug.isEmpty ? 'theme' : slug}-color-theme.json';
-    final dataDir = _dataDir;
-    if (dataDir != null && dataDir.isNotEmpty) {
-      final themesDir = Directory(p.join(dataDir, 'themes'));
-      await themesDir.create(recursive: true);
-      final file = File(p.join(themesDir.path, fileName));
-      await file.writeAsString(
-        const JsonEncoder.withIndent('  ').convert(rawMap),
-      );
-    }
-
-    final record = CustomThemeRecord(
-      id: id,
-      label: displayLabel,
-      uiTheme: dark ? 'vs-dark' : 'vs',
-      path: fileName,
-      baseTheme: baseThemeId,
-    );
-    _customRecords[id] = record;
-    await _persistKey(customThemesKey, _serializeCustomRecords());
-    await service.syncUserThemes(
-      records: _customRecords.values.toList(growable: false),
-      deletedIds: Set<String>.of(_deletedThemes),
-      dataDir: dataDir,
-      preloadedJson: dataDir == null || dataDir.isEmpty
-          ? {fileName: rawMap}
-          : null,
-    );
+  static Future<void> moveOverrides(String fromId, String toId) async {
+    final moved = _overrides.remove(fromId);
+    if (moved == null) return;
+    _overrides[toId] = moved;
     _notify();
-    await service.setColorTheme(id);
-    return id;
-  }
-
-  /// Renames an existing user-created custom theme.
-  static Future<String> renameCustomTheme(
-    String themeId,
-    String newLabel,
-  ) async {
-    final record = _customRecords[themeId];
-    final trimmed = newLabel.trim();
-    if (record == null || trimmed.isEmpty || trimmed == record.label) {
-      return themeId;
-    }
-    final service = WorkbenchThemeService.instance;
-    final existingIds = {
-      for (final t in service.colorThemes)
-        if (t.id != themeId) t.id,
-      for (final k in _customRecords.keys)
-        if (k != themeId) k,
-    };
-    var nextId = trimmed;
-    var suffix = 2;
-    while (existingIds.contains(nextId)) {
-      nextId = '$trimmed ($suffix)';
-      suffix++;
-    }
-    final updated = CustomThemeRecord(
-      id: nextId,
-      label: nextId,
-      uiTheme: record.uiTheme,
-      path: record.path,
-      baseTheme: record.baseTheme,
-    );
-    _customRecords.remove(themeId);
-    _customRecords[nextId] = updated;
-    if (_overrides.remove(themeId) case final moved?) {
-      _overrides[nextId] = moved;
-      await _persistKey(overridesKey, _serializeOverrides());
-    }
-    final dataDir = _dataDir;
-    if (dataDir != null && dataDir.isNotEmpty) {
-      final file = File(p.join(dataDir, 'themes', record.path));
-      if (await file.exists()) {
-        try {
-          final parsed = vs_json.parse(await file.readAsString());
-          if (parsed is Map) {
-            final map = Map<String, Object?>.from(parsed);
-            map['name'] = nextId;
-            await file.writeAsString(
-              const JsonEncoder.withIndent('  ').convert(map),
-            );
-          }
-        } catch (error) {
-          debugPrint('Custom theme rename file update skipped: $error');
-        }
-      }
-    }
-    await _persistKey(customThemesKey, _serializeCustomRecords());
-    final wasActive =
-        service.colorThemeId == themeId || service.colorThemeSetting == themeId;
-    await service.syncUserThemes(
-      records: _customRecords.values.toList(growable: false),
-      deletedIds: Set<String>.of(_deletedThemes),
-      dataDir: dataDir,
-    );
-    _notify();
-    if (wasActive) {
-      await service.setColorTheme(nextId);
-    }
-    return nextId;
-  }
-
-  /// Deletes a custom theme (removing its JSON file) or hides a built-in theme.
-  static Future<void> deleteTheme(
-    String themeId, {
-    required bool dark,
-  }) async {
-    if (themeId == ThemeSettingDefaults.colorThemeLight ||
-        themeId == ThemeSettingDefaults.colorThemeDark) {
-      return;
-    }
-    final service = WorkbenchThemeService.instance;
-    final wasActive =
-        service.colorThemeId == themeId || service.colorThemeSetting == themeId;
-    final custom = _customRecords.remove(themeId);
-    _overrides.remove(themeId);
-    if (custom != null) {
-      final dataDir = _dataDir;
-      if (dataDir != null && dataDir.isNotEmpty) {
-        final file = File(p.join(dataDir, 'themes', custom.path));
-        if (await file.exists()) {
-          try {
-            await file.delete();
-          } catch (error) {
-            debugPrint('Custom theme delete failed: $error');
-          }
-        }
-      }
-      await _persistKey(customThemesKey, _serializeCustomRecords());
-    } else {
-      _deletedThemes.add(themeId);
-      await _persistKey(deletedThemesKey, _serializeDeleted());
-    }
     await _persistKey(overridesKey, _serializeOverrides());
-    await service.syncUserThemes(
-      records: _customRecords.values.toList(growable: false),
-      deletedIds: Set<String>.of(_deletedThemes),
-      dataDir: _dataDir,
-    );
-    _notify();
-    if (wasActive) {
-      await service.setColorTheme(
-        dark
-            ? ThemeSettingDefaults.colorThemeDark
-            : ThemeSettingDefaults.colorThemeLight,
-      );
-    }
   }
 
-  /// Restores one or all previously deleted built-in themes.
-  static Future<void> restoreDeletedThemes([String? specificId]) async {
-    final changed = specificId == null
-        ? _deletedThemes.isNotEmpty
-        : _deletedThemes.remove(specificId);
-    if (!changed) return;
-    if (specificId == null) _deletedThemes.clear();
-    await _persistKey(deletedThemesKey, _serializeDeleted());
-    await WorkbenchThemeService.instance.syncUserThemes(
-      records: _customRecords.values.toList(growable: false),
-      deletedIds: Set<String>.of(_deletedThemes),
-      dataDir: _dataDir,
-    );
-    _notify();
+  @visibleForTesting
+  static void resetForTesting() {
+    _overrides.clear();
+    _writer = null;
+    _dataDir = null;
+    _syncingFromSettings = false;
+    _revision.value++;
   }
 
   static String toHex(ui.Color color) {
@@ -872,11 +583,9 @@ abstract final class ThemePaletteOverrides {
 /// A color theme's colors as widgets read them: what the theme sets, else
 /// the color registry's default for its type (`IColorTheme.getColor`).
 class WorkbenchColors {
-  WorkbenchColors(this.theme, {String? themeId})
-    : themeId = themeId ?? theme.settingsId;
+  WorkbenchColors(this.theme);
 
   final ColorThemeData theme;
-  final String themeId;
   final Map<String, ui.Color?> _colors = {};
 
   ColorScheme get type => theme.type;
@@ -889,7 +598,7 @@ class WorkbenchColors {
     if (!highContrast) {
       final overridden = ThemePaletteOverrides.resolveOverride(
         id,
-        themeId: themeId,
+        themeId: theme.settingsId,
         dark: dark,
       );
       if (overridden != null) return overridden;
@@ -967,8 +676,8 @@ class WorkbenchThemeService extends ChangeNotifier
       (_preview == null && _automatic);
   String get _resolvedSetting => _followsSystem
       ? (_brightness == ui.Brightness.light
-            ? ThemeSettingDefaults.colorThemeLight
-            : ThemeSettingDefaults.colorThemeDark)
+            ? _preferredLightThemeId
+            : _preferredDarkThemeId)
       : _preview ?? _setting;
 
   /// Shows a change of theme to [colors]: [apply] once, unless another
@@ -990,12 +699,7 @@ class WorkbenchThemeService extends ChangeNotifier
                 ? _setting
                 : _current.settingsId));
 
-  WorkbenchColors get colors => _colors ??= WorkbenchColors(
-    _current,
-    themeId: _current.settingsId.startsWith('__')
-        ? _resolvedSetting
-        : _current.settingsId,
-  );
+  WorkbenchColors get colors => _colors ??= WorkbenchColors(_current);
 
   /// Clears the cached [WorkbenchColors] and notifies listeners when
   /// [ThemePaletteOverrides] change.
@@ -1004,20 +708,13 @@ class WorkbenchThemeService extends ChangeNotifier
     notifyListeners();
   }
 
-  // --- The bundled & user themes ------------------------------------------
+  // --- The bundled themes -------------------------------------------------
 
   TextMateManifest? _manifest;
   final Map<String, ColorThemeData> _themes = {};
-  final Map<String, ColorThemeData> _userThemes = {};
-  final Map<String, String> _inMemoryUserThemes = {};
-  final Set<String> _deletedThemes = {};
-  final Set<String> _preloadingIds = {};
 
   Future<String> _read(String path) async {
-    if (_inMemoryUserThemes[path] case final memoryText?) {
-      return memoryText;
-    }
-    // An extension's or user custom theme: its file on disk.
+    // An extension's theme: its file on disk.
     if (p.isAbsolute(path)) {
       return decodeTextMateResource(await File(path).readAsBytes());
     }
@@ -1029,214 +726,6 @@ class WorkbenchThemeService extends ChangeNotifier
 
   Future<TextMateManifest> _loadManifest() async =>
       _manifest ??= await TextMateManifest.load(_read);
-
-  /// Synchronizes user-created custom themes (`<dataDir>/themes/`) and
-  /// hidden built-in themes.
-  Future<void> syncUserThemes({
-    required List<CustomThemeRecord> records,
-    required Set<String> deletedIds,
-    required String? dataDir,
-    Map<String, Map<String, Object?>>? preloadedJson,
-  }) => _queue(() async {
-    _deletedThemes
-      ..clear()
-      ..addAll(deletedIds);
-    final next = <String, ColorThemeData>{};
-    for (final record in records) {
-      final point = IThemeExtensionPoint(
-        id: record.id,
-        label: record.label,
-        path: record.path,
-        uiTheme: record.uiTheme,
-      );
-      final String location;
-      if (dataDir != null && dataDir.isNotEmpty) {
-        location = p
-            .normalize(p.join(dataDir, 'themes', record.path))
-            .replaceAll(r'\', '/');
-      } else {
-        location = '__memory__/${record.path}';
-        if (preloadedJson?[record.path] case final map?) {
-          _inMemoryUserThemes[location] = jsonEncode(map);
-        }
-      }
-      next[record.id] = ColorThemeData.fromExtensionTheme(
-        point,
-        location,
-        extensionId: 'user.custom-themes',
-      );
-    }
-    _userThemes
-      ..clear()
-      ..addAll(next);
-    await _loadCurrent(_request);
-    notifyListeners();
-  });
-
-  /// Returns a standalone VS Code theme JSON map for [baseThemeId] with any
-  /// relative `"include"` chains recursively flattened.
-  Future<Map<String, Object?>> readStandaloneThemeMap(
-    String baseThemeId, {
-    required bool dark,
-  }) async {
-    final manifest = await _loadManifest();
-    String? location = manifest.themeById(baseThemeId)?.assetPath;
-    location ??= _userThemes[baseThemeId]?.location;
-    location ??= _extensionThemes[baseThemeId]?.location;
-    location ??= manifest
-        .themeById(
-          dark
-              ? ThemeSettingDefaults.colorThemeDark
-              : ThemeSettingDefaults.colorThemeLight,
-        )
-        ?.assetPath;
-    if (location == null) {
-      return <String, Object?>{
-        'name': baseThemeId,
-        'type': dark ? 'dark' : 'light',
-        'colors': <String, Object?>{},
-        'tokenColors': <Object?>[],
-      };
-    }
-    return _loadMergedThemeJson(location);
-  }
-
-  Future<Map<String, Object?>> _loadMergedThemeJson(
-    String location, [
-    int depth = 0,
-  ]) async {
-    if (depth > 8) return <String, Object?>{};
-    String text;
-    try {
-      text = await _read(location);
-    } catch (_) {
-      return <String, Object?>{};
-    }
-    final decoded = vs_json.parse(text);
-    if (decoded is! Map) return <String, Object?>{};
-    final current = <String, Object?>{
-      for (final e in decoded.entries) '${e.key}': e.value,
-    };
-    final include = current.remove('include');
-    if (include is! String || include.isEmpty) return current;
-    final String parentPath;
-    if (p.isAbsolute(location)) {
-      parentPath = p
-          .normalize(p.join(p.dirname(location), include))
-          .replaceAll(r'\', '/');
-    } else {
-      final dir = p.posix.dirname(location.replaceAll(r'\', '/'));
-      parentPath = p.posix.normalize('$dir/$include');
-    }
-    final base = await _loadMergedThemeJson(parentPath, depth + 1);
-    final mergedColors = <String, Object?>{
-      if (base['colors'] case final Map m)
-        for (final e in m.entries) '${e.key}': e.value,
-      if (current['colors'] case final Map m)
-        for (final e in m.entries) '${e.key}': e.value,
-    };
-    final mergedTokens = <Object?>[
-      if (base['tokenColors'] case final List l) ...l,
-      if (current['tokenColors'] case final List l) ...l,
-    ];
-    final mergedSemantic = <String, Object?>{
-      if (base['semanticTokenColors'] case final Map m)
-        for (final e in m.entries) '${e.key}': e.value,
-      if (current['semanticTokenColors'] case final Map m)
-        for (final e in m.entries) '${e.key}': e.value,
-    };
-    return <String, Object?>{
-      ...base,
-      ...current,
-      if (mergedColors.isNotEmpty) 'colors': mergedColors,
-      if (mergedTokens.isNotEmpty) 'tokenColors': mergedTokens,
-      if (mergedSemantic.isNotEmpty) 'semanticTokenColors': mergedSemantic,
-    };
-  }
-
-  /// Factory (un-overridden) colors of the 6 customizable slots for [themeId].
-  /// Triggers an asynchronous load if [themeId] is not yet loaded in memory.
-  Map<String, ui.Color> baseSlotColors(
-    String themeId, {
-    required bool dark,
-  }) {
-    final data =
-        _themes[themeId] ?? _userThemes[themeId] ?? _extensionThemes[themeId];
-    if (data == null || !data.isLoaded) {
-      if (!_preloadingIds.contains(themeId)) {
-        _preloadingIds.add(themeId);
-        unawaited(
-          _loadTheme(themeId)
-              .then((loaded) {
-                if (loaded != null) notifyListeners();
-              })
-              .whenComplete(() => _preloadingIds.remove(themeId)),
-        );
-      }
-      return {
-        ThemePaletteOverrides.slotBackground: dark
-            ? ThemePaletteOverrides.defaultDarkBackground
-            : ThemePaletteOverrides.defaultLightBackground,
-        ThemePaletteOverrides.slotSidebar: dark
-            ? ThemePaletteOverrides.defaultDarkSidebar
-            : ThemePaletteOverrides.defaultLightSidebar,
-        ThemePaletteOverrides.slotCard: dark
-            ? ThemePaletteOverrides.defaultDarkCard
-            : ThemePaletteOverrides.defaultLightCard,
-        ThemePaletteOverrides.slotForeground: dark
-            ? ThemePaletteOverrides.defaultDarkForeground
-            : ThemePaletteOverrides.defaultLightForeground,
-        ThemePaletteOverrides.slotAccent: dark
-            ? ThemePaletteOverrides.defaultDarkAccent
-            : ThemePaletteOverrides.defaultLightAccent,
-        ThemePaletteOverrides.slotInlineCode: dark
-            ? ThemePaletteOverrides.defaultDarkInlineCode
-            : ThemePaletteOverrides.defaultLightInlineCode,
-      };
-    }
-
-    final raw = WorkbenchColors(data, themeId: '__unoverridden__');
-    ui.Color opaqueOver(ui.Color? c, ui.Color under) {
-      if (c == null || c.a == 0) return under;
-      return c.a < 1.0 ? ui.Color.alphaBlend(c, under) : c;
-    }
-
-    final bg =
-        raw.get('editor.background') ??
-        (dark
-            ? ThemePaletteOverrides.defaultDarkBackground
-            : ThemePaletteOverrides.defaultLightBackground);
-    final sb = opaqueOver(raw.get('sideBar.background'), bg);
-    final card = opaqueOver(
-      raw.get('agentsChatInput.background') ??
-          raw.get('chat.requestBubbleBackground') ??
-          raw.get('list.activeSelectionBackground'),
-      bg,
-    );
-    final fg =
-        raw.get('editor.foreground') ??
-        raw.get('foreground') ??
-        (dark
-            ? ThemePaletteOverrides.defaultDarkForeground
-            : ThemePaletteOverrides.defaultLightForeground);
-    final accent =
-        raw.get('button.background') ??
-        raw.get('textLink.foreground') ??
-        raw.get('focusBorder') ??
-        (dark
-            ? ThemePaletteOverrides.defaultDarkAccent
-            : ThemePaletteOverrides.defaultLightAccent);
-    final inlineCode = raw.get('textPreformat.foreground') ?? fg;
-
-    return {
-      ThemePaletteOverrides.slotBackground: bg,
-      ThemePaletteOverrides.slotSidebar: sb,
-      ThemePaletteOverrides.slotCard: card,
-      ThemePaletteOverrides.slotForeground: fg,
-      ThemePaletteOverrides.slotAccent: accent,
-      ThemePaletteOverrides.slotInlineCode: inlineCode,
-    };
-  }
 
   /// The installed themes (`getColorThemes`), by settings id, once
   /// [initialize] has read them.
@@ -1250,7 +739,7 @@ class WorkbenchThemeService extends ChangeNotifier
           label: theme.label,
           type: _themeData(theme).type,
         ),
-    for (final theme in _userThemes.values)
+    for (final theme in _customThemes.values)
       IdeColorThemeEntry(
         id: theme.settingsId,
         label: theme.label,
@@ -1267,6 +756,363 @@ class WorkbenchThemeService extends ChangeNotifier
         ),
   ];
 
+  // --- Custom & deleted themes (`workbench.customThemes`, `workbench.deletedThemes`) ---
+
+  final List<Map<String, String>> _customThemeRecords = [];
+  final Map<String, ColorThemeData> _customThemes = {};
+  final Set<String> _deletedThemes = {};
+
+  bool isCustomTheme(String id) => _customThemes.containsKey(id);
+  bool get hasDeletedThemes => _deletedThemes.isNotEmpty;
+
+  String get _preferredLightThemeId {
+    if (!_deletedThemes.contains(ThemeSettingDefaults.colorThemeLight)) {
+      return ThemeSettingDefaults.colorThemeLight;
+    }
+    for (final entry in colorThemes) {
+      if (entry.type == ColorScheme.light) return entry.id;
+    }
+    return ThemeSettingDefaults.colorThemeLight;
+  }
+
+  String get _preferredDarkThemeId {
+    if (!_deletedThemes.contains(ThemeSettingDefaults.colorThemeDark)) {
+      return ThemeSettingDefaults.colorThemeDark;
+    }
+    for (final entry in colorThemes) {
+      if (entry.type == ColorScheme.dark) return entry.id;
+    }
+    return ThemeSettingDefaults.colorThemeDark;
+  }
+
+  void syncUserThemes({
+    required Object? customRaw,
+    required Object? deletedRaw,
+    required String dataDir,
+  }) {
+    _deletedThemes.clear();
+    if (deletedRaw is List) {
+      for (final item in deletedRaw) {
+        if (item is String && item.isNotEmpty) {
+          _deletedThemes.add(item);
+        }
+      }
+    }
+
+    _customThemeRecords.clear();
+    final nextCustom = <String, ColorThemeData>{};
+    if (customRaw is List) {
+      for (final item in customRaw) {
+        if (item is! Map) continue;
+        final id = item['id'];
+        final label = item['label'] ?? id;
+        final uiTheme = item['uiTheme'];
+        final file = item['file'];
+        if (id is! String || id.isEmpty || file is! String || file.isEmpty) {
+          continue;
+        }
+        final resolvedLabel = label is String && label.isNotEmpty ? label : id;
+        final resolvedUiTheme = uiTheme is String && uiTheme.isNotEmpty
+            ? uiTheme
+            : 'vs-dark';
+        _customThemeRecords.add({
+          'id': id,
+          'label': resolvedLabel,
+          'uiTheme': resolvedUiTheme,
+          'file': file,
+        });
+        final fullPath = p
+            .normalize(p.join(dataDir, 'themes', file))
+            .replaceAll(r'\', '/');
+        final kept = _customThemes[id];
+        if (kept != null &&
+            kept.location == fullPath &&
+            kept.label == resolvedLabel) {
+          nextCustom[id] = kept;
+        } else {
+          nextCustom[id] = ColorThemeData.fromExtensionTheme(
+            IThemeExtensionPoint(
+              id: id,
+              label: resolvedLabel,
+              path: file,
+              uiTheme: resolvedUiTheme,
+            ),
+            fullPath,
+            extensionId: 'user.custom',
+          );
+        }
+      }
+    }
+    _customThemes
+      ..clear()
+      ..addAll(nextCustom);
+
+    if (_manifest != null) {
+      unawaited(_queue(() => _loadCurrent(_request)));
+    }
+  }
+
+  /// Loads [id] (bundled, custom, or extension) and returns its underlying
+  /// [ColorThemeData] (before [ThemePaletteOverrides]).
+  Future<ColorThemeData?> loadThemeData(String id) async {
+    if (id == _current.settingsId && _current.isLoaded) {
+      return _current;
+    }
+    return _loadTheme(id);
+  }
+
+  /// Loads [id] (bundled, custom, or extension) and returns its resolved
+  /// [WorkbenchColors] including any [ThemePaletteOverrides].
+  Future<WorkbenchColors?> previewThemeColors(String id) async {
+    final data = await loadThemeData(id);
+    if (data == null) return null;
+    return WorkbenchColors(data);
+  }
+
+  /// Creates a standalone custom theme JSON file on disk, registers it in
+  /// `workbench.customThemes`, activates it, and returns its unique ID.
+  Future<String> createCustomTheme({
+    required String name,
+    required bool dark,
+    String? baseId,
+    Map<String, ui.Color>? initialSlots,
+  }) async {
+    await _loadManifest();
+    var trimmed = name.trim();
+    if (trimmed.isEmpty) {
+      trimmed = dark ? 'Custom Dark' : 'Custom Light';
+    }
+    final existingIds = {
+      for (final t in colorThemes) t.id.toLowerCase(),
+      for (final r in _customThemeRecords) r['id']!.toLowerCase(),
+    };
+    var candidate = trimmed;
+    var suffix = 2;
+    while (existingIds.contains(candidate.toLowerCase())) {
+      candidate = '$trimmed ($suffix)';
+      suffix++;
+    }
+    if (_deletedThemes.remove(candidate)) {
+      await ThemePaletteOverrides._persistKey(
+        ThemePaletteOverrides.deletedThemesKey,
+        _deletedThemes.isEmpty ? null : (_deletedThemes.toList()..sort()),
+      );
+    }
+
+    final resolvedBaseId =
+        baseId ?? (dark ? _preferredDarkThemeId : _preferredLightThemeId);
+    final baseData =
+        await _loadTheme(resolvedBaseId) ??
+        await _loadTheme(
+          dark
+              ? ThemeSettingDefaults.colorThemeDark
+              : ThemeSettingDefaults.colorThemeLight,
+        );
+
+    final mergedColors = <String, String>{
+      if (baseData != null) ...baseData.colors,
+    };
+    final mergedSlots = <String, ui.Color>{
+      ...ThemePaletteOverrides.overridesFor(resolvedBaseId),
+      ...?initialSlots,
+    };
+    if (mergedSlots.isNotEmpty) {
+      ThemePaletteOverrides.applySlotsToColorMap(
+        mergedColors,
+        mergedSlots,
+        dark: dark,
+      );
+    }
+
+    final slugBase = candidate
+        .toLowerCase()
+        .replaceAll(RegExp(r'[^a-z0-9\u4e00-\u9fa5_-]+'), '-')
+        .replaceAll(RegExp(r'^-+|-+$'), '');
+    final fileName =
+        '${slugBase.isEmpty ? 'theme' : slugBase}-${DateTime.now().millisecondsSinceEpoch}.json';
+    final rootDir =
+        ThemePaletteOverrides._dataDir ?? Directory.systemTemp.path;
+    final themesDir = Directory(p.join(rootDir, 'themes'));
+    await themesDir.create(recursive: true);
+    final fullPath = p
+        .normalize(p.join(themesDir.path, fileName))
+        .replaceAll(r'\', '/');
+
+    final jsonContent = const JsonEncoder.withIndent('  ').convert({
+      r'$schema': 'vscode://schemas/color-theme',
+      'name': candidate,
+      'type': dark ? 'dark' : 'light',
+      if (baseData != null)
+        'semanticHighlighting': baseData.semanticHighlighting,
+      'colors': mergedColors,
+      'tokenColors': baseData?.themeTokenColors ?? const <Object?>[],
+    });
+    await File(fullPath).writeAsString('$jsonContent\n');
+
+    final uiTheme = dark ? 'vs-dark' : 'vs';
+    _customThemeRecords.add({
+      'id': candidate,
+      'label': candidate,
+      'uiTheme': uiTheme,
+      'file': fileName,
+    });
+    final themeData = ColorThemeData.fromExtensionTheme(
+      IThemeExtensionPoint(
+        id: candidate,
+        label: candidate,
+        path: fileName,
+        uiTheme: uiTheme,
+      ),
+      fullPath,
+      extensionId: 'user.custom',
+    );
+    await themeData.ensureLoaded(_read);
+    _customThemes[candidate] = themeData;
+
+    await ThemePaletteOverrides._persistKey(
+      ThemePaletteOverrides.customThemesKey,
+      _customThemeRecords.map((r) => Map<String, Object?>.of(r)).toList(),
+    );
+    notifyListeners();
+    await setColorTheme(candidate);
+    return candidate;
+  }
+
+  /// Renames a user-created custom theme and updates settings & active state.
+  Future<String> renameCustomTheme(String id, String newName) async {
+    final index = _customThemeRecords.indexWhere((r) => r['id'] == id);
+    if (index < 0) return id;
+    var trimmed = newName.trim();
+    if (trimmed.isEmpty || trimmed == id) return id;
+    final existingIds = {
+      for (final t in colorThemes)
+        if (t.id != id) t.id.toLowerCase(),
+      for (final r in _customThemeRecords)
+        if (r['id'] != id) r['id']!.toLowerCase(),
+    };
+    var candidate = trimmed;
+    var suffix = 2;
+    while (existingIds.contains(candidate.toLowerCase())) {
+      candidate = '$trimmed ($suffix)';
+      suffix++;
+    }
+
+    final record = Map<String, String>.of(_customThemeRecords[index]);
+    record['id'] = candidate;
+    record['label'] = candidate;
+    _customThemeRecords[index] = record;
+
+    final oldData = _customThemes.remove(id);
+    final rootDir =
+        ThemePaletteOverrides._dataDir ?? Directory.systemTemp.path;
+    final fullPath =
+        oldData?.location ??
+        p
+            .normalize(p.join(rootDir, 'themes', record['file']!))
+            .replaceAll(r'\', '/');
+
+    try {
+      final file = File(fullPath);
+      if (await file.exists()) {
+        final decoded = jsonDecode(await file.readAsString());
+        if (decoded is Map<String, Object?>) {
+          decoded['name'] = candidate;
+          await file.writeAsString(
+            '${const JsonEncoder.withIndent('  ').convert(decoded)}\n',
+          );
+        }
+      }
+    } catch (error) {
+      debugPrint('Custom theme file rename update skipped: $error');
+    }
+
+    final newData = ColorThemeData.fromExtensionTheme(
+      IThemeExtensionPoint(
+        id: candidate,
+        label: candidate,
+        path: record['file']!,
+        uiTheme: record['uiTheme'],
+      ),
+      fullPath,
+      extensionId: 'user.custom',
+    );
+    await newData.ensureLoaded(_read);
+    _customThemes[candidate] = newData;
+
+    await ThemePaletteOverrides.moveOverrides(id, candidate);
+    await ThemePaletteOverrides._persistKey(
+      ThemePaletteOverrides.customThemesKey,
+      _customThemeRecords.map((r) => Map<String, Object?>.of(r)).toList(),
+    );
+    if (_setting == id || _current.settingsId == id) {
+      await setColorTheme(candidate);
+    } else {
+      notifyListeners();
+    }
+    return candidate;
+  }
+
+  /// Deletes a custom theme (removing its JSON file) or hides a built-in
+  /// theme in `workbench.deletedThemes`. Always preserves at least one theme
+  /// per color scheme (Light / Dark).
+  Future<bool> deleteTheme(String id) async {
+    await _loadManifest();
+    final target = colorThemes.where((t) => t.id == id).firstOrNull;
+    if (target == null) return false;
+    final sameSchemeRemaining = colorThemes
+        .where((t) => isDark(t.type) == isDark(target.type) && t.id != id)
+        .toList();
+    if (sameSchemeRemaining.isEmpty) return false;
+
+    final wasCustom = _customThemes.containsKey(id);
+    if (wasCustom) {
+      final removed = _customThemes.remove(id);
+      _customThemeRecords.removeWhere((r) => r['id'] == id);
+      await ThemePaletteOverrides._persistKey(
+        ThemePaletteOverrides.customThemesKey,
+        _customThemeRecords.isEmpty
+            ? null
+            : _customThemeRecords
+                  .map((r) => Map<String, Object?>.of(r))
+                  .toList(),
+      );
+      if (removed?.location case final loc?) {
+        try {
+          final f = File(loc);
+          if (await f.exists()) await f.delete();
+        } catch (error) {
+          debugPrint('Custom theme file delete skipped: $error');
+        }
+      }
+    } else {
+      _deletedThemes.add(id);
+      await ThemePaletteOverrides._persistKey(
+        ThemePaletteOverrides.deletedThemesKey,
+        _deletedThemes.toList()..sort(),
+      );
+    }
+
+    await ThemePaletteOverrides.resetTheme(id);
+
+    if (_setting == id || _current.settingsId == id || _preview == id) {
+      await setColorTheme(sameSchemeRemaining.first.id);
+    } else {
+      notifyListeners();
+    }
+    return true;
+  }
+
+  /// Restores any built-in themes previously hidden via [deleteTheme].
+  Future<void> restoreDeletedThemes() async {
+    if (_deletedThemes.isEmpty) return;
+    _deletedThemes.clear();
+    await ThemePaletteOverrides._persistKey(
+      ThemePaletteOverrides.deletedThemesKey,
+      null,
+    );
+    notifyListeners();
+  }
+
   // --- Extensions' colors (`contributes.colors`) ---------------------------
 
   /// The color ids the running extensions registered.
@@ -1275,6 +1121,14 @@ class WorkbenchThemeService extends ChangeNotifier
 
   static final _colorIdPattern = RegExp(r'^\w+[.\w+]*$');
 
+  /// The running extensions' `contributes.colors` (colorExtensionPoint.ts
+  /// `ColorExtensionPoint`): each `{id, description, defaults}` registered
+  /// in the color registry with its defaults, a '#' string a color and
+  /// anything else the color it names; those no longer contributed are
+  /// deregistered. [colors] are each extension's entries, in order.
+  ///
+  /// Deviation: an invalid entry skips the rest of its extension's
+  /// (upstream it ends the whole delta's handling).
   void setExtensionColors(Iterable<List<Map<String, Object?>>> colors) {
     final key = jsonEncode(colors.toList());
     if (key == _extensionColorsKey) return;
@@ -1284,6 +1138,7 @@ class WorkbenchThemeService extends ChangeNotifier
       registry.deregisterColor(id);
     }
     _extensionColorIds.clear();
+    // `parseColorValue`: an empty value is an error, and red.
     ColorValue? value(String s) => s.isEmpty
         ? const ColorLiteral('#ff0000')
         : s.startsWith('#')
@@ -1317,6 +1172,7 @@ class WorkbenchThemeService extends ChangeNotifier
         _extensionColorIds.add(id);
       }
     }
+    // Colors are read again, through the registry's new defaults.
     _current.clearCaches();
     _colors = null;
     notifyListeners();
@@ -1324,10 +1180,21 @@ class WorkbenchThemeService extends ChangeNotifier
 
   // --- Extensions' themes (`contributes.themes`) ---------------------------
 
+  /// The installed extensions' themes, by settings id.
   final Map<String, ColorThemeData> _extensionThemes = {};
+
+  /// Whether the extensions' themes were told once: until then, a setting
+  /// that is not a bundled theme may be one of theirs, and waits (where
+  /// [waitsForExtensionThemes]).
   bool _extensionThemesKnown = false;
+
+  /// Whether extensions will tell their themes ([setExtensionThemes]):
+  /// the app with extensions.
   bool waitsForExtensionThemes = false;
 
+  /// The installed extensions' `contributes.themes`: [themes] are each
+  /// extension's id, its folder and its contribution (`id`, `label`,
+  /// `uiTheme`, `path`). The setting's theme applies once it is among them.
   Future<void> setExtensionThemes(
     Iterable<
       ({String extensionId, String location, Map<String, Object?> theme})
@@ -1348,6 +1215,7 @@ class WorkbenchThemeService extends ChangeNotifier
         uiTheme: theme['uiTheme'] as String?,
       );
       final file = p.normalize(p.join(location, path)).replaceAll(r'\', '/');
+      // Kept when unchanged: a loaded theme stays loaded.
       final kept = _extensionThemes[id];
       next[id] = kept != null && kept.location == file
           ? kept
@@ -1361,13 +1229,15 @@ class WorkbenchThemeService extends ChangeNotifier
       ..clear()
       ..addAll(next);
     _extensionThemesKnown = true;
+    // The choice's theme again: an extension's updated or gone too; one
+    // loaded is read once.
     await _loadCurrent(_request);
     notifyListeners();
   });
 
   String get _defaultSetting => _committedType == ColorScheme.light
-      ? ThemeSettingDefaults.colorThemeLight
-      : ThemeSettingDefaults.colorThemeDark;
+      ? _preferredLightThemeId
+      : _preferredDarkThemeId;
 
   ColorThemeData _themeData(TextMateThemeContribution theme) =>
       _themes[theme.id] ??= ColorThemeData.fromExtensionTheme(
@@ -1378,6 +1248,8 @@ class WorkbenchThemeService extends ChangeNotifier
 
   // --- Startup ------------------------------------------------------------
 
+  /// The constructor's restore: the kept theme, painted from storage when it
+  /// is still the setting's, until [initialize] loads it.
   void restore({
     String? setting,
     String? data,
@@ -1409,6 +1281,8 @@ class WorkbenchThemeService extends ChangeNotifier
     _apply(theme, silent: true);
   }
 
+  /// Reads the bundled themes and applies the setting's theme, loaded
+  /// (`restoreColorTheme`); the default theme when it is gone.
   Future<void> initialize() {
     final request = _request;
     return _queue(() => _loadCurrent(request));
@@ -1416,18 +1290,13 @@ class WorkbenchThemeService extends ChangeNotifier
 
   Future<ColorThemeData?> _loadTheme(String id) async {
     if (_deletedThemes.contains(id)) return null;
-    final theme = (await _loadManifest()).themeById(id);
-    final data = theme != null
-        ? _themeData(theme)
-        : (_userThemes[id] ?? _extensionThemes[id]);
-    if (data != null) {
-      try {
-        await data.ensureLoaded(_read);
-      } catch (error) {
-        debugPrint('Color theme load failed ($id): $error');
-        return null;
-      }
+    if (_customThemes[id] case final custom?) {
+      await custom.ensureLoaded(_read);
+      return custom;
     }
+    final theme = (await _loadManifest()).themeById(id);
+    final data = theme != null ? _themeData(theme) : _extensionThemes[id];
+    if (data != null) await data.ensureLoaded(_read);
     return data;
   }
 
@@ -1469,10 +1338,12 @@ class WorkbenchThemeService extends ChangeNotifier
         cacheOnly: true,
       );
     } catch (error) {
+      // Shown even so; a choice failing to be kept throws (see [_keep]).
       debugPrint('Color theme cache not kept: $error');
     }
   }
 
+  /// The current theme, loaded; the setting's when none is.
   @override
   Future<ColorThemeData> loadedColorTheme() async {
     if (!_current.isLoaded) await initialize();
@@ -1483,12 +1354,15 @@ class WorkbenchThemeService extends ChangeNotifier
 
   Future<void> _pending = Future.value();
 
+  /// `colorThemeSequencer`: one change at a time, in order.
   Future<T> _queue<T>(Future<T> Function() change) {
     final result = _pending.then((_) => change());
     _pending = result.then((_) {}, onError: (_) {});
     return result;
   }
 
+  /// `setColorTheme(settingsId, preview ? 'preview' : 'auto')`: shows the
+  /// theme; unless [preview], keeps it as the setting and in storage.
   @override
   Future<void> setColorTheme(String settingsId, {bool preview = false}) {
     final request = ++_request;
@@ -1497,6 +1371,8 @@ class WorkbenchThemeService extends ChangeNotifier
     );
   }
 
+  /// Drops the preview: the choice kept shows again, Auto at the system's
+  /// appearance now.
   @override
   Future<void> restoreColorThemePreview() {
     final request = ++_request;
@@ -1504,6 +1380,8 @@ class WorkbenchThemeService extends ChangeNotifier
     return _queue(() => _loadCurrent(request, force: true));
   }
 
+  /// The settings file changed (by hand, say): its theme and Auto shown,
+  /// nothing written back.
   Future<void> applyColorThemeSettings({
     required String setting,
     required bool autoDetectColorScheme,
@@ -1515,17 +1393,21 @@ class WorkbenchThemeService extends ChangeNotifier
     _preview = null;
     return _queue(() async {
       final manifest = await _loadManifest();
+      // The kept theme's type, for a fallback, even as a preview shows.
       if (revision == _preferenceRevision) {
         final theme = manifest.themeById(id);
-        final data = theme != null
-            ? _themeData(theme)
-            : (_userThemes[id] ?? _extensionThemes[id]);
+        final data = _deletedThemes.contains(id)
+            ? null
+            : _customThemes[id] ??
+                  (theme != null ? _themeData(theme) : _extensionThemes[id]);
         if (data != null) _committedType = data.type;
       }
       await _loadCurrent(request, force: true);
     });
   }
 
+  /// The system's appearance changed to [brightness]: shown under Auto
+  /// (through [transition]), noted otherwise.
   Future<void> setPlatformBrightness(ui.Brightness brightness) {
     if (_brightness == brightness) return Future<void>.value();
     _brightness = brightness;
@@ -1541,6 +1423,9 @@ class WorkbenchThemeService extends ChangeNotifier
     });
   }
 
+  /// A theme shown as the system's appearance changed, not as one was
+  /// picked: what [transition] is for. One picked, or previewed (moving
+  /// through the picker), shows at once.
   bool _bySystem = false;
 
   Future<void> _setColorTheme(
@@ -1552,8 +1437,8 @@ class WorkbenchThemeService extends ChangeNotifier
     final automatic = settingsId == IdeColorThemeController.autoId;
     final id = automatic
         ? (_brightness == ui.Brightness.light
-              ? ThemeSettingDefaults.colorThemeLight
-              : ThemeSettingDefaults.colorThemeDark)
+              ? _preferredLightThemeId
+              : _preferredDarkThemeId)
         : settingsId;
     try {
       final data = await _loadTheme(id);
@@ -1641,6 +1526,7 @@ class WorkbenchThemeService extends ChangeNotifier
       data: theme.toStorage(),
       autoDetectColorScheme: automatic,
     );
+    // Kept, whatever previews since; not over settings changed meanwhile.
     if (revision == _preferenceRevision) {
       _setting = store == null
           ? setting
@@ -1673,10 +1559,18 @@ class WorkbenchThemeScope extends StatefulWidget {
     required this.builder,
   });
 
+  /// [WorkbenchThemeService.instance] when null.
   final WorkbenchThemeService? service;
+
+  /// What else restyles everything (the code's font), read as widgets
+  /// build without depending on it.
   final Listenable? restyle;
+
   final WidgetBuilder builder;
 
+  /// Counts the times everything was restyled (a color theme, the code's
+  /// font): what a widget keeping what it built (read from the theme's
+  /// colors without depending on them) builds anew on.
   static int get restyles => _restyles;
   static int _restyles = 0;
 
@@ -1726,6 +1620,7 @@ class _WorkbenchThemeScopeState extends State<WorkbenchThemeScope> {
 
     (context as Element).visitChildren(rebuild);
     setState(() {});
+    // Painters may keep the colors they were made with.
     void repaint(RenderObject object) {
       object.markNeedsPaint();
       object.visitChildren(repaint);

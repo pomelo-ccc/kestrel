@@ -15,9 +15,7 @@ import '../ide/ide_spinning.dart';
 import '../kernel/kernel_types.dart';
 import '../keybindings/chat_keybindings.dart';
 import '../l10n/l10n.dart';
-import '../models/model_providers.dart';
 import '../models/model_welcome.dart';
-import '../models/provider_health.dart';
 import '../remote/remote_location.dart';
 import '../remote/remote_status.dart' show ClaudeInstallBanner, SshHostBanner;
 import '../stash/stash_actions.dart';
@@ -69,8 +67,6 @@ import 'widgets/context_meter.dart';
 import 'widgets/inline_rename_field.dart';
 import 'widgets/pixel_loader.dart';
 import 'widgets/plan_start.dart';
-import 'widgets/session_replay_player.dart';
-import 'widgets/turn_footer.dart' show SessionReplaySetting;
 
 /// Layout, top to bottom:
 /// - history + live turn: a virtual list that yields height;
@@ -1507,20 +1503,12 @@ class _ChatScreenState extends State<ChatScreen>
             },
           )
         : null;
-    final speedBadge = _agentShown == null
-        ? _SpeedAndTokenBadge(
-            session: _session,
-            onJumpToTurn: (index) =>
-                ChatHistoryView.scrollToIndex(_historyKey, index),
-          )
-        : null;
     if (IslandFootTrailing.hosts(context)) {
       return LayoutBuilder(
         builder: (context, constraints) => Row(
           mainAxisSize: MainAxisSize.min,
           children: [
             if (below != null) Flexible(child: below),
-            if (speedBadge != null && constraints.maxWidth >= 520) speedBadge,
             if (meter != null && constraints.maxWidth >= 180) meter,
           ],
         ),
@@ -1532,7 +1520,6 @@ class _ChatScreenState extends State<ChatScreen>
           Expanded(
             child: Align(alignment: Alignment.centerLeft, child: below),
           ),
-          if (speedBadge != null && constraints.maxWidth >= 480) speedBadge,
           if (meter != null && constraints.maxWidth >= 180) meter,
         ],
       ),
@@ -2269,230 +2256,6 @@ class _PanelSlot extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.only(bottom: gap),
       child: panel,
-    );
-  }
-}
-
-/// Live streaming speed (`tok/s`) and today's token dashboard pill shown in
-/// the status bar beside [ContextMeter].
-class _SpeedAndTokenBadge extends StatefulWidget {
-  const _SpeedAndTokenBadge({
-    required this.session,
-    required this.onJumpToTurn,
-  });
-
-  final ChatSession session;
-  final ValueChanged<int> onJumpToTurn;
-
-  @override
-  State<_SpeedAndTokenBadge> createState() => _SpeedAndTokenBadgeState();
-}
-
-class _SpeedAndTokenBadgeState extends State<_SpeedAndTokenBadge> {
-  late SessionSpeedTracker _tracker;
-
-  @override
-  void initState() {
-    super.initState();
-    _tracker = SessionSpeedTracker(widget.session);
-  }
-
-  @override
-  void didUpdateWidget(_SpeedAndTokenBadge oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (!identical(oldWidget.session, widget.session)) {
-      _tracker.dispose();
-      _tracker = SessionSpeedTracker(widget.session);
-    }
-  }
-
-  @override
-  void dispose() {
-    _tracker.dispose();
-    super.dispose();
-  }
-
-  String _formatTokens(int count) {
-    if (count >= 1000000) return '${(count / 1000000).toStringAsFixed(1)}M';
-    if (count >= 1000) return '${(count / 1000).toStringAsFixed(1)}K';
-    return '$count';
-  }
-
-  String _buildTooltip() {
-    final lines = <String>[];
-    final speed = _tracker.tokensPerSec;
-    if (speed > 0) {
-      lines.add('当前/最近生成速度: ${speed.toStringAsFixed(1)} tok/s');
-    }
-    final total =
-        SessionSpeedTracker.todayEstimatedTokens +
-        (widget.session.context?.used ?? 0);
-    lines.add('今日累计上下文与输出: ${_formatTokens(total)} tok');
-    final providers = ModelProviders.current;
-    for (final entry in SessionSpeedTracker.todayProviderTokens.entries) {
-      final name =
-          providers.provider(entry.key)?.name ??
-          (entry.key == 'builtin' ? '内置模型' : entry.key);
-      lines.add('• $name: ${_formatTokens(entry.value)} tok');
-    }
-    for (final provider in providers.enabled) {
-      final ping = ProviderHealthMonitor.instance.pingOf(provider.id);
-      if (ping.shortLabel.isNotEmpty) {
-        lines.add('• ${provider.name} 延迟: ${ping.shortLabel}');
-      }
-    }
-    return lines.join('\n');
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return ListenableBuilder(
-      listenable: Listenable.merge([
-        _tracker,
-        widget.session,
-        ProviderHealthMonitor.instance,
-        ?SessionReplaySetting.changes,
-      ]),
-      builder: (context, _) {
-        final colors = themeColors;
-        final streaming = widget.session.isStreaming;
-        final speed = _tracker.tokensPerSec;
-        final used = widget.session.context?.used ?? 0;
-        final todayTotal = SessionSpeedTracker.todayEstimatedTokens + used;
-        final hasItems =
-            widget.session.itemCount > 0 && SessionReplaySetting.current();
-        final liveStreamingSpeed = streaming && speed > 0;
-        final String? label;
-        if (liveStreamingSpeed) {
-          label = '${speed.toStringAsFixed(1)} tok/s';
-        } else if (speed > 0) {
-          label =
-              '${speed.toStringAsFixed(0)} tok/s · 今日 ${_formatTokens(todayTotal)}';
-        } else if (todayTotal > 0) {
-          label = '今日 ${_formatTokens(todayTotal)}';
-        } else {
-          label = null;
-        }
-        return Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (label case final String labelText) ...[
-              IdeHover(
-                message: _buildTooltip(),
-                child: HoverBuilder(
-                  cursor: SystemMouseCursors.click,
-                  builder: (context, hovered) {
-                    final fg = liveStreamingSpeed
-                        ? AppColors.accent
-                        : (hovered ? AppColors.text : AppColors.textFaint);
-                    return GestureDetector(
-                      onTap: () => unawaited(
-                        ProviderHealthMonitor.instance.pingAll(force: true),
-                      ),
-                      child: AnimatedContainer(
-                        duration: const Duration(milliseconds: 120),
-                        height: 22,
-                        padding: const EdgeInsets.symmetric(horizontal: 6),
-                        alignment: Alignment.center,
-                        decoration: BoxDecoration(
-                          color: hovered
-                              ? colors['toolbar.hoverBackground']
-                              : Colors.transparent,
-                          borderRadius: BorderRadius.circular(5),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              liveStreamingSpeed ? Codicons.zap : Codicons.pulse,
-                              size: 12,
-                              color: fg,
-                            ),
-                            const SizedBox(width: 4),
-                            Text(
-                              labelText,
-                              maxLines: 1,
-                              style: TextStyle(
-                                color: fg,
-                                fontSize: 12,
-                                fontWeight: streaming
-                                    ? FontWeight.w500
-                                    : FontWeight.w400,
-                                fontFeatures: const [
-                                  FontFeature.tabularFigures(),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    );
-                  },
-                ),
-              ),
-              const SizedBox(width: 2),
-            ],
-            if (hasItems) ...[
-              _StatusBarIconButton(
-                icon: Codicons.playCircle,
-                tooltip: '会话时间轴回放',
-                onTap: () => unawaited(
-                  showSessionReplayDialog(
-                    context,
-                    feed: widget.session,
-                    onScrollToIndex: widget.onJumpToTurn,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 2),
-            ],
-          ],
-        );
-      },
-    );
-  }
-}
-
-class _StatusBarIconButton extends StatelessWidget {
-  const _StatusBarIconButton({
-    required this.icon,
-    required this.tooltip,
-    required this.onTap,
-  });
-
-  final IconData icon;
-  final String tooltip;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = themeColors;
-    return IdeHover(
-      message: tooltip,
-      child: HoverBuilder(
-        cursor: SystemMouseCursors.click,
-        builder: (context, hovered) => GestureDetector(
-          onTap: onTap,
-          behavior: HitTestBehavior.opaque,
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 120),
-            width: 22,
-            height: 22,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              color: hovered
-                  ? colors['toolbar.hoverBackground']
-                  : Colors.transparent,
-              borderRadius: BorderRadius.circular(5),
-            ),
-            child: Icon(
-              icon,
-              size: 13,
-              color: hovered ? AppColors.text : AppColors.textFaint,
-            ),
-          ),
-        ),
-      ),
     );
   }
 }

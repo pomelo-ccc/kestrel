@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:bao_editor/monaco/flutter/editor_document_model.dart';
 import 'package:bao_editor/monaco/flutter/editor_surface_controller.dart';
 import 'package:bao_editor/monaco/vs/platform/theme/common/theme.dart';
+import 'package:bao_editor/monaco/vs/workbench/services/themes/common/color_theme_data.dart';
 import 'package:flutter/foundation.dart' show listEquals;
 import 'package:flutter/material.dart' hide ColorScheme;
 
@@ -33,6 +34,7 @@ import '../../theme/workbench_theme.dart'
     show
         ThemePaletteOverrides,
         ThemeSettingDefaults,
+        WorkbenchColors,
         WorkbenchThemeService,
         themeColors;
 import '../user_settings.dart';
@@ -994,12 +996,9 @@ if (add(p, q).x >= 0 && p !== q) {
   }
 }
 
-/// Persistent Light Theme / Dark Theme palette customizer & theme manager:
-/// - Modifies any built-in or custom theme's colors directly in-place
-///   (`workbench.themeOverrides` in `settings.json`), with live preview and
-///   per-slot or whole-theme reset.
-/// - Creates new themes (`+`), renames custom themes, deletes custom or
-///   built-in themes, and restores deleted built-in themes.
+/// Interactive Light Theme / Dark Theme palette studio with per-theme
+/// color customization, live window preview, and Add / Rename / Reset / Delete
+/// theme management.
 class _ThemePaletteSection extends StatefulWidget {
   const _ThemePaletteSection({
     required this.dark,
@@ -1018,103 +1017,314 @@ class _ThemePaletteSection extends StatefulWidget {
 }
 
 class _ThemePaletteSectionState extends State<_ThemePaletteSection> {
-  String? _inspectedId;
+  String? _selectedId;
+  ColorThemeData? _loadedData;
+  String? _loadedDataId;
 
-  String _resolveTargetId() {
-    final entries = widget.entries;
-    final activeId = widget.themes.colorThemeId;
-    if (entries.any((e) => e.id == activeId)) {
-      _inspectedId = activeId;
-      return activeId;
-    }
-    if (_inspectedId != null && entries.any((e) => e.id == _inspectedId)) {
-      return _inspectedId!;
-    }
-    final fallback = widget.dark
-        ? ThemeSettingDefaults.colorThemeDark
-        : 'Antigravity Light';
-    if (entries.any((e) => e.id == fallback)) {
-      return _inspectedId = fallback;
-    }
-    if (entries.isNotEmpty) {
-      return _inspectedId = entries.first.id;
-    }
-    return widget.dark
-        ? ThemeSettingDefaults.colorThemeDark
-        : ThemeSettingDefaults.colorThemeLight;
+  WorkbenchThemeService? get _service => widget.themes is WorkbenchThemeService
+      ? widget.themes as WorkbenchThemeService
+      : null;
+
+  String get _fallbackDefaultId => widget.dark
+      ? ThemeSettingDefaults.colorThemeDark
+      : ThemeSettingDefaults.colorThemeLight;
+
+  @override
+  void initState() {
+    super.initState();
+    _syncSelection(initial: true);
   }
 
-  String _labelFor(String id) {
-    for (final entry in widget.entries) {
-      if (entry.id == id) return entry.label;
+  @override
+  void didUpdateWidget(covariant _ThemePaletteSection oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final activeChanged =
+        oldWidget.themes.colorThemeId != widget.themes.colorThemeId;
+    _syncSelection(forceFollowActive: activeChanged);
+  }
+
+  void _syncSelection({bool initial = false, bool forceFollowActive = false}) {
+    final activeId = widget.themes.colorThemeId;
+    final activeInGroup = widget.entries.any((e) => e.id == activeId);
+    String nextId;
+    if (activeInGroup && (initial || forceFollowActive || _selectedId == null)) {
+      nextId = activeId;
+    } else if (_selectedId != null &&
+        widget.entries.any((e) => e.id == _selectedId)) {
+      nextId = _selectedId!;
+    } else if (activeInGroup) {
+      nextId = activeId;
+    } else if (widget.entries.any((e) => e.id == _fallbackDefaultId)) {
+      nextId = _fallbackDefaultId;
+    } else if (widget.entries.isNotEmpty) {
+      nextId = widget.entries.first.id;
+    } else {
+      nextId = _fallbackDefaultId;
     }
-    return id;
+    _selectedId = nextId;
+    _ensureThemeLoaded(nextId);
+  }
+
+  void _ensureThemeLoaded(String id) {
+    final service = _service;
+    if (service == null) return;
+    if (_loadedDataId == id && _loadedData != null) return;
+    if (service.colorTheme.settingsId == id && service.colorTheme.isLoaded) {
+      _loadedData = service.colorTheme;
+      _loadedDataId = id;
+      return;
+    }
+    unawaited(
+      service.loadThemeData(id).then((data) {
+        if (!mounted || _selectedId != id || data == null) return;
+        setState(() {
+          _loadedData = data;
+          _loadedDataId = id;
+        });
+      }),
+    );
+  }
+
+  Color? _rawThemeColor(String colorKey) {
+    final data = _loadedDataId == _selectedId ? _loadedData : null;
+    final raw = data?.getColor(colorKey);
+    return raw == null ? null : WorkbenchColors.toFlutterColor(raw);
+  }
+
+  Color _baseSlotColor(String slot) => switch (slot) {
+    ThemePaletteOverrides.slotBackground =>
+      _rawThemeColor('editor.background') ??
+          (widget.dark
+              ? ThemePaletteOverrides.defaultDarkBackground
+              : ThemePaletteOverrides.defaultLightBackground),
+    ThemePaletteOverrides.slotSidebar =>
+      _rawThemeColor('sideBar.background') ??
+          (widget.dark ? const Color(0xFF161615) : const Color(0xFFEFEEEA)),
+    ThemePaletteOverrides.slotCard =>
+      _rawThemeColor('agentsChatInput.background') ??
+          _rawThemeColor('editorWidget.background') ??
+          (widget.dark ? const Color(0xFF252421) : const Color(0xFFFFFFFF)),
+    ThemePaletteOverrides.slotForeground =>
+      _rawThemeColor('foreground') ??
+          (widget.dark
+              ? ThemePaletteOverrides.defaultDarkForeground
+              : ThemePaletteOverrides.defaultLightForeground),
+    ThemePaletteOverrides.slotAccent =>
+      _rawThemeColor('textLink.foreground') ??
+          _rawThemeColor('button.background') ??
+          (widget.dark
+              ? ThemePaletteOverrides.defaultDarkAccent
+              : ThemePaletteOverrides.defaultLightAccent),
+    ThemePaletteOverrides.slotInlineCode =>
+      _rawThemeColor('textPreformat.foreground') ??
+          (widget.dark ? const Color(0xFFE599F7) : const Color(0xFF9E2825)),
+    _ => const Color(0xFF888888),
+  };
+
+  Color _effectiveSlotColor(String themeId, String slot) =>
+      ThemePaletteOverrides.slotColor(themeId, slot) ?? _baseSlotColor(slot);
+
+  void _selectPreset(String id) {
+    setState(() => _selectedId = id);
+    _ensureThemeLoaded(id);
+    widget.onSelectPreset(id);
   }
 
   Future<void> _promptCreateTheme(
     BuildContext context, {
-    required String baseId,
-    required String baseLabel,
     required bool isZh,
+    required String baseId,
+    required bool saveCurrentAsNew,
   }) async {
-    final suggested = isZh ? '$baseLabel · 自定义' : '$baseLabel Custom';
-    final name = await _showThemeNameDialog(
-      context,
-      title: isZh
-          ? (widget.dark ? '新建深色主题' : '新建浅色主题')
-          : (widget.dark ? 'New Dark Theme' : 'New Light Theme'),
-      subtitle: isZh
-          ? '将基于「$baseLabel」当前的配色创建独立主题并自动应用'
-          : 'Creates a standalone theme based on "$baseLabel" and applies it',
-      initialValue: suggested,
-      confirmLabel: isZh ? '创建主题' : 'Create',
+    final service = _service;
+    if (service == null) return;
+    final baseLabel =
+        widget.entries.where((e) => e.id == baseId).firstOrNull?.label ?? baseId;
+    final defaultName = saveCurrentAsNew
+        ? (isZh ? '$baseLabel 副本' : '$baseLabel Copy')
+        : (widget.dark
+              ? (isZh ? '自定义深色主题' : 'Custom Dark')
+              : (isZh ? '自定义浅色主题' : 'Custom Light'));
+    final nameController = TextEditingController(text: defaultName);
+    var selectedBase = baseId;
+    var inheritEdits = saveCurrentAsNew || ThemePaletteOverrides.hasCustomFor(baseId);
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      barrierColor: const Color(0x66000000),
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (dialogContext, setDialogState) => Dialog(
+          backgroundColor: AppColors.surface,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+            side: BorderSide(color: AppColors.border),
+          ),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 360),
+            child: Padding(
+              padding: const EdgeInsets.all(18),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    saveCurrentAsNew
+                        ? (isZh ? '另存当前配色为新主题' : 'Save Palette as New Theme')
+                        : (isZh ? '新建主题' : 'Create New Theme'),
+                    style: TextStyle(
+                      color: AppColors.textPrimary,
+                      fontSize: 14.5,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    isZh ? '主题名称' : 'Theme Name',
+                    style: TextStyle(color: AppColors.textMuted, fontSize: 12),
+                  ),
+                  const SizedBox(height: 6),
+                  TextField(
+                    controller: nameController,
+                    autofocus: true,
+                    style: TextStyle(color: AppColors.text, fontSize: 13),
+                    decoration: _dialogInputDecoration(
+                      hintText: isZh ? '输入新主题名称…' : 'Enter theme name…',
+                    ),
+                    onSubmitted: (_) => Navigator.pop(dialogContext, true),
+                  ),
+                  if (!saveCurrentAsNew && widget.entries.length > 1) ...[
+                    const SizedBox(height: 12),
+                    Text(
+                      isZh ? '基础模板' : 'Base Preset',
+                      style: TextStyle(
+                        color: AppColors.textMuted,
+                        fontSize: 12,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: AppColors.borderStrong),
+                      ),
+                      child: DropdownButtonHideUnderline(
+                        child: DropdownButton<String>(
+                          value: widget.entries.any((e) => e.id == selectedBase)
+                              ? selectedBase
+                              : widget.entries.first.id,
+                          isExpanded: true,
+                          dropdownColor: AppColors.surfaceRaised,
+                          style: TextStyle(color: AppColors.text, fontSize: 13),
+                          items: [
+                            for (final entry in widget.entries)
+                              DropdownMenuItem<String>(
+                                value: entry.id,
+                                child: Text(entry.label),
+                              ),
+                          ],
+                          onChanged: (next) {
+                            if (next == null) return;
+                            setDialogState(() => selectedBase = next);
+                          },
+                        ),
+                      ),
+                    ),
+                  ],
+                  if (ThemePaletteOverrides.hasCustomFor(selectedBase)) ...[
+                    const SizedBox(height: 10),
+                    GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onTap: () =>
+                          setDialogState(() => inheritEdits = !inheritEdits),
+                      child: Row(
+                        children: [
+                          SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: Checkbox(
+                              value: inheritEdits,
+                              onChanged: (v) => setDialogState(
+                                () => inheritEdits = v ?? true,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              isZh
+                                  ? '保留已修改的配色（并恢复原主题默认色）'
+                                  : 'Include edited colors (and reset original preset)',
+                              style: TextStyle(
+                                color: AppColors.text,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: 16),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      _DialogTextButton(
+                        label: isZh ? '取消' : 'Cancel',
+                        onTap: () => Navigator.pop(dialogContext, false),
+                      ),
+                      const SizedBox(width: 8),
+                      _DialogPrimaryButton(
+                        label: isZh ? '创建并应用' : 'Create & Apply',
+                        onTap: () => Navigator.pop(dialogContext, true),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
     );
-    if (name == null || name.trim().isEmpty || !mounted) return;
-    final createdId = await ThemePaletteOverrides.createCustomTheme(
-      label: name,
-      dark: widget.dark,
-      baseThemeId: baseId,
-      copyBaseOverrides: true,
-    );
-    if (mounted) {
-      setState(() => _inspectedId = createdId);
+
+    final rawName = nameController.text;
+    nameController.dispose();
+    if (confirmed != true || !mounted) return;
+
+    final slotsToBake = inheritEdits
+        ? ThemePaletteOverrides.overridesFor(selectedBase)
+        : const <String, Color>{};
+    if (inheritEdits && ThemePaletteOverrides.hasCustomFor(selectedBase)) {
+      await ThemePaletteOverrides.resetTheme(selectedBase);
     }
+    final createdId = await service.createCustomTheme(
+      name: rawName,
+      dark: widget.dark,
+      baseId: selectedBase,
+      initialSlots: slotsToBake,
+    );
+    if (!mounted) return;
+    setState(() {
+      _selectedId = createdId;
+      _loadedData = null;
+      _loadedDataId = null;
+    });
+    _ensureThemeLoaded(createdId);
   }
 
   Future<void> _promptRenameTheme(
     BuildContext context, {
-    required String targetId,
-    required String currentLabel,
     required bool isZh,
+    required String themeId,
   }) async {
-    final name = await _showThemeNameDialog(
-      context,
-      title: isZh ? '重命名主题' : 'Rename Theme',
-      subtitle: isZh ? '输入新的主题名称' : 'Enter a new name for this theme',
-      initialValue: currentLabel,
-      confirmLabel: isZh ? '保存' : 'Save',
-    );
-    if (name == null || name.trim().isEmpty || !mounted) return;
-    final nextId = await ThemePaletteOverrides.renameCustomTheme(
-      targetId,
-      name,
-    );
-    if (mounted) {
-      setState(() => _inspectedId = nextId);
-    }
-  }
-
-  Future<void> _confirmDeleteTheme(
-    BuildContext context, {
-    required String targetId,
-    required String label,
-    required bool isCustom,
-    required bool isZh,
-  }) async {
+    final service = _service;
+    if (service == null || !service.isCustomTheme(themeId)) return;
+    final controller = TextEditingController(text: themeId);
     final confirmed = await showDialog<bool>(
       context: context,
       barrierColor: const Color(0x66000000),
-      builder: (ctx) => Dialog(
+      builder: (dialogContext) => Dialog(
         backgroundColor: AppColors.surface,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12),
@@ -1129,10 +1339,86 @@ class _ThemePaletteSectionState extends State<_ThemePaletteSection> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
+                  isZh ? '重命名主题' : 'Rename Theme',
+                  style: TextStyle(
+                    color: AppColors.textPrimary,
+                    fontSize: 14.5,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: controller,
+                  autofocus: true,
+                  style: TextStyle(color: AppColors.text, fontSize: 13),
+                  decoration: _dialogInputDecoration(),
+                  onSubmitted: (_) => Navigator.pop(dialogContext, true),
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    _DialogTextButton(
+                      label: isZh ? '取消' : 'Cancel',
+                      onTap: () => Navigator.pop(dialogContext, false),
+                    ),
+                    const SizedBox(width: 8),
+                    _DialogPrimaryButton(
+                      label: isZh ? '保存' : 'Save',
+                      onTap: () => Navigator.pop(dialogContext, true),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+    final nextName = controller.text;
+    controller.dispose();
+    if (confirmed != true || !mounted) return;
+    final renamedId = await service.renameCustomTheme(themeId, nextName);
+    if (!mounted) return;
+    setState(() {
+      _selectedId = renamedId;
+      _loadedData = null;
+      _loadedDataId = null;
+    });
+    _ensureThemeLoaded(renamedId);
+  }
+
+  Future<void> _promptDeleteTheme(
+    BuildContext context, {
+    required bool isZh,
+    required String themeId,
+    required String label,
+  }) async {
+    final service = _service;
+    if (service == null || widget.entries.length <= 1) return;
+    final isCustom = service.isCustomTheme(themeId);
+    final confirmed = await showDialog<bool>(
+      context: context,
+      barrierColor: const Color(0x66000000),
+      builder: (dialogContext) => Dialog(
+        backgroundColor: AppColors.surface,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+          side: BorderSide(color: AppColors.border),
+        ),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 350),
+          child: Padding(
+            padding: const EdgeInsets.all(18),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
                   isZh ? '删除主题「$label」？' : 'Delete "$label"?',
                   style: TextStyle(
                     color: AppColors.textPrimary,
-                    fontSize: 14,
+                    fontSize: 14.5,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -1140,11 +1426,11 @@ class _ThemePaletteSectionState extends State<_ThemePaletteSection> {
                 Text(
                   isCustom
                       ? (isZh
-                            ? '该自定义主题及其配色文件将被永久移除。'
-                            : 'This custom theme and its palette file will be permanently deleted.')
+                            ? '该自定义主题及其本地配色文件将被永久移除。'
+                            : 'This custom theme and its local theme file will be permanently removed.')
                       : (isZh
-                            ? '该内置主题将从主题列表中移除（后续可随时在菜单中恢复）。'
-                            : 'This built-in theme will be removed from theme lists (you can restore it anytime from the menu).'),
+                            ? '该内置主题将从主题列表中移除（后续可随时在菜单中恢复内置主题）。'
+                            : 'This built-in theme will be removed from the list (you can restore built-in themes anytime from the menu).'),
                   style: TextStyle(
                     color: AppColors.textMuted,
                     fontSize: 12.5,
@@ -1155,16 +1441,15 @@ class _ThemePaletteSectionState extends State<_ThemePaletteSection> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
-                    _DialogActionButton(
+                    _DialogTextButton(
                       label: isZh ? '取消' : 'Cancel',
-                      onTap: () => Navigator.pop(ctx, false),
+                      onTap: () => Navigator.pop(dialogContext, false),
                     ),
                     const SizedBox(width: 8),
-                    _DialogActionButton(
+                    _DialogPrimaryButton(
                       label: isZh ? '删除' : 'Delete',
                       destructive: true,
-                      primary: true,
-                      onTap: () => Navigator.pop(ctx, true),
+                      onTap: () => Navigator.pop(dialogContext, true),
                     ),
                   ],
                 ),
@@ -1175,216 +1460,173 @@ class _ThemePaletteSectionState extends State<_ThemePaletteSection> {
       ),
     );
     if (confirmed != true || !mounted) return;
-    await ThemePaletteOverrides.deleteTheme(targetId, dark: widget.dark);
-    if (mounted) {
-      setState(() => _inspectedId = null);
-    }
-  }
-
-  Future<void> _updateSlot(
-    String targetId,
-    String slot,
-    Color? color,
-  ) async {
-    if (widget.themes.colorThemeId != targetId) {
-      widget.onSelectPreset(targetId);
-    }
-    await ThemePaletteOverrides.setSlotColor(targetId, slot, color);
+    await service.deleteTheme(themeId);
+    if (!mounted) return;
+    setState(() {
+      _selectedId = null;
+      _loadedData = null;
+      _loadedDataId = null;
+      _syncSelection();
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     final isZh = Localizations.maybeLocaleOf(context)?.languageCode == 'zh';
-    final targetId = _resolveTargetId();
-    final targetLabel = _labelFor(targetId);
-    final isCustom = ThemePaletteOverrides.isCustomTheme(targetId);
-    final hasOverrides = ThemePaletteOverrides.hasCustomFor(targetId);
-    final canDelete = ThemePaletteOverrides.canDeleteTheme(
-      targetId,
-      sameSchemeCount: widget.entries.length,
-    );
-    final deletedBuiltins = ThemePaletteOverrides.deletedThemes;
+    final selectedId = _selectedId ?? _fallbackDefaultId;
+    final selectedEntry = widget.entries
+        .where((e) => e.id == selectedId)
+        .firstOrNull;
+    final presetLabel = selectedEntry?.label ?? selectedId;
+    final hasCustomColors = ThemePaletteOverrides.hasCustomFor(selectedId);
+    final service = _service;
+    final isCustomTheme = service?.isCustomTheme(selectedId) ?? false;
+    final canDelete = service != null && widget.entries.length > 1;
+    final isActive = widget.themes.colorThemeId == selectedId;
 
-    final baseSlots = WorkbenchThemeService.instance.baseSlotColors(
-      targetId,
-      dark: widget.dark,
-    );
-    Color effective(String slot, Color fallback) =>
-        ThemePaletteOverrides.slotColor(targetId, slot) ??
-        baseSlots[slot] ??
-        fallback;
-    Color baseOf(String slot, Color fallback) => baseSlots[slot] ?? fallback;
-
-    final bgDefault = baseOf(
-      ThemePaletteOverrides.slotBackground,
-      widget.dark
-          ? ThemePaletteOverrides.defaultDarkBackground
-          : ThemePaletteOverrides.defaultLightBackground,
-    );
-    final sbDefault = baseOf(
-      ThemePaletteOverrides.slotSidebar,
-      widget.dark
-          ? ThemePaletteOverrides.defaultDarkSidebar
-          : ThemePaletteOverrides.defaultLightSidebar,
-    );
-    final cardDefault = baseOf(
-      ThemePaletteOverrides.slotCard,
-      widget.dark
-          ? ThemePaletteOverrides.defaultDarkCard
-          : ThemePaletteOverrides.defaultLightCard,
-    );
-    final fgDefault = baseOf(
-      ThemePaletteOverrides.slotForeground,
-      widget.dark
-          ? ThemePaletteOverrides.defaultDarkForeground
-          : ThemePaletteOverrides.defaultLightForeground,
-    );
-    final accentDefault = baseOf(
-      ThemePaletteOverrides.slotAccent,
-      widget.dark
-          ? ThemePaletteOverrides.defaultDarkAccent
-          : ThemePaletteOverrides.defaultLightAccent,
-    );
-    final codeDefault = baseOf(
-      ThemePaletteOverrides.slotInlineCode,
-      widget.dark
-          ? ThemePaletteOverrides.defaultDarkInlineCode
-          : ThemePaletteOverrides.defaultLightInlineCode,
-    );
-
-    final bg = effective(ThemePaletteOverrides.slotBackground, bgDefault);
-    final sb = effective(ThemePaletteOverrides.slotSidebar, sbDefault);
-    final card = effective(ThemePaletteOverrides.slotCard, cardDefault);
-    final fg = effective(ThemePaletteOverrides.slotForeground, fgDefault);
-    final accent = effective(ThemePaletteOverrides.slotAccent, accentDefault);
-    final code = effective(ThemePaletteOverrides.slotInlineCode, codeDefault);
-
-    final slots =
-        <({String slot, String label, String desc, Color color, Color def})>[
-          (
-            slot: ThemePaletteOverrides.slotBackground,
-            label: isZh ? '主背景 (Background)' : 'Background',
-            desc: isZh ? '对话主画布与编辑器工作区底色' : 'Conversation & editor canvas',
-            color: bg,
-            def: bgDefault,
-          ),
-          (
-            slot: ThemePaletteOverrides.slotSidebar,
-            label: isZh ? '侧边栏 (Sidebar)' : 'Sidebar',
-            desc: isZh ? '左侧会话树、标题栏与状态栏底色' : 'Sidebar, title bar & status bar',
-            color: sb,
-            def: sbDefault,
-          ),
-          (
-            slot: ThemePaletteOverrides.slotCard,
-            label: isZh ? '卡片与气泡 (Surface)' : 'Surface & Cards',
-            desc: isZh
-                ? '输入框、用户气泡、菜单与侧边栏选中项底色'
-                : 'Composer, user bubble, menus & active row',
-            color: card,
-            def: cardDefault,
-          ),
-          (
-            slot: ThemePaletteOverrides.slotForeground,
-            label: isZh ? '主文字 (Foreground)' : 'Foreground',
-            desc: isZh ? '正文与界面主文字颜色（次级文字自动推算）' : 'Primary text & icons',
-            color: fg,
-            def: fgDefault,
-          ),
-          (
-            slot: ThemePaletteOverrides.slotAccent,
-            label: isZh ? '强调色 (Accent)' : 'Accent',
-            desc: isZh ? '主按钮、链接、焦点边框与高亮指示' : 'Buttons, links & focus highlights',
-            color: accent,
-            def: accentDefault,
-          ),
-          (
-            slot: ThemePaletteOverrides.slotInlineCode,
-            label: isZh ? '行内代码 (Inline Code)' : 'Inline Code',
-            desc: isZh ? 'Markdown 行内代码胶囊的文字颜色' : 'Markdown inline code text color',
-            color: code,
-            def: codeDefault,
-          ),
-        ];
+    final slots = <({String slot, String label, String description})>[
+      (
+        slot: ThemePaletteOverrides.slotBackground,
+        label: isZh ? '会话背景' : 'Background',
+        description: isZh
+            ? '右侧对话区与编辑器主画布底色'
+            : 'Main conversation & editor canvas',
+      ),
+      (
+        slot: ThemePaletteOverrides.slotSidebar,
+        label: isZh ? '侧边栏背景' : 'Sidebar',
+        description: isZh
+            ? '左侧项目与会话导航栏底色'
+            : 'Left project & conversation sidebar surface',
+      ),
+      (
+        slot: ThemePaletteOverrides.slotCard,
+        label: isZh ? '卡片与气泡' : 'Card & Bubble',
+        description: isZh
+            ? '输入框、用户消息气泡、选中卡片与菜单底色'
+            : 'Composer, user message bubble, active row & menus',
+      ),
+      (
+        slot: ThemePaletteOverrides.slotForeground,
+        label: isZh ? '正文文字' : 'Foreground',
+        description: isZh
+            ? '主文本颜色（自动协调次级说明文字对比度）'
+            : 'Primary text color with auto-harmonized muted text',
+      ),
+      (
+        slot: ThemePaletteOverrides.slotAccent,
+        label: isZh ? '强调色' : 'Accent',
+        description: isZh
+            ? '链接、焦点边框、徽标与交互高亮色'
+            : 'Links, focus outlines, badges & primary actions',
+      ),
+      (
+        slot: ThemePaletteOverrides.slotInlineCode,
+        label: isZh ? '行内代码' : 'Inline Code',
+        description: isZh
+            ? 'Markdown 行内代码胶囊文字颜色'
+            : 'Markdown inline code pill text color',
+      ),
+    ];
 
     return SettingsGroup(
-      title: isZh
-          ? (widget.dark ? '深色主题与配色管理' : '浅色主题与配色管理')
-          : (widget.dark ? 'Dark Theme' : 'Light Theme'),
+      title: widget.dark
+          ? (isZh ? '深色主题配色' : 'Dark Theme')
+          : (isZh ? '浅色主题配色' : 'Light Theme'),
       children: [
         SettingsRow(
-          label: isZh ? '当前预设 (Preset)' : 'Preset',
+          label: isZh ? '预设主题' : 'Preset',
           description: isZh
-              ? '可直接修改下方任意颜色实时生效并自动保存，也可新建、重命名或删除主题'
-              : 'Edit colors below in-place (auto-saved), or add, rename, and delete themes',
+              ? '可直接修改当前主题配色，或新建、重命名、删除主题'
+              : 'Customize colors directly, or add, rename, and delete themes',
           trailing: _PalettePresetControl(
-            targetId: targetId,
-            label: targetLabel,
-            isCustom: isCustom,
-            hasOverrides: hasOverrides,
-            canDelete: canDelete,
-            hasDeletedBuiltins: deletedBuiltins.isNotEmpty,
             isZh: isZh,
+            selectedId: selectedId,
+            label: presetLabel,
+            isActive: isActive,
+            isCustomTheme: isCustomTheme,
+            hasCustomColors: hasCustomColors,
+            canManage: service != null,
+            canDelete: canDelete,
+            hasDeletedBuiltins: service?.hasDeletedThemes ?? false,
             entries: [
               for (final entry in widget.entries)
                 (
                   id: entry.id,
                   label: entry.label,
-                  modified: ThemePaletteOverrides.hasCustomFor(entry.id),
+                  isCustom: service?.isCustomTheme(entry.id) ?? false,
                 ),
             ],
-            onReset: () => unawaited(ThemePaletteOverrides.resetTheme(targetId)),
-            onSelected: (id) {
-              setState(() => _inspectedId = id);
-              widget.onSelectPreset(id);
-            },
-            onCreateNew: () => unawaited(
-              _promptCreateTheme(
-                context,
-                baseId: targetId,
-                baseLabel: targetLabel,
-                isZh: isZh,
-              ),
+            onSelected: _selectPreset,
+            onApplyCurrent: () => _selectPreset(selectedId),
+            onResetColors: () =>
+                unawaited(ThemePaletteOverrides.resetTheme(selectedId)),
+            onAddTheme: () => _promptCreateTheme(
+              context,
+              isZh: isZh,
+              baseId: selectedId,
+              saveCurrentAsNew: false,
             ),
-            onRename: isCustom
-                ? () => unawaited(
-                    _promptRenameTheme(
-                      context,
-                      targetId: targetId,
-                      currentLabel: targetLabel,
-                      isZh: isZh,
-                    ),
-                  )
-                : null,
-            onDelete: canDelete
-                ? () => unawaited(
-                    _confirmDeleteTheme(
-                      context,
-                      targetId: targetId,
-                      label: targetLabel,
-                      isCustom: isCustom,
-                      isZh: isZh,
-                    ),
-                  )
-                : null,
-            onRestoreDeleted: deletedBuiltins.isNotEmpty
-                ? () => unawaited(ThemePaletteOverrides.restoreDeletedThemes())
-                : null,
+            onSaveAsNewTheme: () => _promptCreateTheme(
+              context,
+              isZh: isZh,
+              baseId: selectedId,
+              saveCurrentAsNew: true,
+            ),
+            onRenameTheme: () => _promptRenameTheme(
+              context,
+              isZh: isZh,
+              themeId: selectedId,
+            ),
+            onDeleteTheme: () => _promptDeleteTheme(
+              context,
+              isZh: isZh,
+              themeId: selectedId,
+              label: presetLabel,
+            ),
+            onRestoreBuiltins: () {
+              if (service != null) {
+                unawaited(service.restoreDeletedThemes());
+              }
+            },
           ),
         ),
         for (final item in slots)
           SettingsRow(
             label: item.label,
-            description: item.desc,
+            description: item.description,
             trailing: _PaletteColorPill(
-              label: item.label,
-              color: item.color,
-              defaultColor: item.def,
-              isModified:
-                  ThemePaletteOverrides.slotColor(targetId, item.slot) != null,
               isZh: isZh,
-              onChanged: (color) =>
-                  unawaited(_updateSlot(targetId, item.slot, color)),
+              dark: widget.dark,
+              slot: item.slot,
+              label: item.label,
+              color: _effectiveSlotColor(selectedId, item.slot),
+              defaultColor: _baseSlotColor(item.slot),
+              customized:
+                  ThemePaletteOverrides.slotColor(selectedId, item.slot) !=
+                  null,
+              onPreview: (color) {
+                if (!isActive) {
+                  widget.onSelectPreset(selectedId);
+                }
+                ThemePaletteOverrides.previewSlotColor(
+                  selectedId,
+                  item.slot,
+                  color,
+                );
+              },
+              onChanged: (color) {
+                if (!isActive) {
+                  widget.onSelectPreset(selectedId);
+                }
+                unawaited(
+                  ThemePaletteOverrides.setSlotColor(
+                    selectedId,
+                    item.slot,
+                    color,
+                  ),
+                );
+              },
             ),
           ),
       ],
@@ -1392,154 +1634,88 @@ class _ThemePaletteSectionState extends State<_ThemePaletteSection> {
   }
 }
 
-Future<String?> _showThemeNameDialog(
-  BuildContext context, {
-  required String title,
-  required String subtitle,
-  required String initialValue,
-  required String confirmLabel,
-}) async {
-  final isZh = Localizations.maybeLocaleOf(context)?.languageCode == 'zh';
-  final controller = TextEditingController(text: initialValue);
-  controller.selection = TextSelection(
-    baseOffset: 0,
-    extentOffset: initialValue.length,
+InputDecoration _dialogInputDecoration({String? hintText, String? prefixText}) {
+  return InputDecoration(
+    hintText: hintText,
+    hintStyle: TextStyle(color: AppColors.textFaint, fontSize: 12.5),
+    prefixText: prefixText,
+    prefixStyle: TextStyle(
+      color: AppColors.textMuted,
+      fontFamily: AppFonts.mono,
+      fontSize: 13,
+    ),
+    isDense: true,
+    contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
+    enabledBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(8),
+      borderSide: BorderSide(color: AppColors.borderStrong),
+    ),
+    focusedBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(8),
+      borderSide: BorderSide(color: AppColors.accent),
+    ),
   );
-  final result = await showDialog<String>(
-    context: context,
-    barrierColor: const Color(0x66000000),
-    builder: (ctx) => Dialog(
-      backgroundColor: AppColors.surface,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: AppColors.border),
-      ),
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 340),
+}
+
+class _DialogTextButton extends StatelessWidget {
+  const _DialogTextButton({required this.label, required this.onTap});
+
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: onTap,
         child: Padding(
-          padding: const EdgeInsets.all(18),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                title,
-                style: TextStyle(
-                  color: AppColors.textPrimary,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              const SizedBox(height: 6),
-              Text(
-                subtitle,
-                style: TextStyle(
-                  color: AppColors.textMuted,
-                  fontSize: 12,
-                  height: 1.4,
-                ),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: controller,
-                autofocus: true,
-                style: TextStyle(color: AppColors.text, fontSize: 13),
-                decoration: InputDecoration(
-                  isDense: true,
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 9,
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    borderSide: BorderSide(color: AppColors.borderStrong),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    borderSide: BorderSide(color: AppColors.accent),
-                  ),
-                ),
-                onSubmitted: (value) => Navigator.pop(ctx, value),
-              ),
-              const SizedBox(height: 14),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  _DialogActionButton(
-                    label: isZh ? '取消' : 'Cancel',
-                    onTap: () => Navigator.pop(ctx),
-                  ),
-                  const SizedBox(width: 8),
-                  _DialogActionButton(
-                    label: confirmLabel,
-                    primary: true,
-                    onTap: () => Navigator.pop(ctx, controller.text),
-                  ),
-                ],
-              ),
-            ],
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+          child: Text(
+            label,
+            style: TextStyle(color: AppColors.textMuted, fontSize: 12.5),
           ),
         ),
       ),
-    ),
-  );
-  controller.dispose();
-  return result;
+    );
+  }
 }
 
-class _DialogActionButton extends StatefulWidget {
-  const _DialogActionButton({
+class _DialogPrimaryButton extends StatelessWidget {
+  const _DialogPrimaryButton({
     required this.label,
     required this.onTap,
-    this.primary = false,
     this.destructive = false,
   });
 
   final String label;
   final VoidCallback onTap;
-  final bool primary;
   final bool destructive;
 
   @override
-  State<_DialogActionButton> createState() => _DialogActionButtonState();
-}
-
-class _DialogActionButtonState extends State<_DialogActionButton> {
-  bool _hover = false;
-
-  @override
   Widget build(BuildContext context) {
-    final bg = widget.primary
-        ? (widget.destructive
-              ? const Color(0xFFD9383A)
-              : AppColors.accent)
-        : (_hover
-              ? AppColors.text.withValues(alpha: 0.08)
-              : Colors.transparent);
-    final fg = widget.primary
-        ? (widget.destructive
-              ? Colors.white
-              : themeColors['button.foreground'])
-        : AppColors.textMuted;
+    final bg = destructive ? const Color(0xFFDF4B44) : AppColors.accent;
+    final fg = destructive
+        ? const Color(0xFFFFFFFF)
+        : themeColors['button.foreground'];
     return MouseRegion(
       cursor: SystemMouseCursors.click,
-      onEnter: (_) => setState(() => _hover = true),
-      onExit: (_) => setState(() => _hover = false),
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
-        onTap: widget.onTap,
+        onTap: onTap,
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 6),
           decoration: BoxDecoration(
             color: bg,
-            borderRadius: BorderRadius.circular(6),
+            borderRadius: BorderRadius.circular(7),
           ),
           child: Text(
-            widget.label,
+            label,
             style: TextStyle(
               color: fg,
-              fontSize: 12,
-              fontWeight: widget.primary ? FontWeight.w500 : FontWeight.w400,
+              fontSize: 12.5,
+              fontWeight: FontWeight.w500,
             ),
           ),
         ),
@@ -1550,113 +1726,107 @@ class _DialogActionButtonState extends State<_DialogActionButton> {
 
 class _PalettePresetControl extends StatefulWidget {
   const _PalettePresetControl({
-    required this.targetId,
+    required this.isZh,
+    required this.selectedId,
     required this.label,
-    required this.isCustom,
-    required this.hasOverrides,
+    required this.isActive,
+    required this.isCustomTheme,
+    required this.hasCustomColors,
+    required this.canManage,
     required this.canDelete,
     required this.hasDeletedBuiltins,
-    required this.isZh,
     required this.entries,
-    required this.onReset,
     required this.onSelected,
-    required this.onCreateNew,
-    this.onRename,
-    this.onDelete,
-    this.onRestoreDeleted,
+    required this.onApplyCurrent,
+    required this.onResetColors,
+    required this.onAddTheme,
+    required this.onSaveAsNewTheme,
+    required this.onRenameTheme,
+    required this.onDeleteTheme,
+    required this.onRestoreBuiltins,
   });
 
-  final String targetId;
+  final bool isZh;
+  final String selectedId;
   final String label;
-  final bool isCustom;
-  final bool hasOverrides;
+  final bool isActive;
+  final bool isCustomTheme;
+  final bool hasCustomColors;
+  final bool canManage;
   final bool canDelete;
   final bool hasDeletedBuiltins;
-  final bool isZh;
-  final List<({String id, String label, bool modified})> entries;
-  final VoidCallback onReset;
+  final List<({String id, String label, bool isCustom})> entries;
   final ValueChanged<String> onSelected;
-  final VoidCallback onCreateNew;
-  final VoidCallback? onRename;
-  final VoidCallback? onDelete;
-  final VoidCallback? onRestoreDeleted;
+  final VoidCallback onApplyCurrent;
+  final VoidCallback onResetColors;
+  final VoidCallback onAddTheme;
+  final VoidCallback onSaveAsNewTheme;
+  final VoidCallback onRenameTheme;
+  final VoidCallback onDeleteTheme;
+  final VoidCallback onRestoreBuiltins;
 
   @override
   State<_PalettePresetControl> createState() => _PalettePresetControlState();
 }
 
 class _PalettePresetControlState extends State<_PalettePresetControl> {
-  final GlobalKey _pillKey = GlobalKey();
-  final GlobalKey _moreKey = GlobalKey();
-  bool _hoverReset = false;
   bool _hoverPill = false;
-  bool _hoverAdd = false;
-  bool _hoverMore = false;
+  final GlobalKey _pillKey = GlobalKey();
 
-  void _openPresetMenu() {
-    final ctx = _pillKey.currentContext ?? context;
-    final box = ctx.findRenderObject()! as RenderBox;
+  void _openMenu() {
+    if (widget.entries.isEmpty && !widget.canManage) return;
+    final box =
+        (_pillKey.currentContext?.findRenderObject() ??
+                context.findRenderObject())!
+            as RenderBox;
+    final isZh = widget.isZh;
     unawaited(
       showIdeMenu(
         context,
         anchor: box.localToGlobal(Offset.zero) & box.size,
         entries: ideMenuGroups([
-          [
-            for (final entry in widget.entries)
+          if (widget.entries.isNotEmpty)
+            [
+              for (final entry in widget.entries)
+                IdeMenuAction(
+                  entry.isCustom
+                      ? '${entry.label} (${isZh ? '自定义' : 'Custom'})'
+                      : entry.label,
+                  checked: entry.id == widget.selectedId,
+                  onSelected: () => widget.onSelected(entry.id),
+                ),
+            ],
+          if (widget.canManage)
+            [
               IdeMenuAction(
-                entry.modified ? '${entry.label} •' : entry.label,
-                checked: entry.id == widget.targetId,
-                onSelected: () => widget.onSelected(entry.id),
+                isZh ? '新建主题…' : 'New Theme…',
+                onSelected: widget.onAddTheme,
               ),
-          ],
-          [
-            IdeMenuAction(
-              widget.isZh ? '+ 新建主题…' : '+ New Theme…',
-              onSelected: widget.onCreateNew,
-            ),
-          ],
-        ]),
-      ),
-    );
-  }
-
-  void _openManageMenu() {
-    final ctx = _moreKey.currentContext ?? context;
-    final box = ctx.findRenderObject()! as RenderBox;
-    final z = widget.isZh;
-    unawaited(
-      showIdeMenu(
-        context,
-        anchor: box.localToGlobal(Offset.zero) & box.size,
-        entries: ideMenuGroups([
-          [
-            IdeMenuAction(
-              z ? '基于当前配色新建主题…' : 'Save Palette as New Theme…',
-              onSelected: widget.onCreateNew,
-            ),
-            if (widget.onRename != null)
               IdeMenuAction(
-                z ? '重命名当前主题…' : 'Rename Theme…',
-                onSelected: widget.onRename!,
+                isZh ? '另存当前配色为新主题…' : 'Save Current Colors as New Theme…',
+                onSelected: widget.onSaveAsNewTheme,
               ),
-            if (widget.hasOverrides)
-              IdeMenuAction(
-                z ? '恢复当前主题初始配色' : 'Reset Modified Colors',
-                onSelected: widget.onReset,
-              ),
-          ],
-          [
-            if (widget.onDelete != null)
-              IdeMenuAction(
-                z ? '删除主题「${widget.label}」…' : 'Delete "${widget.label}"…',
-                onSelected: widget.onDelete!,
-              ),
-            if (widget.onRestoreDeleted != null)
-              IdeMenuAction(
-                z ? '恢复已删除的内置主题' : 'Restore Deleted Built-in Themes',
-                onSelected: widget.onRestoreDeleted!,
-              ),
-          ],
+              if (widget.isCustomTheme)
+                IdeMenuAction(
+                  isZh ? '重命名当前主题…' : 'Rename Current Theme…',
+                  onSelected: widget.onRenameTheme,
+                ),
+              if (widget.hasCustomColors)
+                IdeMenuAction(
+                  isZh ? '重置当前主题配色' : 'Reset Theme Colors',
+                  onSelected: widget.onResetColors,
+                ),
+              if (widget.canDelete)
+                IdeMenuAction(
+                  isZh ? '删除当前主题…' : 'Delete Current Theme…',
+                  onSelected: widget.onDeleteTheme,
+                ),
+              if (widget.hasDeletedBuiltins)
+                IdeMenuAction(
+                  isZh ? '恢复已删除的内置主题' : 'Restore Deleted Built-in Themes',
+                  onSelected: widget.onRestoreBuiltins,
+                ),
+            ],
         ]),
       ),
     );
@@ -1666,57 +1836,74 @@ class _PalettePresetControlState extends State<_PalettePresetControl> {
   Widget build(BuildContext context) {
     final pillFill = AppColors.text.withValues(alpha: 0.06);
     final pillHoverFill = AppColors.text.withValues(alpha: 0.10);
+    final isZh = widget.isZh;
+
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        if (widget.hasOverrides) ...[
-          Tooltip(
-            message: widget.isZh ? '恢复当前主题默认配色' : 'Reset theme colors',
-            child: MouseRegion(
-              cursor: SystemMouseCursors.click,
-              onEnter: (_) => setState(() => _hoverReset = true),
-              onExit: (_) => setState(() => _hoverReset = false),
-              child: GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                onTap: widget.onReset,
-                child: Container(
-                  width: 26,
-                  height: 26,
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    color: _hoverReset ? pillFill : Colors.transparent,
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                  child: Icon(
-                    Icons.undo_rounded,
-                    size: 15,
-                    color: _hoverReset ? AppColors.text : AppColors.textMuted,
-                  ),
-                ),
-              ),
-            ),
+        if (!widget.isActive) ...[
+          _PaletteActionChip(
+            label: isZh ? '应用' : 'Apply',
+            onTap: widget.onApplyCurrent,
           ),
-          const SizedBox(width: 4),
+          const SizedBox(width: 6),
+        ],
+        if (widget.hasCustomColors) ...[
+          _PaletteIconButton(
+            icon: Icons.undo_rounded,
+            tooltip: isZh ? '重置当前主题配色' : 'Reset theme colors',
+            onTap: widget.onResetColors,
+          ),
+          const SizedBox(width: 2),
+        ],
+        if (widget.canManage) ...[
+          _PaletteIconButton(
+            icon: Icons.add_rounded,
+            tooltip: isZh ? '新建主题 / 另存配色' : 'New theme',
+            onTap: widget.onAddTheme,
+          ),
+          if (widget.isCustomTheme) ...[
+            const SizedBox(width: 2),
+            _PaletteIconButton(
+              icon: Icons.edit_outlined,
+              tooltip: isZh ? '重命名主题' : 'Rename theme',
+              onTap: widget.onRenameTheme,
+            ),
+          ],
+          if (widget.canDelete) ...[
+            const SizedBox(width: 2),
+            _PaletteIconButton(
+              icon: Icons.delete_outline_rounded,
+              tooltip: isZh ? '删除当前主题' : 'Delete theme',
+              onTap: widget.onDeleteTheme,
+            ),
+          ],
+          const SizedBox(width: 6),
         ],
         MouseRegion(
-          key: _pillKey,
           cursor: SystemMouseCursors.click,
           onEnter: (_) => setState(() => _hoverPill = true),
           onExit: (_) => setState(() => _hoverPill = false),
           child: GestureDetector(
+            key: _pillKey,
             behavior: HitTestBehavior.opaque,
-            onTap: _openPresetMenu,
+            onTap: _openMenu,
             child: Container(
               height: 28,
               padding: const EdgeInsets.symmetric(horizontal: 12),
               decoration: BoxDecoration(
                 color: _hoverPill ? pillHoverFill : pillFill,
                 borderRadius: BorderRadius.circular(999),
+                border: widget.isActive
+                    ? Border.all(
+                        color: AppColors.accent.withValues(alpha: 0.35),
+                      )
+                    : null,
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  if (widget.hasOverrides) ...[
+                  if (widget.isActive) ...[
                     Container(
                       width: 6,
                       height: 6,
@@ -1729,14 +1916,18 @@ class _PalettePresetControlState extends State<_PalettePresetControl> {
                   ],
                   ConstrainedBox(
                     constraints: const BoxConstraints(maxWidth: 165),
-                    child: Text(
-                      widget.label,
+                    child: RichText(
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        color: AppColors.text,
-                        fontSize: 12.5,
-                        fontWeight: FontWeight.w500,
+                      text: TextSpan(
+                        text: widget.hasCustomColors
+                            ? '${widget.label} *'
+                            : widget.label,
+                        style: TextStyle(
+                          color: AppColors.text,
+                          fontSize: 12.5,
+                          fontWeight: FontWeight.w500,
+                        ),
                       ),
                     ),
                   ),
@@ -1751,81 +1942,127 @@ class _PalettePresetControlState extends State<_PalettePresetControl> {
             ),
           ),
         ),
-        const SizedBox(width: 4),
-        Tooltip(
-          message: widget.isZh ? '新建主题' : 'Add new theme',
-          child: MouseRegion(
-            cursor: SystemMouseCursors.click,
-            onEnter: (_) => setState(() => _hoverAdd = true),
-            onExit: (_) => setState(() => _hoverAdd = false),
-            child: GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onTap: widget.onCreateNew,
-              child: Container(
-                width: 26,
-                height: 26,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: _hoverAdd ? pillHoverFill : pillFill,
-                  borderRadius: BorderRadius.circular(7),
-                ),
-                child: Icon(
-                  Icons.add_rounded,
-                  size: 16,
-                  color: _hoverAdd ? AppColors.text : AppColors.textMuted,
-                ),
-              ),
-            ),
-          ),
-        ),
-        const SizedBox(width: 4),
-        Tooltip(
-          message: widget.isZh ? '管理主题（重命名 / 删除 / 恢复）' : 'Manage theme',
-          child: MouseRegion(
-            key: _moreKey,
-            cursor: SystemMouseCursors.click,
-            onEnter: (_) => setState(() => _hoverMore = true),
-            onExit: (_) => setState(() => _hoverMore = false),
-            child: GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onTap: _openManageMenu,
-              child: Container(
-                width: 26,
-                height: 26,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: _hoverMore ? pillHoverFill : Colors.transparent,
-                  borderRadius: BorderRadius.circular(7),
-                ),
-                child: Icon(
-                  Icons.more_horiz_rounded,
-                  size: 16,
-                  color: _hoverMore ? AppColors.text : AppColors.textMuted,
-                ),
-              ),
-            ),
-          ),
-        ),
       ],
+    );
+  }
+}
+
+class _PaletteActionChip extends StatefulWidget {
+  const _PaletteActionChip({required this.label, required this.onTap});
+
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  State<_PaletteActionChip> createState() => _PaletteActionChipState();
+}
+
+class _PaletteActionChipState extends State<_PaletteActionChip> {
+  bool _hover = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      onEnter: (_) => setState(() => _hover = true),
+      onExit: (_) => setState(() => _hover = false),
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: widget.onTap,
+        child: Container(
+          height: 26,
+          padding: const EdgeInsets.symmetric(horizontal: 10),
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: AppColors.accent.withValues(alpha: _hover ? 0.18 : 0.11),
+            borderRadius: BorderRadius.circular(999),
+          ),
+          child: Text(
+            widget.label,
+            style: TextStyle(
+              color: AppColors.accent,
+              fontSize: 11.5,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _PaletteIconButton extends StatefulWidget {
+  const _PaletteIconButton({
+    required this.icon,
+    required this.tooltip,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String tooltip;
+  final VoidCallback onTap;
+
+  @override
+  State<_PaletteIconButton> createState() => _PaletteIconButtonState();
+}
+
+class _PaletteIconButtonState extends State<_PaletteIconButton> {
+  bool _hover = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final hoverFill = AppColors.text.withValues(alpha: 0.08);
+    return Tooltip(
+      message: widget.tooltip,
+      waitDuration: const Duration(milliseconds: 350),
+      child: MouseRegion(
+        cursor: SystemMouseCursors.click,
+        onEnter: (_) => setState(() => _hover = true),
+        onExit: (_) => setState(() => _hover = false),
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: widget.onTap,
+          child: Container(
+            width: 26,
+            height: 26,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: _hover ? hoverFill : Colors.transparent,
+              borderRadius: BorderRadius.circular(6),
+            ),
+            child: Icon(
+              widget.icon,
+              size: 15.5,
+              color: _hover ? AppColors.text : AppColors.textMuted,
+            ),
+          ),
+        ),
+      ),
     );
   }
 }
 
 class _PaletteColorPill extends StatefulWidget {
   const _PaletteColorPill({
+    required this.isZh,
+    required this.dark,
+    required this.slot,
     required this.label,
     required this.color,
     required this.defaultColor,
-    required this.isModified,
-    required this.isZh,
+    required this.customized,
+    required this.onPreview,
     required this.onChanged,
   });
 
+  final bool isZh;
+  final bool dark;
+  final String slot;
   final String label;
   final Color color;
   final Color defaultColor;
-  final bool isModified;
-  final bool isZh;
+  final bool customized;
+  final ValueChanged<Color?> onPreview;
   final ValueChanged<Color?> onChanged;
 
   @override
@@ -1835,29 +2072,41 @@ class _PaletteColorPill extends StatefulWidget {
 class _PaletteColorPillState extends State<_PaletteColorPill> {
   bool _hover = false;
 
-  void _applyNormalized(Color picked) {
-    widget.onChanged(
-      picked.toARGB32() == widget.defaultColor.toARGB32() ? null : picked,
-    );
-  }
-
   Future<void> _editColor() async {
-    final beforeColor = widget.color;
-    final wasModified = widget.isModified;
-    final accepted = await showDialog<bool>(
+    final beforeColor = widget.customized ? widget.color : null;
+    final result = await showDialog<_ColorPickerOutcome>(
       context: context,
       barrierColor: const Color(0x4D000000),
-      builder: (ctx) => _ColorPickerDialog(
+      builder: (context) => _ColorPickerDialog(
+        isZh: widget.isZh,
+        dark: widget.dark,
+        slot: widget.slot,
         label: widget.label,
         initialColor: widget.color,
         defaultColor: widget.defaultColor,
-        isZh: widget.isZh,
-        onPreview: _applyNormalized,
+        onPreview: (picked) {
+          final normalized =
+              picked.toARGB32() == widget.defaultColor.toARGB32()
+              ? null
+              : picked;
+          widget.onPreview(normalized);
+        },
       ),
     );
-    if (accepted != true) {
-      // Cancelled or dismissed outside: revert live preview to previous state.
-      widget.onChanged(wasModified ? beforeColor : null);
+    if (result == null) {
+      // Cancelled -> revert live preview back to the state before opening.
+      widget.onPreview(beforeColor);
+      return;
+    }
+    if (result.reset) {
+      widget.onChanged(null);
+      return;
+    }
+    final chosen = result.color;
+    if (chosen != null) {
+      widget.onChanged(
+        chosen.toARGB32() == widget.defaultColor.toARGB32() ? null : chosen,
+      );
     }
   }
 
@@ -1866,105 +2115,92 @@ class _PaletteColorPillState extends State<_PaletteColorPill> {
     final hex = ThemePaletteOverrides.toHex(widget.color).substring(1);
     final pillFill = AppColors.text.withValues(alpha: 0.05);
     final pillHoverFill = AppColors.text.withValues(alpha: 0.09);
-    final pillBorder = widget.isModified
-        ? AppColors.accent.withValues(alpha: 0.40)
+    final pillBorder = widget.customized
+        ? AppColors.accent.withValues(alpha: 0.45)
         : AppColors.text.withValues(alpha: 0.10);
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        if (widget.isModified) ...[
-          Tooltip(
-            message: widget.isZh ? '恢复默认颜色' : 'Reset to default',
-            child: GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onTap: () => widget.onChanged(null),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
-                child: Icon(
-                  Icons.replay_rounded,
-                  size: 13.5,
-                  color: AppColors.textMuted,
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      onEnter: (_) => setState(() => _hover = true),
+      onExit: (_) => setState(() => _hover = false),
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: _editColor,
+        child: Container(
+          height: 28,
+          padding: const EdgeInsets.only(left: 7, right: 12),
+          decoration: BoxDecoration(
+            color: _hover ? pillHoverFill : pillFill,
+            borderRadius: BorderRadius.circular(999),
+            border: Border.all(color: pillBorder),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 16,
+                height: 16,
+                decoration: BoxDecoration(
+                  color: widget.color,
+                  borderRadius: BorderRadius.circular(4),
+                  border: Border.all(
+                    color: AppColors.text.withValues(alpha: 0.16),
+                  ),
                 ),
               ),
-            ),
-          ),
-          const SizedBox(width: 2),
-        ],
-        MouseRegion(
-          cursor: SystemMouseCursors.click,
-          onEnter: (_) => setState(() => _hover = true),
-          onExit: (_) => setState(() => _hover = false),
-          child: GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTap: _editColor,
-            child: Container(
-              height: 28,
-              padding: const EdgeInsets.only(left: 7, right: 12),
-              decoration: BoxDecoration(
-                color: _hover ? pillHoverFill : pillFill,
-                borderRadius: BorderRadius.circular(999),
-                border: Border.all(color: pillBorder),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(
-                    width: 16,
-                    height: 16,
-                    decoration: BoxDecoration(
-                      color: widget.color,
-                      borderRadius: BorderRadius.circular(4),
-                      border: Border.all(
-                        color: AppColors.text.withValues(alpha: 0.16),
+              const SizedBox(width: 8),
+              Text.rich(
+                TextSpan(
+                  children: [
+                    TextSpan(
+                      text: '# ',
+                      style: TextStyle(
+                        color: AppColors.textMuted,
+                        fontSize: 12.5,
                       ),
                     ),
-                  ),
-                  const SizedBox(width: 8),
-                  Text.rich(
                     TextSpan(
-                      children: [
-                        TextSpan(
-                          text: '# ',
-                          style: TextStyle(
-                            color: AppColors.textMuted,
-                            fontSize: 12.5,
-                          ),
-                        ),
-                        TextSpan(
-                          text: hex,
-                          style: TextStyle(
-                            color: AppColors.text,
-                            fontSize: 12.5,
-                            fontWeight: FontWeight.w500,
-                            fontFeatures: const [FontFeature.tabularFigures()],
-                          ),
-                        ),
-                      ],
+                      text: hex,
+                      style: TextStyle(
+                        color: AppColors.text,
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w500,
+                        fontFeatures: const [FontFeature.tabularFigures()],
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
+            ],
           ),
         ),
-      ],
+      ),
     );
   }
 }
 
+class _ColorPickerOutcome {
+  const _ColorPickerOutcome({this.color, this.reset = false});
+  final Color? color;
+  final bool reset;
+}
+
 class _ColorPickerDialog extends StatefulWidget {
   const _ColorPickerDialog({
+    required this.isZh,
+    required this.dark,
+    required this.slot,
     required this.label,
     required this.initialColor,
     required this.defaultColor,
-    required this.isZh,
     required this.onPreview,
   });
 
+  final bool isZh;
+  final bool dark;
+  final String slot;
   final String label;
   final Color initialColor;
   final Color defaultColor;
-  final bool isZh;
   final ValueChanged<Color> onPreview;
 
   @override
@@ -1972,25 +2208,6 @@ class _ColorPickerDialog extends StatefulWidget {
 }
 
 class _ColorPickerDialogState extends State<_ColorPickerDialog> {
-  static const _swatches = <Color>[
-    Color(0xFFFAF9F5),
-    Color(0xFFF6F3EB),
-    Color(0xFFEFEEEA),
-    Color(0xFFFFFFFF),
-    Color(0xFFF3F4F6),
-    Color(0xFFFDF6E3),
-    Color(0xFF1F1E1D),
-    Color(0xFF18181B),
-    Color(0xFF141413),
-    Color(0xFF252421),
-    Color(0xFFE6E3DC),
-    Color(0xFFCF795A),
-    Color(0xFF2860E8),
-    Color(0xFF0D9488),
-    Color(0xFF7C3AED),
-    Color(0xFF9E2825),
-  ];
-
   late HSVColor _hsv = HSVColor.fromColor(widget.initialColor);
   late final TextEditingController _hexController = TextEditingController(
     text: ThemePaletteOverrides.toHex(widget.initialColor).substring(1),
@@ -2003,36 +2220,102 @@ class _ColorPickerDialogState extends State<_ColorPickerDialog> {
     super.dispose();
   }
 
-  void _setHsv(HSVColor next) {
+  List<Color> _swatches() {
+    return switch ((widget.dark, widget.slot)) {
+      (
+        false,
+        ThemePaletteOverrides.slotBackground ||
+            ThemePaletteOverrides.slotSidebar ||
+            ThemePaletteOverrides.slotCard,
+      ) =>
+        const [
+          Color(0xFFFFFFFF),
+          Color(0xFFFAF9F5),
+          Color(0xFFF6F5F0),
+          Color(0xFFEFEEEA),
+          Color(0xFFEBE8E0),
+          Color(0xFFFDFBF7),
+          Color(0xFFF7F8FA),
+          Color(0xFFEEF1F5),
+          Color(0xFFF4F7F4),
+          Color(0xFFE8EFE9),
+          Color(0xFFFBF7F2),
+          Color(0xFFF3ECE4),
+        ],
+      (
+        true,
+        ThemePaletteOverrides.slotBackground ||
+            ThemePaletteOverrides.slotSidebar ||
+            ThemePaletteOverrides.slotCard,
+      ) =>
+        const [
+          Color(0xFF121212),
+          Color(0xFF161615),
+          Color(0xFF1D1C1A),
+          Color(0xFF252421),
+          Color(0xFF2D2C28),
+          Color(0xFF0F1115),
+          Color(0xFF161920),
+          Color(0xFF1E222B),
+          Color(0xFF141816),
+          Color(0xFF1B211E),
+          Color(0xFF1C191F),
+          Color(0xFF26212B),
+        ],
+      (_, ThemePaletteOverrides.slotForeground) => const [
+        Color(0xFF181817),
+        Color(0xFF2B2A28),
+        Color(0xFF334155),
+        Color(0xFF3F3D39),
+        Color(0xFFE6E3DC),
+        Color(0xFFF3F2EE),
+        Color(0xFFE2E8F0),
+        Color(0xFFFFFFFF),
+      ],
+      _ => const [
+        Color(0xFF9E2825),
+        Color(0xFFC2410C),
+        Color(0xFFD97757),
+        Color(0xFFB45309),
+        Color(0xFF15803D),
+        Color(0xFF0F766E),
+        Color(0xFF2B6CB0),
+        Color(0xFF2563EB),
+        Color(0xFF4F46E5),
+        Color(0xFF7C3AED),
+        Color(0xFFBE185D),
+        Color(0xFFE599F7),
+      ],
+    };
+  }
+
+  void _setHsv(HSVColor next, {bool syncHex = true}) {
     final color = next.toColor();
     setState(() => _hsv = next);
-    _updatingText = true;
-    final hex = ThemePaletteOverrides.toHex(color).substring(1);
-    if (_hexController.text.toUpperCase() != hex) {
-      _hexController.value = TextEditingValue(
-        text: hex,
-        selection: TextSelection.collapsed(offset: hex.length),
-      );
+    if (syncHex) {
+      _updatingText = true;
+      _hexController.text = ThemePaletteOverrides.toHex(color).substring(1);
+      _updatingText = false;
     }
-    _updatingText = false;
     widget.onPreview(color);
   }
 
   void _setColor(Color color) => _setHsv(HSVColor.fromColor(color));
 
-  void _onHexEdited(String raw) {
+  void _onHexChanged(String text) {
     if (_updatingText) return;
-    final parsed = ThemePaletteOverrides.parseHex(raw);
+    final parsed = ThemePaletteOverrides.parseHex(text);
     if (parsed != null) {
-      setState(() => _hsv = HSVColor.fromColor(parsed));
-      widget.onPreview(parsed);
+      _setHsv(HSVColor.fromColor(parsed), syncHex: false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final isZh = widget.isZh;
     final currentColor = _hsv.toColor();
-    final z = widget.isZh;
+    final swatches = _swatches();
+
     return Dialog(
       backgroundColor: AppColors.surface,
       shape: RoundedRectangleBorder(
@@ -2040,7 +2323,7 @@ class _ColorPickerDialogState extends State<_ColorPickerDialog> {
         side: BorderSide(color: AppColors.border),
       ),
       child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 316),
+        constraints: const BoxConstraints(maxWidth: 320),
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Column(
@@ -2052,11 +2335,9 @@ class _ColorPickerDialogState extends State<_ColorPickerDialog> {
                   Expanded(
                     child: Text(
                       widget.label,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         color: AppColors.textPrimary,
-                        fontSize: 13.5,
+                        fontSize: 14,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -2075,36 +2356,75 @@ class _ColorPickerDialogState extends State<_ColorPickerDialog> {
                 ],
               ),
               const SizedBox(height: 12),
-              // 2D Saturation / Value canvas.
+              // 2D Saturation / Value canvas
               SizedBox(
-                height: 148,
+                height: 150,
                 width: double.infinity,
-                child: _SatValBox(
-                  hsv: _hsv,
-                  onChanged: _setHsv,
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    void pickAt(Offset local) {
+                      final s = (local.dx / constraints.maxWidth).clamp(
+                        0.0,
+                        1.0,
+                      );
+                      final v = (1.0 - local.dy / constraints.maxHeight).clamp(
+                        0.0,
+                        1.0,
+                      );
+                      _setHsv(_hsv.withSaturation(s).withValue(v));
+                    }
+
+                    return GestureDetector(
+                      onPanDown: (d) => pickAt(d.localPosition),
+                      onPanUpdate: (d) => pickAt(d.localPosition),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: CustomPaint(
+                          painter: _SaturationValuePainter(hsv: _hsv),
+                        ),
+                      ),
+                    );
+                  },
                 ),
               ),
               const SizedBox(height: 10),
-              // Hue slider bar.
+              // Hue slider bar
               SizedBox(
                 height: 16,
                 width: double.infinity,
-                child: _HueStrip(
-                  hue: _hsv.hue,
-                  onChanged: (hue) => _setHsv(_hsv.withHue(hue)),
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    void pickHue(Offset local) {
+                      final h = ((local.dx / constraints.maxWidth).clamp(
+                        0.0,
+                        1.0,
+                      )) *
+                          360.0;
+                      _setHsv(_hsv.withHue(h < 360 ? h : 0));
+                    }
+
+                    return GestureDetector(
+                      onPanDown: (d) => pickHue(d.localPosition),
+                      onPanUpdate: (d) => pickHue(d.localPosition),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(999),
+                        child: CustomPaint(painter: _HueBarPainter(hue: _hsv.hue)),
+                      ),
+                    );
+                  },
                 ),
               ),
               const SizedBox(height: 12),
-              // Quick preset swatches.
+              // Quick preset swatches
               Wrap(
-                spacing: 6,
-                runSpacing: 6,
+                spacing: 7,
+                runSpacing: 7,
                 children: [
-                  for (final swatch in _swatches)
-                    GestureDetector(
-                      onTap: () => _setColor(swatch),
-                      child: MouseRegion(
-                        cursor: SystemMouseCursors.click,
+                  for (final swatch in swatches)
+                    MouseRegion(
+                      cursor: SystemMouseCursors.click,
+                      child: GestureDetector(
+                        onTap: () => _setColor(swatch),
                         child: Container(
                           width: 20,
                           height: 20,
@@ -2128,64 +2448,51 @@ class _ColorPickerDialogState extends State<_ColorPickerDialog> {
                 ],
               ),
               const SizedBox(height: 12),
+              // Hex input
               TextField(
                 controller: _hexController,
-                onChanged: _onHexEdited,
                 style: TextStyle(
                   color: AppColors.text,
                   fontFamily: AppFonts.mono,
                   fontFamilyFallback: AppFonts.monoFallbacks,
                   fontSize: 13,
                 ),
-                decoration: InputDecoration(
-                  prefixText: '# ',
-                  prefixStyle: TextStyle(
-                    color: AppColors.textMuted,
-                    fontFamily: AppFonts.mono,
-                    fontSize: 13,
-                  ),
-                  isDense: true,
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 8,
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    borderSide: BorderSide(color: AppColors.borderStrong),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    borderSide: BorderSide(color: AppColors.accent),
-                  ),
-                ),
+                decoration: _dialogInputDecoration(prefixText: '# '),
+                onChanged: _onHexChanged,
                 onSubmitted: (value) {
                   final parsed = ThemePaletteOverrides.parseHex(value);
-                  if (parsed != null) widget.onPreview(parsed);
-                  Navigator.pop(context, true);
+                  Navigator.pop(
+                    context,
+                    _ColorPickerOutcome(color: parsed ?? currentColor),
+                  );
                 },
               ),
               const SizedBox(height: 14),
               Row(
                 children: [
-                  _DialogActionButton(
-                    label: z ? '恢复默认' : 'Reset',
-                    onTap: () => _setColor(widget.defaultColor),
+                  _DialogTextButton(
+                    label: isZh ? '恢复默认' : 'Reset',
+                    onTap: () => Navigator.pop(
+                      context,
+                      const _ColorPickerOutcome(reset: true),
+                    ),
                   ),
                   const Spacer(),
-                  _DialogActionButton(
-                    label: z ? '取消' : 'Cancel',
-                    onTap: () => Navigator.pop(context, false),
+                  _DialogTextButton(
+                    label: isZh ? '取消' : 'Cancel',
+                    onTap: () => Navigator.pop(context),
                   ),
                   const SizedBox(width: 6),
-                  _DialogActionButton(
-                    label: z ? '完成' : 'Apply',
-                    primary: true,
+                  _DialogPrimaryButton(
+                    label: isZh ? '保存' : 'Save',
                     onTap: () {
                       final parsed = ThemePaletteOverrides.parseHex(
                         _hexController.text,
                       );
-                      if (parsed != null) widget.onPreview(parsed);
-                      Navigator.pop(context, true);
+                      Navigator.pop(
+                        context,
+                        _ColorPickerOutcome(color: parsed ?? currentColor),
+                      );
                     },
                   ),
                 ],
@@ -2198,44 +2505,8 @@ class _ColorPickerDialogState extends State<_ColorPickerDialog> {
   }
 }
 
-class _SatValBox extends StatelessWidget {
-  const _SatValBox({required this.hsv, required this.onChanged});
-
-  final HSVColor hsv;
-  final ValueChanged<HSVColor> onChanged;
-
-  void _handle(Offset local, Size size) {
-    final s = (local.dx / size.width).clamp(0.0, 1.0);
-    final v = (1.0 - local.dy / size.height).clamp(0.0, 1.0);
-    onChanged(hsv.withSaturation(s).withValue(v));
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final size = Size(constraints.maxWidth, constraints.maxHeight);
-        return GestureDetector(
-          onPanDown: (d) => _handle(d.localPosition, size),
-          onPanUpdate: (d) => _handle(d.localPosition, size),
-          child: MouseRegion(
-            cursor: SystemMouseCursors.precise,
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(8),
-              child: CustomPaint(
-                size: size,
-                painter: _SatValPainter(hsv),
-              ),
-            ),
-          ),
-        );
-      },
-    );
-  }
-}
-
-class _SatValPainter extends CustomPainter {
-  const _SatValPainter(this.hsv);
+class _SaturationValuePainter extends CustomPainter {
+  const _SaturationValuePainter({required this.hsv});
 
   final HSVColor hsv;
 
@@ -2247,7 +2518,7 @@ class _SatValPainter extends CustomPainter {
       rect,
       Paint()
         ..shader = LinearGradient(
-          colors: [Colors.white, pureHue],
+          colors: [const Color(0xFFFFFFFF), pureHue],
         ).createShader(rect),
     );
     canvas.drawRect(
@@ -2256,9 +2527,10 @@ class _SatValPainter extends CustomPainter {
         ..shader = const LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-          colors: [Colors.transparent, Colors.black],
+          colors: [Color(0x00000000), Color(0xFF000000)],
         ).createShader(rect),
     );
+
     final knob = Offset(
       hsv.saturation * size.width,
       (1.0 - hsv.value) * size.height,
@@ -2267,69 +2539,35 @@ class _SatValPainter extends CustomPainter {
       knob,
       6.5,
       Paint()
-        ..color = Colors.black.withValues(alpha: 0.35)
+        ..color = const Color(0x99000000)
         ..style = PaintingStyle.stroke
         ..strokeWidth = 2.5,
     );
     canvas.drawCircle(
       knob,
-      6.0,
+      6.5,
       Paint()
-        ..color = Colors.white
+        ..color = const Color(0xFFFFFFFF)
         ..style = PaintingStyle.stroke
-        ..strokeWidth = 2.0,
+        ..strokeWidth = 1.6,
     );
   }
 
   @override
-  bool shouldRepaint(_SatValPainter oldDelegate) => oldDelegate.hsv != hsv;
+  bool shouldRepaint(covariant _SaturationValuePainter oldDelegate) =>
+      oldDelegate.hsv != hsv;
 }
 
-class _HueStrip extends StatelessWidget {
-  const _HueStrip({required this.hue, required this.onChanged});
-
-  final double hue;
-  final ValueChanged<double> onChanged;
-
-  void _handle(Offset local, double width) {
-    final h = ((local.dx / width).clamp(0.0, 1.0) * 360.0).clamp(0.0, 359.9);
-    onChanged(h);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final width = constraints.maxWidth;
-        return GestureDetector(
-          onPanDown: (d) => _handle(d.localPosition, width),
-          onPanUpdate: (d) => _handle(d.localPosition, width),
-          child: MouseRegion(
-            cursor: SystemMouseCursors.click,
-            child: CustomPaint(
-              size: Size(width, constraints.maxHeight),
-              painter: _HueStripPainter(hue),
-            ),
-          ),
-        );
-      },
-    );
-  }
-}
-
-class _HueStripPainter extends CustomPainter {
-  const _HueStripPainter(this.hue);
+class _HueBarPainter extends CustomPainter {
+  const _HueBarPainter({required this.hue});
 
   final double hue;
 
   @override
   void paint(Canvas canvas, Size size) {
-    final track = RRect.fromRectAndRadius(
-      Rect.fromLTWH(0, 3, size.width, size.height - 6),
-      const Radius.circular(999),
-    );
-    canvas.drawRRect(
-      track,
+    final rect = Offset.zero & size;
+    canvas.drawRect(
+      rect,
       Paint()
         ..shader = const LinearGradient(
           colors: [
@@ -2341,23 +2579,29 @@ class _HueStripPainter extends CustomPainter {
             Color(0xFFFF00FF),
             Color(0xFFFF0000),
           ],
-        ).createShader(Offset.zero & size),
+        ).createShader(rect),
     );
-    final x = (hue / 360.0).clamp(0.0, 1.0) * size.width;
+    final x = ((hue / 360.0).clamp(0.0, 1.0)) * size.width;
     final center = Offset(x.clamp(6.0, size.width - 6.0), size.height / 2);
     canvas.drawCircle(
       center,
       6.5,
-      Paint()..color = Colors.black.withValues(alpha: 0.28),
+      Paint()
+        ..color = const Color(0x88000000)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 2.4,
     );
-    canvas.drawCircle(center, 5.5, Paint()..color = Colors.white);
     canvas.drawCircle(
       center,
-      3.5,
-      Paint()..color = HSVColor.fromAHSV(1, hue, 1, 1).toColor(),
+      6.5,
+      Paint()
+        ..color = const Color(0xFFFFFFFF)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.8,
     );
   }
 
   @override
-  bool shouldRepaint(_HueStripPainter oldDelegate) => oldDelegate.hue != hue;
+  bool shouldRepaint(covariant _HueBarPainter oldDelegate) =>
+      oldDelegate.hue != hue;
 }

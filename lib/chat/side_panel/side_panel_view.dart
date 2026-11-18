@@ -171,6 +171,7 @@ class AgentSidePanelArea extends StatefulWidget {
 
 class _AgentSidePanelAreaState extends State<AgentSidePanelArea> {
   bool _dragging = false;
+  bool _railHovered = false;
   ({double x, double width})? _dragStart;
 
   /// Whether it is over the conversations: once the room was short for
@@ -264,6 +265,7 @@ class _AgentSidePanelAreaState extends State<AgentSidePanelArea> {
         final sashWidth = islands ? AgentSidePanelArea.sashWidth : 1.0;
         final room = constraints.maxWidth;
         final shown = _shownHere && !widget.hidden;
+        if (shown && _railHovered) _railHovered = false;
         // Over the conversations only where it cannot be beside them at
         // its least; else beside them, narrower than it would be where
         // they need the room.
@@ -355,18 +357,29 @@ class _AgentSidePanelAreaState extends State<AgentSidePanelArea> {
                 if (rail)
                   Positioned(
                     key: const ValueKey('rail'),
-                    left: atLeft
-                        ? (beside ? animatedExtent : 0) +
-                              AgentSidePanelArea.railRight
-                        : null,
-                    right: atLeft
-                        ? null
-                        : (beside ? animatedExtent : 0) +
-                              AgentSidePanelArea.railRight,
-                    top: widget.railTop ?? defaultRailTop,
-                    child: Opacity(
-                      opacity: (1.0 - t * 2.5).clamp(0.0, 1.0),
-                      child: widget.rail!,
+                    left: atLeft ? (beside ? animatedExtent : 0) : null,
+                    right: atLeft ? null : (beside ? animatedExtent : 0),
+                    top: (widget.railTop ?? defaultRailTop) - 10,
+                    child: MouseRegion(
+                      onEnter: (_) => setState(() => _railHovered = true),
+                      onExit: (_) => setState(() => _railHovered = false),
+                      hitTestBehavior: HitTestBehavior.translucent,
+                      child: Padding(
+                        padding: EdgeInsets.only(
+                          left: atLeft ? AgentSidePanelArea.railRight : 12,
+                          right: atLeft ? 12 : AgentSidePanelArea.railRight,
+                          top: 10,
+                          bottom: 14,
+                        ),
+                        child: AnimatedOpacity(
+                          opacity: _railHovered
+                              ? (1.0 - t * 2.5).clamp(0.0, 1.0)
+                              : 0.0,
+                          duration: const Duration(milliseconds: 150),
+                          curve: Curves.easeOutCubic,
+                          child: widget.rail!,
+                        ),
+                      ),
                     ),
                   ),
                 if (panelVisible) ...[
@@ -704,6 +717,7 @@ class AgentSidePanelView extends StatelessWidget {
     ]),
     builder: (context, _) {
       final tabs = panel.tabsOf(session);
+      final shownSection = panel.resolveShownSection(tabs);
       // Its pages' tabs on the window's color, along its top as the
       // conversation's title bar is; the page on a card under them.
       final islands = Islands.on(context);
@@ -711,7 +725,10 @@ class AgentSidePanelView extends StatelessWidget {
         tabsHeight: AppMetrics.titleBarHeight,
         color: AppColors.code,
         // The Git log its own cards.
-        card: !islands || tabs.shown != SidePanelSection.changes || _git == null,
+        card:
+            !islands ||
+            shownSection != SidePanelSection.changes ||
+            _git == null,
         tabs: _SectionBar(
           panel: panel,
           session: session,
@@ -721,7 +738,7 @@ class AgentSidePanelView extends StatelessWidget {
           leading: leading,
           windowTitleBar: windowTitleBar,
         ),
-        body: switch (tabs.shown) {
+        body: switch (shownSection) {
           SidePanelSection.files => _filesPage(context, tabs),
           SidePanelSection.changes => _changesPage(context, tabs),
           SidePanelSection.terminal => _terminalPage(context, tabs),
@@ -1531,16 +1548,70 @@ bool _usageOffered(ChatSession? session, {SidePanelSection? picked}) {
   return ledger.hasCalls(id) || ledger.underway(id).isNotEmpty;
 }
 
+void _showSidePanelSectionsMenu(
+  BuildContext context, {
+  required Rect anchor,
+  required AgentSidePanel panel,
+  required ChatSession? session,
+}) {
+  final isZh = Localizations.maybeLocaleOf(context)?.languageCode == 'zh';
+  final shown = session == null
+      ? null
+      : panel.resolveShownSection(panel.tabsOf(session));
+  final enabledCount = panel.enabledSections.length;
+  unawaited(
+    showIdeMenu(
+      context,
+      anchor: anchor,
+      entries: ideMenuGroups([
+        [
+          for (final section in alwaysShownSections)
+            IdeMenuAction(
+              section.label(context),
+              checked:
+                  panel.isSectionEnabled(section) &&
+                  (panel.sectionsCustomized ||
+                      section != SidePanelSection.usage ||
+                      _usageOffered(session, picked: shown)),
+              enabled: !panel.isSectionEnabled(section) || enabledCount > 1,
+              onSelected: () {
+                final currentlyShown =
+                    panel.isSectionEnabled(section) &&
+                    (panel.sectionsCustomized ||
+                        section != SidePanelSection.usage ||
+                        _usageOffered(session, picked: shown));
+                panel.setSectionEnabled(
+                  section,
+                  !currentlyShown,
+                  conversation: session,
+                );
+              },
+            ),
+        ],
+        if (panel.sectionsCustomized)
+          [
+            IdeMenuAction(
+              isZh ? '恢复默认标签' : 'Reset Default Tabs',
+              onSelected: panel.resetEnabledSections,
+            ),
+          ],
+      ]),
+    ),
+  );
+}
+
 /// The window's quick entries, just below the conversation title bar.
 class SidePanelRail extends StatelessWidget {
   const SidePanelRail({
     super.key,
     required this.onSelect,
+    this.panel,
     this.session,
     this.gits = const [],
   });
 
   final ValueChanged<SidePanelSection> onSelect;
+  final AgentSidePanel? panel;
 
   /// The conversation focused: its background commands running are
   /// counted on the terminal's button.
@@ -1574,67 +1645,91 @@ class SidePanelRail extends StatelessWidget {
   /// Across, its border too.
   static const width = _button + 2 * _padding + 2;
 
+  List<SidePanelSection> _visibleSections() {
+    final p = panel;
+    final base = p?.enabledSections ?? alwaysShownSections;
+    final customized = p?.sectionsCustomized ?? false;
+    return [
+      for (final section in base)
+        if (customized ||
+            section != SidePanelSection.usage ||
+            _usageOffered(session))
+          section,
+      if (_portsHost(session) != null) SidePanelSection.ports,
+    ];
+  }
+
   @override
   Widget build(BuildContext context) => ListenableBuilder(
-    listenable: Listenable.merge([?session, ...gits, UsageLedger.current]),
-    builder: (context, _) => Container(
-      key: const ValueKey('side-panel-rail'),
-      width: width,
-      padding: const EdgeInsets.symmetric(
-        horizontal: _padding,
-        vertical: _padding + 2,
-      ),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        border: Border.all(color: AppColors.partBorder),
-        borderRadius: BorderRadius.circular(10),
-        boxShadow: themeColors.dark
-            ? null
-            : const [
-                BoxShadow(
-                  color: Color(0x08000000),
-                  blurRadius: 6,
-                  offset: Offset(0, 2),
-                ),
-              ],
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          for (final (i, section) in [
-            for (final section in alwaysShownSections)
-              if (section != SidePanelSection.usage || _usageOffered(session))
-                section,
-            if (_portsHost(session) != null) SidePanelSection.ports,
-          ].indexed) ...[
-            if (i > 0) const SizedBox(height: _gap),
-            Stack(
-              clipBehavior: Clip.none,
-              children: [
-                SidebarIconButton(
-                  icon: section.icon,
-                  tooltip: section.label(context),
-                  command: section.command,
-                  size: _button,
-                  onTap: () => onSelect(section),
-                ),
-                // At its top right corner, compact and ringed so it does not
-                // obscure the icon underneath or spill past the rail.
-                if (_count(section) case final count when count > 0)
-                  Positioned(
-                    top: -4,
-                    right: -3,
-                    child: IgnorePointer(
-                      child: _RailBadge(
-                        count,
-                        key: ValueKey(('rail', section)),
+    listenable: Listenable.merge([
+      ?panel,
+      ?session,
+      ...gits,
+      UsageLedger.current,
+    ]),
+    builder: (context, _) => GestureDetector(
+      onSecondaryTapUp: panel == null
+          ? null
+          : (details) => _showSidePanelSectionsMenu(
+              context,
+              anchor: details.globalPosition & const Size(1, 1),
+              panel: panel!,
+              session: session,
+            ),
+      child: Container(
+        key: const ValueKey('side-panel-rail'),
+        width: width,
+        padding: const EdgeInsets.symmetric(
+          horizontal: _padding,
+          vertical: _padding + 2,
+        ),
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          border: Border.all(color: AppColors.partBorder),
+          borderRadius: BorderRadius.circular(10),
+          boxShadow: themeColors.dark
+              ? null
+              : const [
+                  BoxShadow(
+                    color: Color(0x08000000),
+                    blurRadius: 6,
+                    offset: Offset(0, 2),
+                  ),
+                ],
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            for (final (i, section) in _visibleSections().indexed) ...[
+              if (i > 0) const SizedBox(height: _gap),
+              Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  SidebarIconButton(
+                    icon: section.icon,
+                    tooltip: section.label(context),
+                    command: section.command,
+                    size: _button,
+                    onTap: () => onSelect(section),
+                  ),
+                  // At its top right corner, compact and ringed so it does not
+                  // obscure the icon underneath or spill past the rail.
+                  if (_count(section) case final count when count > 0)
+                    Positioned(
+                      top: -4,
+                      right: -3,
+                      child: IgnorePointer(
+                        child: _RailBadge(
+                          count,
+                          key: ValueKey(('rail', section)),
+                        ),
                       ),
                     ),
-                  ),
-              ],
-            ),
+                ],
+              ),
+            ],
           ],
-        ],
+        ),
       ),
     ),
   );
@@ -1703,19 +1798,24 @@ class _SectionBar extends StatelessWidget {
   /// How many files Git has changed.
   final int changes;
 
-  /// Moving the panel and the close button, at the right.
-  static const _actionsWidth = 2 * 22.0 + 2 + 6;
+  /// Add/manage tabs button + Maximize + Collapse buttons, at the right.
+  static const _actionsWidth = 3 * 22.0 + 6 + 2 + 6;
 
-  /// The pages there: the usage's once a call of the conversation is kept,
-  /// the plan's once there is one.
-  List<SidePanelSection> get _sections => [
-    for (final section in alwaysShownSections)
-      if (section != SidePanelSection.usage ||
-          _usageOffered(session, picked: tabs.section))
-        section,
-    if (tabs.plan != null) SidePanelSection.plan,
-    if (_portsHost(session) != null) SidePanelSection.ports,
-  ];
+  /// The pages there: user-enabled sections (with usage shown once offered or
+  /// explicitly customized), plus plan and ports when active.
+  List<SidePanelSection> get _sections {
+    final shown = panel.resolveShownSection(tabs);
+    final list = <SidePanelSection>[
+      for (final section in panel.enabledSections)
+        if (panel.sectionsCustomized ||
+            section != SidePanelSection.usage ||
+            _usageOffered(session, picked: shown))
+          section,
+      if (tabs.plan != null) SidePanelSection.plan,
+      if (_portsHost(session) != null) SidePanelSection.ports,
+    ];
+    return list.isEmpty ? [SidePanelSection.files] : list;
+  }
 
   /// What the tabs of [sections] take with their names (see
   /// [_SectionTab]), with [counts] by page: more than that, they show only
@@ -1723,8 +1823,9 @@ class _SectionBar extends StatelessWidget {
   static double _fullWidth(
     BuildContext context,
     List<SidePanelSection> sections,
-    Map<SidePanelSection, int> counts,
-  ) {
+    Map<SidePanelSection, int> counts, {
+    required bool removable,
+  }) {
     final inherited = DefaultTextStyle.of(context).style;
     final scaler = MediaQuery.textScalerOf(context);
     double measure(String text, TextStyle style) {
@@ -1748,6 +1849,7 @@ class _SectionBar extends StatelessWidget {
           _SectionTab.iconSize +
           _SectionTab.gap +
           measure(section.label(context), _SectionTab.labelStyle) +
+          (removable && alwaysShownSections.contains(section) ? 16.0 : 0.0) +
           _SectionTab.spacing;
       final count = counts[section] ?? 0;
       if (count > 0) {
@@ -1765,6 +1867,7 @@ class _SectionBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
+    final isZh = Localizations.maybeLocaleOf(context)?.languageCode == 'zh';
     final running = session.terminalTasks
         .where((task) => task.status == CommandStatus.running)
         .length;
@@ -1776,13 +1879,22 @@ class _SectionBar extends StatelessWidget {
       child: LayoutBuilder(
         builder: (context, constraints) {
           final sections = _sections;
-          final shown = tabs.shown;
+          final shown = panel.resolveShownSection(tabs);
+          final removableCount = sections
+              .where(alwaysShownSections.contains)
+              .length;
+          final canRemove = removableCount > 1;
           final compact =
               constraints.maxWidth <
-              _fullWidth(context, sections, {
-                    SidePanelSection.changes: changes,
-                    SidePanelSection.terminal: running,
-                  }) +
+              _fullWidth(
+                    context,
+                    sections,
+                    {
+                      SidePanelSection.changes: changes,
+                      SidePanelSection.terminal: running,
+                    },
+                    removable: canRemove,
+                  ) +
                   _actionsWidth +
                   inset +
                   (leading == null ? 0 : _leadingWidth);
@@ -1817,9 +1929,42 @@ class _SectionBar extends StatelessWidget {
                     SidePanelSection.terminal => running,
                   },
                   onTap: () => panel.showSection(session, section),
+                  onRemove:
+                      canRemove && alwaysShownSections.contains(section)
+                      ? () => panel.setSectionEnabled(
+                          section,
+                          false,
+                          conversation: session,
+                        )
+                      : null,
+                  onContextMenu: (anchor) => _showSidePanelSectionsMenu(
+                    context,
+                    anchor: anchor,
+                    panel: panel,
+                    session: session,
+                  ),
                 ),
               ],
-              const SizedBox(width: _SectionTab.spacing),
+              const SizedBox(width: 4),
+              Center(
+                child: Builder(
+                  builder: (buttonContext) => IdeActionButton(
+                    key: const ValueKey('side-panel-manage-tabs'),
+                    icon: Codicons.add,
+                    tooltip: isZh ? '添加或移除面板标签' : 'Add or Remove Tabs',
+                    onPressed: () {
+                      final box =
+                          buttonContext.findRenderObject()! as RenderBox;
+                      _showSidePanelSectionsMenu(
+                        buttonContext,
+                        anchor: box.localToGlobal(Offset.zero) & box.size,
+                        panel: panel,
+                        session: session,
+                      );
+                    },
+                  ),
+                ),
+              ),
               const Spacer(),
               Center(
                 child: IdeActionButton(
@@ -1827,7 +1972,7 @@ class _SectionBar extends StatelessWidget {
                   icon: panel.maximized
                       ? Codicons.screenNormal
                       : Codicons.screenFull,
-                  tooltip: Localizations.localeOf(context).languageCode == 'zh'
+                  tooltip: isZh
                       ? (panel.maximized ? '还原大小' : '放到最大')
                       : (panel.maximized
                             ? 'Restore Panel Size'
@@ -1859,8 +2004,9 @@ class _SectionBar extends StatelessWidget {
 }
 
 /// A page's tab, a browser's (see [IslandTab]): its icon and name (the
-/// icon alone [compact]), with a count of what is in it.
-class _SectionTab extends StatelessWidget {
+/// icon alone [compact]), with a count of what is in it and an optional
+/// hover close button + right-click context menu.
+class _SectionTab extends StatefulWidget {
   const _SectionTab({
     required this.section,
     this.atStart = false,
@@ -1868,6 +2014,8 @@ class _SectionTab extends StatelessWidget {
     required this.compact,
     required this.count,
     required this.onTap,
+    this.onRemove,
+    this.onContextMenu,
   });
 
   final SidePanelSection section;
@@ -1878,6 +2026,8 @@ class _SectionTab extends StatelessWidget {
   final bool compact;
   final int count;
   final VoidCallback onTap;
+  final VoidCallback? onRemove;
+  final ValueChanged<Rect>? onContextMenu;
 
   static const padding = 12.0;
   static const iconSize = 13.0;
@@ -1889,33 +2039,101 @@ class _SectionTab extends StatelessWidget {
   static const labelStyle = TextStyle(fontSize: 12);
 
   @override
+  State<_SectionTab> createState() => _SectionTabState();
+}
+
+class _SectionTabState extends State<_SectionTab> {
+  bool _hovered = false;
+  bool _closeHovered = false;
+
+  @override
   Widget build(BuildContext context) {
+    final section = widget.section;
     final label = section.label(context);
-    final tab = IslandTab(
-      key: ValueKey(section),
-      active: selected,
-      atStart: atStart,
-      color: AppColors.code,
-      onTap: onTap,
-      builder: (context, foreground) => Padding(
-        padding: const EdgeInsets.symmetric(horizontal: padding),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            AppIcon(section.icon, size: iconSize, color: foreground),
-            if (!compact) ...[
-              const SizedBox(width: gap),
-              Text(
-                label,
-                maxLines: 1,
-                style: labelStyle.copyWith(color: foreground),
+    final showRemove = !widget.compact && widget.onRemove != null;
+    final tab = MouseRegion(
+      onEnter: (_) => setState(() => _hovered = true),
+      onExit: (_) => setState(() {
+        _hovered = false;
+        _closeHovered = false;
+      }),
+      child: GestureDetector(
+        onSecondaryTapUp: widget.onContextMenu == null
+            ? null
+            : (details) => widget.onContextMenu!(
+                details.globalPosition & const Size(1, 1),
               ),
-            ],
-            if (count > 0) ...[
-              const SizedBox(width: gap),
-              IdeTitleBadge(count),
-            ],
-          ],
+        child: IslandTab(
+          key: ValueKey(section),
+          active: widget.selected,
+          atStart: widget.atStart,
+          color: AppColors.code,
+          onTap: widget.onTap,
+          builder: (context, foreground) => Padding(
+            padding: EdgeInsets.only(
+              left: _SectionTab.padding,
+              right: showRemove ? 7.0 : _SectionTab.padding,
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                AppIcon(
+                  section.icon,
+                  size: _SectionTab.iconSize,
+                  color: foreground,
+                ),
+                if (!widget.compact) ...[
+                  const SizedBox(width: _SectionTab.gap),
+                  Text(
+                    label,
+                    maxLines: 1,
+                    style: _SectionTab.labelStyle.copyWith(color: foreground),
+                  ),
+                ],
+                if (widget.count > 0) ...[
+                  const SizedBox(width: _SectionTab.gap),
+                  IdeTitleBadge(widget.count),
+                ],
+                if (showRemove) ...[
+                  const SizedBox(width: 4),
+                  AnimatedOpacity(
+                    opacity: _hovered ? 1.0 : 0.0,
+                    duration: const Duration(milliseconds: 120),
+                    child: IgnorePointer(
+                      ignoring: !_hovered,
+                      child: MouseRegion(
+                        cursor: SystemMouseCursors.click,
+                        onEnter: (_) => setState(() => _closeHovered = true),
+                        onExit: (_) => setState(() => _closeHovered = false),
+                        child: GestureDetector(
+                          behavior: HitTestBehavior.opaque,
+                          onTap: widget.onRemove,
+                          child: Container(
+                            width: 15,
+                            height: 15,
+                            alignment: Alignment.center,
+                            decoration: BoxDecoration(
+                              color: _closeHovered
+                                  ? foreground.withValues(alpha: 0.14)
+                                  : Colors.transparent,
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Icon(
+                              Codicons.close,
+                              size: 11,
+                              color: foreground.withValues(
+                                alpha: _closeHovered ? 0.95 : 0.65,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
         ),
       ),
     );
@@ -1929,7 +2147,7 @@ class _SectionTab extends StatelessWidget {
       },
       child: Semantics(
         button: true,
-        selected: selected,
+        selected: widget.selected,
         label: label,
         child: tab,
       ),

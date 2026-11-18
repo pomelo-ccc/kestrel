@@ -717,21 +717,26 @@ class Workspace extends ChangeNotifier implements ColorThemeStorage {
         updatedAt: session.updatedAt,
         pinned: _pinned.contains(id),
         archived: _archived.contains(id),
-        open: () => ChatSession(
-          kernel: kernel,
-          kernels: kernels,
-          kernelContext: KernelContext(
-            cwd: session.cwd,
-            resume: session,
-            // As it was left, or as a new agent starts.
-            settings: _setUp(session.cwd, {
-              ..._preferredSettings,
-              ...?_agentSettings[session.id],
-            }),
-            workspace: () => _kernelWorkspace(session.cwd),
-          ),
-          historyCount: 0,
-        ),
+        open: () {
+          final agentKept = _agentSettings[session.id];
+          return ChatSession(
+            kernel: kernel,
+            kernels: kernels,
+            kernelContext: KernelContext(
+              cwd: session.cwd,
+              resume: session,
+              // As it was left, or as a new agent starts.
+              settings: _setUp(session.cwd, {
+                ..._preferredSettings,
+                ...?agentKept,
+                if (agentKept?[KernelChoiceKind.model.name] != null)
+                  '__explicitSessionModel': '1',
+              }),
+              workspace: () => _kernelWorkspace(session.cwd),
+            ),
+            historyCount: 0,
+          );
+        },
       ),
     );
   }
@@ -3082,6 +3087,7 @@ class Workspace extends ChangeNotifier implements ColorThemeStorage {
 
   final Map<AgentThread, VoidCallback> _listeners = {};
   final Map<AgentThread, _Snapshot> _snapshots = {};
+  final Set<AgentThread> _hydratingHistory = {};
 
   void _add(AgentThread thread) {
     _threads.add(thread);
@@ -3096,6 +3102,10 @@ class Workspace extends ChangeNotifier implements ColorThemeStorage {
     if (_names[thread.record?.id] case final name?) thread.session.rename(name);
     _followDraft(thread);
     thread._quietSince = DateTime.now();
+    if (thread.session.loadingHistory) {
+      _hydratingHistory.add(thread);
+    }
+    _snapshots[thread] = thread._snapshot;
     void listener() => _sync(thread);
     _listeners[thread] = listener;
     thread.session.addListener(listener);
@@ -3147,10 +3157,21 @@ class Workspace extends ChangeNotifier implements ColorThemeStorage {
     if (thread.pinned || thread.archived) _keepMarks(thread);
     final before = _snapshots[thread];
     final snapshot = thread._snapshot;
-    if (snapshot == before) return;
+    if (session.loadingHistory) {
+      _hydratingHistory.add(thread);
+      if (snapshot != before) {
+        _snapshots[thread] = snapshot;
+        notifyListeners();
+      }
+      return;
+    }
+    final justHydrated = _hydratingHistory.remove(thread);
+    if (snapshot == before && !justHydrated) return;
     var changed = _keepChoices(thread, snapshot);
     // Picked for an agent of the app's own (a bot's): its alone.
-    if (before != null && !isAppFolder(thread.project.path)) {
+    // Opening/hydrating a historical session's own model from disk must not
+    // overwrite the global default model for other sessions (`_settings`).
+    if (!justHydrated && before != null && !isAppFolder(thread.project.path)) {
       // Picked for this agent: the next new one starts with it too.
       if (before.kernel != snapshot.kernel) {
         _preferredKernel = thread.kernel;
@@ -3408,6 +3429,18 @@ class Workspace extends ChangeNotifier implements ColorThemeStorage {
   final List<AgentThread> _agentsBack = [];
   final List<AgentThread> _agentsForward = [];
   static const _agentsKept = 50;
+
+  bool _isValidHistoryTarget(AgentThread thread) =>
+      !identical(thread, _selected) &&
+      !thread.archived &&
+      _threads.contains(thread) &&
+      _projects.contains(thread.project);
+
+  /// Whether there is a previous agent in the navigation history.
+  bool get canNavigateBack => _agentsBack.any(_isValidHistoryTarget);
+
+  /// Whether there is a forward agent in the navigation history.
+  bool get canNavigateForward => _agentsForward.any(_isValidHistoryTarget);
 
   /// Selects the agent before, or (not [back]) the one gone back from; not
   /// those archived or deleted since. Whether there was one.

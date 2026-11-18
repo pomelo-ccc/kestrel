@@ -230,6 +230,7 @@ class ComposerPickerState extends State<ComposerPicker> {
         selection: TextSelection.collapsed(offset: query.length),
       );
     }
+    _cancelSwitch();
     _settingsOf = null;
     _setting = null;
     if (visible != null && visible.isNotEmpty) {
@@ -426,6 +427,11 @@ class ComposerPickerState extends State<ComposerPicker> {
       _settingsOf = null;
       _setting = null;
       _pointer = null;
+      if (widget.settingsOf != null &&
+          widget.submenuOf == null &&
+          widget.options.isNotEmpty) {
+        _show(_highlighted);
+      }
     }
     setState(() => _open = open);
     _cancelSwitch();
@@ -534,6 +540,19 @@ class ComposerPickerState extends State<ComposerPicker> {
       _switch ??= Timer(_switchDelay, () {
         _switch = null;
         if (mounted && _open) _show(_highlighted);
+      });
+      return;
+    }
+    if (widget.settingsOf != null &&
+        widget.submenuOf == null &&
+        _settingsOf == _selectedIndex &&
+        index != _selectedIndex) {
+      _cancelSwitch();
+      _switch = Timer(_switchDelay, () {
+        _switch = null;
+        if (mounted && _open && _visible.contains(_highlighted)) {
+          _show(_highlighted);
+        }
       });
       return;
     }

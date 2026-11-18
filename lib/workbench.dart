@@ -32,8 +32,6 @@ import 'chat/chat_models.dart'
         UserMessageItem,
         oneLineExcerpt;
 import 'chat/chat_screen.dart';
-import 'chat/widgets/hover_builder.dart';
-import 'ide/ide_hover.dart';
 import 'chat/chat_session.dart' show ChatSession, ComposerMessage;
 import 'chat/composer/composer_files.dart' show CodeReference, ComposerFile;
 import 'chat/composer/composer_mock_data.dart' show Suggestion;
@@ -163,11 +161,9 @@ import 'workspace/islands.dart';
 import 'workspace/pane_tabs.dart';
 import 'workspace/chat_terminal.dart';
 import 'workspace/terminal_deck.dart';
-import 'workspace/editor_launcher.dart' show openExternal;
+import 'workspace/editor_launcher.dart' show Editor, openExternal, openInEditor;
 import 'workspace/ssh_server_edit.dart';
 import 'workspace/new_chat_folder_bar.dart';
-import 'workspace/open_in_editor_button.dart';
-import 'workspace/pin_window_button.dart';
 import 'workspace/project_workspace.dart' show ProjectWorkspace;
 import 'workspace/title_bar_double_click.dart';
 import 'workspace/window_controls.dart';
@@ -4244,15 +4240,17 @@ class _WorkbenchState extends State<Workbench> implements WindowDelegate {
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      PinWindowButton(pinned: _pinned, onChanged: _setPinned),
-                      if (thread != null) ...[
-                        const SizedBox(width: 8),
-                        OpenInEditorButton(
-                          workspace: _workspace,
-                          project: thread.project,
-                          agent: thread,
+                      _ChatHeaderControls(
+                        collapseMoreUntilHover: false,
+                        entriesBuilder: (menuContext) => _chatMoreEntries(
+                          menuContext,
+                          thread,
+                          includeWindowPin: true,
+                          includeEditor: thread != null,
+                          includeCardTools: false,
+                          showsTerminals: false,
                         ),
-                      ],
+                      ),
                       if (showToggle && _sidebarAtRight) ...[
                         const SizedBox(width: 6),
                         _showSidebarButton(),
@@ -4388,6 +4386,7 @@ class _WorkbenchState extends State<Workbench> implements WindowDelegate {
   Widget _sidePanelRailOf(AgentThread thread) {
     final multi = _workspace.multiRootAt(thread.project.path);
     return SidePanelRail(
+      panel: _sidePanel,
       onSelect: (section) {
         if (_agentThread == null && !identical(thread, _workspace.current)) {
           _workspace.select(thread);
@@ -5298,66 +5297,58 @@ class _WorkbenchState extends State<Workbench> implements WindowDelegate {
     // The conversation's own toggles: placed in the top title bar when
     // alone on macOS, or on the pane's card header when split.
     final atStart = !embedded && _sidePanel.atLeft;
-    final ownInTitleBar = !inPane && !header;
-    final stashAction = [
-      if (cardTools && StashController.current != null && _agentThread == null)
-        Padding(
-          padding: const EdgeInsets.only(right: 4),
-          child: _StashSessionButton(
-            onTap: () => unawaited(_stashSession(thread)),
-          ),
-        ),
-    ];
-    final own = [
-      if (cardTools) ...[
-        // Only once it was talked in elsewhere: nothing new to read before.
-        if (_reloadable(thread))
-          Padding(
+    final ownInTitleBar = !inPane && !header && !atStart;
+    final sidePanelShown = _sidePanelShownFor(thread);
+    final sideToggle = cardTools
+        ? Padding(
             padding: const EdgeInsets.symmetric(horizontal: 2),
-            child: _reloadButton(thread),
-          ),
-        // The panel is under each conversation (see [_withTerminal]), so
-        // the button in a pane is that pane's project's.
-        if (showsTerminals && terminals != null)
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 2),
-            child: ChatTerminalToggle(
-              shown: terminals.shownFor(thread.project.path),
-              onTap: () => _toggleTerminalOf(thread),
+            child: SidePanelToggle(
+              shown: sidePanelShown,
+              onTap: () => _toggleSidePanelOf(thread),
               size: 22,
             ),
-          ),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 2),
-          child: SidePanelToggle(
-            shown: _sidePanelShownFor(thread),
-            onTap: () => _toggleSidePanelOf(thread),
-            size: 22,
-          ),
-        ),
-      ],
-    ];
-    final cardOwn = ownInTitleBar
+          )
+        : null;
+    final hasCardMore =
+        cardTools &&
+        (_reloadable(thread) || (showsTerminals && terminals != null));
+    final cardControls = _ChatHeaderControls(
+      atStart: atStart,
+      collapseMoreUntilHover: !sidePanelShown,
+      sidePanelToggle: sideToggle,
+      entriesBuilder: hasCardMore
+          ? (menuContext) => _chatMoreEntries(
+              menuContext,
+              thread,
+              includeWindowPin: false,
+              includeEditor: false,
+              includeCardTools: cardTools,
+              showsTerminals: showsTerminals,
+            )
+          : null,
+    );
+    final cardOwn = ownInTitleBar || (!cardTools)
         ? const <Widget>[]
-        : [...stashAction, ...own];
+        : <Widget>[cardControls];
+    final hasTitleBarMore =
+        (paneTools && !inPane) || (ownInTitleBar && hasCardMore);
     final tools = [
-      if (ownInTitleBar && stashAction.isNotEmpty) ...stashAction,
-      if (paneTools && !inPane) ...[
-        if (windowTools) ...[
-          const SizedBox(width: 2),
-          PinWindowButton(pinned: _pinned, onChanged: _setPinned),
-          const SizedBox(width: 4),
-        ],
-        OpenInEditorButton(
-          workspace: _workspace,
-          project: thread.project,
-          agent: thread,
+      if (ownInTitleBar || (paneTools && !inPane))
+        _ChatHeaderControls(
+          atStart: false,
+          collapseMoreUntilHover: ownInTitleBar && !sidePanelShown,
+          sidePanelToggle: ownInTitleBar ? sideToggle : null,
+          entriesBuilder: hasTitleBarMore
+              ? (menuContext) => _chatMoreEntries(
+                  menuContext,
+                  thread,
+                  includeWindowPin: paneTools && !inPane && windowTools,
+                  includeEditor: paneTools && !inPane,
+                  includeCardTools: ownInTitleBar && cardTools,
+                  showsTerminals: showsTerminals,
+                )
+              : null,
         ),
-      ],
-      if (ownInTitleBar && own.isNotEmpty) ...[
-        const SizedBox(width: 2),
-        ...own,
-      ],
       if (trailingToggle && !inPane) ...[
         const SizedBox(width: 6),
         _showSidebarButton(),
@@ -5471,7 +5462,7 @@ class _WorkbenchState extends State<Workbench> implements WindowDelegate {
           ),
           _ => null,
         },
-        below: _branchBar(thread),
+        below: null,
         sessions: () => _mentionable(thread),
         fileMentions: _fileMentionsOf(thread.project),
         commandFile: widget.customizations == null
@@ -5509,6 +5500,84 @@ class _WorkbenchState extends State<Workbench> implements WindowDelegate {
     return _paneSidePanel(thread, shown);
   }
 
+  void _openProjectInEditor(Editor editor, AgentThread thread) {
+    final project = thread.project;
+    if (editor == Editor.fastIde || project.host != null) {
+      _workspace.openInIde(thread);
+    } else {
+      unawaited(openInEditor(editor, project.path));
+    }
+  }
+
+  List<IdeMenuEntry> _chatMoreEntries(
+    BuildContext context,
+    AgentThread? thread, {
+    required bool includeWindowPin,
+    required bool includeEditor,
+    required bool includeCardTools,
+    required bool showsTerminals,
+  }) {
+    final l10n = context.l10n;
+    final isZh = Localizations.maybeLocaleOf(context)?.languageCode == 'zh';
+    final terminals = _terminals;
+    final sessionGroup = <IdeMenuAction>[
+      if (includeCardTools && thread != null && _reloadable(thread))
+        IdeMenuAction(l10n.chatReload, onSelected: () => _reload(thread)),
+      if (includeCardTools &&
+          showsTerminals &&
+          thread != null &&
+          terminals != null)
+        IdeMenuAction(
+          l10n.cmdToggleTerminal,
+          checked: terminals.shownFor(thread.project.path),
+          keybinding: ChatKeys.keyLabel(toggleTerminalCommand),
+          onSelected: () => _toggleTerminalOf(thread),
+        ),
+    ];
+
+    final windowGroup = <IdeMenuAction>[
+      if (includeWindowPin && WindowControls.canKeepOnTop)
+        IdeMenuAction(
+          _pinned ? l10n.workspaceUnpinWindow : l10n.workspacePinWindow,
+          checked: _pinned,
+          onSelected: () => _setPinned(!_pinned),
+        ),
+      if (includeEditor && thread != null) ...[
+        () {
+          final editor = _workspace.preferredEditor;
+          return IdeMenuAction(
+            l10n.workspaceOpenIn(editor.localizedPlatformLabel(l10n)),
+            keybinding: editor == Editor.fastIde
+                ? ChatKeys.keyLabel(ChatCommandIds.openIde, ChatKeys.chatLayout)
+                : null,
+            onSelected: () => _openProjectInEditor(editor, thread),
+          );
+        }(),
+        IdeMenuAction(
+          l10n.workspaceCopyPath,
+          onSelected: () =>
+              Clipboard.setData(ClipboardData(text: thread.project.path)),
+        ),
+      ],
+    ];
+
+    final editorsGroup = <IdeMenuAction>[
+      if (includeEditor && thread != null && Editor.availableEditors.length > 1)
+        for (final option in Editor.availableEditors)
+          IdeMenuAction(
+            '${isZh ? '默认编辑器：' : 'Preferred: '}${option.localizedPlatformLabel(l10n)}',
+            checked: option == _workspace.preferredEditor,
+            onSelected: () => _workspace.preferredEditor = option,
+          ),
+    ];
+
+    return ideMenuGroups([
+      if (sessionGroup.isNotEmpty) sessionGroup,
+      if (windowGroup.isNotEmpty) windowGroup,
+      if (editorsGroup.isNotEmpty) editorsGroup,
+    ]);
+  }
+
   /// Show Sidebar, by where it comes in from (see [ChatLayout]).
   Widget _showSidebarButton() => SidebarIconButton(
     icon: _sidebarAtRight
@@ -5516,6 +5585,14 @@ class _WorkbenchState extends State<Workbench> implements WindowDelegate {
         : Codicons.layoutSidebarLeftOff,
     tooltip: context.l10n.windowShowSidebar,
     command: 'workbench.action.toggleSidebarVisibility',
+    size: 26,
+    customGlyph: (color) => AntigravitySidebarIcon(
+      _sidebarAtRight
+          ? AntigravitySidebarGlyph.sidebarRight
+          : AntigravitySidebarGlyph.sidebarLeft,
+      color: color,
+      filledPane: false,
+    ),
     onTap: _toggle,
   );
 
@@ -6168,72 +6245,106 @@ class _EmptyWorkspace extends StatelessWidget {
   }
 }
 
-/// The "暂存到 Stash" pill button in the current session's header bar,
-/// matching the HTML prototype's `stashCurrentSession()` button.
-class _StashSessionButton extends StatelessWidget {
-  const _StashSessionButton({required this.onTap});
+/// Minimalist header control cluster for the conversation bar: keeps only
+/// [sidePanelToggle] permanently visible when collapsed, while grouping
+/// secondary actions (Pin Window, Open in Editor, Toggle Terminal, Reload)
+/// into a compact `⋯` dropdown that reveals smoothly on hover.
+class _ChatHeaderControls extends StatefulWidget {
+  const _ChatHeaderControls({
+    this.atStart = false,
+    required this.collapseMoreUntilHover,
+    this.sidePanelToggle,
+    this.entriesBuilder,
+  });
 
-  final VoidCallback onTap;
+  final bool atStart;
+  final bool collapseMoreUntilHover;
+  final Widget? sidePanelToggle;
+  final List<IdeMenuEntry> Function(BuildContext context)? entriesBuilder;
+
+  @override
+  State<_ChatHeaderControls> createState() => _ChatHeaderControlsState();
+}
+
+class _ChatHeaderControlsState extends State<_ChatHeaderControls> {
+  bool _hovered = false;
+  bool _menuOpen = false;
+  final GlobalKey _moreKey = GlobalKey();
+
+  Future<void> _openMore() async {
+    final builder = widget.entriesBuilder;
+    if (builder == null) return;
+    final entries = builder(context);
+    if (entries.isEmpty) return;
+    final box =
+        (_moreKey.currentContext?.findRenderObject() ??
+                context.findRenderObject())!
+            as RenderBox;
+    setState(() => _menuOpen = true);
+    try {
+      await showIdeMenu(
+        context,
+        anchor: box.localToGlobal(Offset.zero) & box.size,
+        entries: entries,
+      );
+    } finally {
+      if (mounted) setState(() => _menuOpen = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final isZh = Localizations.maybeLocaleOf(context)?.languageCode == 'zh';
-    final label = isZh ? '暂存到 Stash' : 'Save to Stash';
-    final dark = themeColors.dark;
-    return IdeHover(
-      message: label,
-      child: HoverBuilder(
-        cursor: SystemMouseCursors.click,
-        builder: (context, hovered) => GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          onTap: onTap,
-          child: AnimatedContainer(
+    final hasMore = widget.entriesBuilder != null;
+    final showMore =
+        hasMore && (!widget.collapseMoreUntilHover || _hovered || _menuOpen);
+
+    final moreButton = hasMore
+        ? AnimatedOpacity(
+            opacity: showMore ? 1.0 : 0.0,
             duration: const Duration(milliseconds: 140),
-            height: 24,
-            padding: const EdgeInsets.symmetric(horizontal: 8.5),
-            decoration: BoxDecoration(
-              color: dark ? const Color(0xFF201E1C) : Colors.white,
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(
-                color: hovered
-                    ? const Color(0x8CD96543)
-                    : (dark
-                          ? const Color(0x1AFFFFFF)
-                          : const Color(0xCCDFD7CB)),
+            curve: Curves.easeOutCubic,
+            child: IgnorePointer(
+              ignoring: !showMore,
+              child: KeyedSubtree(
+                key: _moreKey,
+                child: SidebarIconButton(
+                  key: const ValueKey('chat-header-more'),
+                  icon: Codicons.ellipsis,
+                  tooltip: isZh ? '更多操作' : 'More Actions',
+                  size: 22,
+                  onTap: _openMore,
+                ),
               ),
-              boxShadow: dark
-                  ? null
-                  : const [
-                      BoxShadow(
-                        color: Color(0x0A2C2723),
-                        blurRadius: 2,
-                        offset: Offset(0, 1),
-                      ),
-                    ],
             ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(
-                  Icons.bookmark_border_rounded,
-                  size: 13.5,
-                  color: Color(0xFFD96543),
-                ),
-                const SizedBox(width: 4.5),
-                Text(
-                  label,
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
-                    color: dark
-                        ? const Color(0xFFDFD7CB)
-                        : const Color(0xFF4A433B),
-                  ),
-                ),
-              ],
-            ),
-          ),
+          )
+        : null;
+
+    final toggle = widget.sidePanelToggle;
+    final children = widget.atStart
+        ? <Widget>[
+            ?toggle,
+            if (toggle != null && moreButton != null) const SizedBox(width: 2),
+            ?moreButton,
+          ]
+        : <Widget>[
+            ?moreButton,
+            if (toggle != null && moreButton != null) const SizedBox(width: 2),
+            ?toggle,
+          ];
+
+    if (children.isEmpty) return const SizedBox.shrink();
+
+    return MouseRegion(
+      onEnter: (_) => setState(() => _hovered = true),
+      onExit: (_) => setState(() => _hovered = false),
+      hitTestBehavior: HitTestBehavior.translucent,
+      child: Padding(
+        padding: EdgeInsets.only(
+          left: widget.atStart ? 0 : 10,
+          right: widget.atStart ? 10 : 0,
         ),
+        child: Row(mainAxisSize: MainAxisSize.min, children: children),
       ),
     );
   }

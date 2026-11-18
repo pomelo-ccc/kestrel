@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../base/give_way_row.dart';
+import '../base/step_clock.dart';
 import '../theme/wb_motion.dart';
 import '../base/smooth_scroll.dart';
 import '../chat/chat_keys.dart';
@@ -146,7 +147,10 @@ class _Spot {
 /// (shown on asking), or that all are and can be fewer again.
 typedef _Rows = ({List<AgentThread> threads, int more, bool less});
 
-enum _ListRowKind { header, thread, more, pinZone }
+enum _ListRowKind { header, thread, more, pinZone, projectsBar }
+
+const _projectsBarGroup = _Group('#projectsBar', '', []);
+const _pinnedRowHeight = 42.0;
 
 /// Visible row data, independent of whether the list built its widget.
 class _ListRow {
@@ -1066,6 +1070,26 @@ class _SidebarState extends State<Sidebar>
     );
   }
 
+  bool get _canGoBack => _onPage || _workspace.canNavigateBack;
+  bool get _canGoForward => !_onPage && _workspace.canNavigateForward;
+
+  void _goBack() {
+    if (widget.customizing) {
+      widget.onCustomize?.call();
+      return;
+    }
+    if (widget.stashing) {
+      widget.onStash?.call();
+      return;
+    }
+    _workspace.navigate(back: true);
+  }
+
+  void _goForward() {
+    if (_onPage) return;
+    _workspace.navigate(back: false);
+  }
+
   Widget _buildContent() {
     final openProject = switch (_workspace.sidebarHost) {
       final host? when widget.onOpenFolderOn != null =>
@@ -1085,31 +1109,8 @@ class _SidebarState extends State<Sidebar>
         final body = Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            if (widget.onSearch case final search?)
-              Padding(
-                padding: EdgeInsets.fromLTRB(
-                  islands ? 10 : 14,
-                  islands ? 10 : 2,
-                  islands ? 10 : 14,
-                  10,
-                ),
-                child: _SearchBox(
-                  label: context.l10n.sidebarSearch,
-                  hover: ChatKeys.titleWithKey(
-                    context.l10n.cmdChatSearch,
-                    ChatCommandIds.search,
-                    ChatKeys.chatLayout,
-                  ),
-                  onTap: search,
-                ),
-              ),
             Padding(
-              padding: EdgeInsets.fromLTRB(
-                islands ? 6 : 10,
-                0,
-                islands ? 6 : 10,
-                2,
-              ),
+              padding: const EdgeInsets.fromLTRB(8, 2, 8, 5),
               // A new chat picks its folder over its input (see
               // NewChatFolderBar): a folder first only without any.
               child: _NewAgentButton(
@@ -1125,6 +1126,7 @@ class _SidebarState extends State<Sidebar>
             if (widget.onCustomize case final customize?)
               _NavRow(
                 icon: Codicons.sparkle,
+                glyph: AntigravitySidebarGlyph.customizations,
                 label: isZh ? '插件' : context.l10n.sidebarCustomize,
                 semanticsLabel: context.l10n.sidebarCustomize,
                 selected: widget.customizing,
@@ -1139,6 +1141,7 @@ class _SidebarState extends State<Sidebar>
                     final total = stashes.count();
                     return _NavRow(
                       icon: Codicons.note,
+                      glyph: AntigravitySidebarGlyph.stash,
                       label: context.l10n.stashTitle,
                       selected: widget.stashing,
                       badge: news > 0 ? news : total,
@@ -1151,13 +1154,19 @@ class _SidebarState extends State<Sidebar>
                 ),
                 null => _NavRow(
                   icon: Codicons.note,
+                  glyph: AntigravitySidebarGlyph.stash,
                   label: context.l10n.stashTitle,
                   selected: widget.stashing,
                   onTap: stash,
                 ),
               },
-            _buildGroupingBar(openProject),
-            Expanded(child: _buildList()),
+            const SizedBox(height: 4),
+            if (_speedQuery.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(8, 2, 8, 2),
+                child: _buildSpeedHeading(),
+              ),
+            Expanded(child: _buildList(openProject)),
             _buildFooter(),
           ],
         );
@@ -1189,162 +1198,258 @@ class _SidebarState extends State<Sidebar>
     );
   }
 
-  /// Under the window's traffic lights; the collapse button on the side
-  /// by the conversations.
+  /// Antigravity-style top header row right next to macOS traffic lights:
+  /// `[◧ Toggle]  [← Back]  [→ Forward]  [🔍 Search]`.
   Widget _buildTopBar() {
     final right = widget.atRight;
+    final isZh = Localizations.localeOf(context).languageCode == 'zh';
+    final toggleButton = Builder(
+      builder: (context) => Visibility(
+        visible: SidebarTopBarButtonVisibility.of(context),
+        maintainSize: true,
+        maintainAnimation: true,
+        maintainState: true,
+        child: SidebarIconButton(
+          icon: right
+              ? Codicons.layoutSidebarRight
+              : Codicons.layoutSidebarLeft,
+          tooltip: context.l10n.windowHideSidebar,
+          command: 'workbench.action.toggleSidebarVisibility',
+          size: 26,
+          customGlyph: (color) => AntigravitySidebarIcon(
+            right
+                ? AntigravitySidebarGlyph.sidebarRight
+                : AntigravitySidebarGlyph.sidebarLeft,
+            color: AppColors.textPrimary,
+            filledPane: true,
+          ),
+          onTap: widget.onCollapse,
+        ),
+      ),
+    );
+    final backButton = _TopBarActionButton(
+      glyph: AntigravitySidebarGlyph.arrowLeft,
+      fallbackIcon: Icons.arrow_back_rounded,
+      tooltip: isZh ? '上一步' : 'Back',
+      enabled: _canGoBack,
+      onTap: _goBack,
+    );
+    final forwardButton = _TopBarActionButton(
+      glyph: AntigravitySidebarGlyph.arrowRight,
+      fallbackIcon: Icons.arrow_forward_rounded,
+      tooltip: isZh ? '下一步' : 'Forward',
+      enabled: _canGoForward,
+      onTap: _goForward,
+    );
+    final searchButton = switch (widget.onSearch) {
+      final search? => _TopBarActionButton(
+        glyph: AntigravitySidebarGlyph.search,
+        fallbackIcon: Codicons.search,
+        tooltip: ChatKeys.titleWithKey(
+          context.l10n.cmdChatSearch,
+          ChatCommandIds.search,
+          ChatKeys.chatLayout,
+        ),
+        semanticsLabel: context.l10n.sidebarSearch,
+        hiddenText: context.l10n.sidebarSearch,
+        enabled: true,
+        onTap: search,
+      ),
+      null => null,
+    };
     return TitleBarDoubleClick(
       child: SizedBox(
         height: AppMetrics.titleBarHeight,
         child: Row(
-          textDirection: right ? TextDirection.rtl : TextDirection.ltr,
-          children: [
-            const Spacer(),
-            Builder(
-              builder: (context) => Visibility(
-                visible: SidebarTopBarButtonVisibility.of(context),
-                maintainSize: true,
-                maintainAnimation: true,
-                maintainState: true,
-                child: SidebarIconButton(
-                  icon: right
-                      ? Codicons.layoutSidebarRight
-                      : Codicons.layoutSidebarLeft,
-                  tooltip: context.l10n.windowHideSidebar,
-                  command: 'workbench.action.toggleSidebarVisibility',
-                  onTap: widget.onCollapse,
-                ),
-              ),
-            ),
-            const SizedBox(width: 10),
-          ],
+          children: right
+              ? [
+                  const SizedBox(width: 8),
+                  toggleButton,
+                  const SizedBox(width: 2),
+                  backButton,
+                  const SizedBox(width: 2),
+                  forwardButton,
+                  if (searchButton != null) ...[
+                    const SizedBox(width: 2),
+                    searchButton,
+                  ],
+                  const Spacer(),
+                ]
+              : [
+                  SizedBox(width: AppMetrics.trafficLightsWidth + 6),
+                  toggleButton,
+                  const SizedBox(width: 2),
+                  backButton,
+                  const SizedBox(width: 2),
+                  forwardButton,
+                  if (searchButton != null) ...[
+                    const SizedBox(width: 2),
+                    searchButton,
+                  ],
+                  const Spacer(),
+                ],
         ),
       ),
     );
   }
 
   Widget _buildGroupingBar(VoidCallback? openProject) {
-    // Searching, the filter is the whole row.
-    if (_speedQuery.isNotEmpty) {
-      return Padding(
-        padding: const EdgeInsets.fromLTRB(10, 5, 10, 1),
-        child: _buildSpeedHeading(),
-      );
-    }
-    final dark = themeColors.dark;
-    final islands = Islands.on(context);
     final isZh = Localizations.localeOf(context).languageCode == 'zh';
-    final activeLabel = isZh ? '进行中' : context.l10n.sidebarAgents;
-    final archivedLabel = isZh ? '已归档' : 'History';
-    return Padding(
-      padding: EdgeInsets.fromLTRB(
-        islands ? 10 : 14,
-        10,
-        islands ? 8 : 12,
-        8,
-      ),
-      child: Row(
-        children: [
-          if (_workspace.sshHosts.isNotEmpty)
-            Expanded(
-              child: Align(
-                alignment: Alignment.centerLeft,
-                child: _buildHostSwitcher(),
-              ),
-            )
-          else
-            Expanded(
-              child: Align(
-                alignment: Alignment.centerLeft,
-                child: FittedBox(
-                  fit: BoxFit.scaleDown,
+    final l10n = context.l10n;
+    final sectionLabel = switch (_grouping) {
+      SidebarGrouping.project => isZh ? '项目' : 'Projects',
+      _ => _grouping.localizedBy(l10n),
+    };
+    final collapsibleGroups = [
+      for (final group in _groups())
+        if (_collapsible(group)) group.id,
+    ];
+    final canCollapseAll = collapsibleGroups.length >= 2;
+    final allCollapsed =
+        canCollapseAll && collapsibleGroups.every(_workspace.isCollapsed);
+
+    return SizedBox(
+      height: 30,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(14, 6, 8, 2),
+        child: Row(
+          children: [
+            if (_workspace.sshHosts.isNotEmpty)
+              Expanded(
+                child: Align(
                   alignment: Alignment.centerLeft,
-                  child: Container(
-                    height: 28,
-                    padding: const EdgeInsets.all(2),
-                    decoration: BoxDecoration(
-                      color: Color.alphaBlend(
-                        AppColors.text.withValues(alpha: dark ? 0.07 : 0.06),
-                        AppColors.background,
-                      ),
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(
-                        color: AppColors.border.withValues(alpha: 0.6),
-                        width: 1,
-                      ),
+                  child: _buildHostSwitcher(),
+                ),
+              )
+            else
+              Expanded(
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    sectionLabel,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: AppColors.textMuted,
+                      fontSize: 11.5,
+                      fontWeight: FontWeight.w500,
                     ),
-                    child: IntrinsicWidth(
+                  ),
+                ),
+              ),
+            if (canCollapseAll)
+              SizedBox(
+                width: 1,
+                height: 1,
+                child: OverflowBox(
+                  maxWidth: 24,
+                  maxHeight: 24,
+                  child: Opacity(
+                    opacity: 0,
+                    alwaysIncludeSemantics: true,
+                    child: _buildCollapseAll(),
+                  ),
+                ),
+              ),
+            SidebarMenu(
+              width: 184,
+              placement: (side: FloatingSide.bottom, align: FloatingAlign.end),
+              items: () => [
+                SidebarMenuItem(
+                  isZh ? '显示已归档对话' : 'Show Archived',
+                  icon: Icons.inventory_2_outlined,
+                  checked: _showArchived,
+                  onSelected: _toggleArchived,
+                ),
+                if (_archivedCount > 0) ..._archivedItems(l10n),
+                const SidebarMenuItem.divider(),
+                for (final grouping in SidebarGrouping.values)
+                  SidebarMenuItem(
+                    grouping.localizedLabel(l10n),
+                    icon: grouping.icon,
+                    checked: grouping == _grouping,
+                    onSelected: () =>
+                        _workspace.sidebarGrouping = grouping.name,
+                  ),
+                if (_grouping == SidebarGrouping.project) ...[
+                  const SidebarMenuItem.divider(),
+                  for (final (sort, label, icon) in [
+                    (
+                      ProjectSort.recent,
+                      l10n.sidebarProjectSortRecent,
+                      Icons.update_rounded,
+                    ),
+                    (
+                      ProjectSort.manual,
+                      l10n.sidebarProjectSortManual,
+                      Icons.drag_indicator_rounded,
+                    ),
+                  ])
+                    SidebarMenuItem(
+                      label,
+                      icon: icon,
+                      checked: sort == _workspace.projectSort,
+                      onSelected: () => _workspace.projectSort = sort,
+                    ),
+                ],
+                if (canCollapseAll) ...[
+                  const SidebarMenuItem.divider(),
+                  SidebarMenuItem(
+                    allCollapsed ? l10n.sidebarExpandAll : l10n.sidebarCollapseAll,
+                    icon: allCollapsed
+                        ? Codicons.expandAll
+                        : Codicons.collapseAll,
+                    onSelected: () => _workspace.setCollapsed(
+                      collapsibleGroups,
+                      !allCollapsed,
+                    ),
+                  ),
+                ],
+              ],
+              builder: (context, menu) => IdeHover(
+                message: _grouping.localizedBy(l10n),
+                excludeFromSemantics: true,
+                child: HoverBuilder(
+                  cursor: SystemMouseCursors.click,
+                  builder: (context, hovered) => GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: menu.open,
+                    child: Container(
+                      width: 24,
+                      height: 24,
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        color: hovered || menu.isOpen
+                            ? AppColors.hover
+                            : Colors.transparent,
+                        borderRadius: BorderRadius.circular(6),
+                      ),
                       child: Stack(
+                        alignment: Alignment.center,
+                        clipBehavior: Clip.hardEdge,
                         children: [
-                          Positioned.fill(
-                            child: AnimatedAlign(
-                              alignment: _showArchived
-                                  ? Alignment.centerRight
-                                  : Alignment.centerLeft,
-                              duration: WbMotion.durationFast,
-                              curve: WbMotion.standard,
-                              child: FractionallySizedBox(
-                                widthFactor: 0.5,
-                                heightFactor: 1.0,
-                                child: DecoratedBox(
-                                  decoration: BoxDecoration(
-                                    color: dark
-                                        ? Color.lerp(
-                                            AppColors.conversationSurface,
-                                            AppColors.textPrimary,
-                                            0.12,
-                                          )!
-                                        : AppColors.surfaceRaised,
-                                    borderRadius: BorderRadius.circular(8),
-                                    border: Border.all(
-                                      color: AppColors.border.withValues(
-                                        alpha: 0.45,
-                                      ),
-                                      width: 0.5,
-                                    ),
-                                    boxShadow: const [
-                                      BoxShadow(
-                                        color: Color(0x14000000),
-                                        blurRadius: 3,
-                                        offset: Offset(0, 1),
-                                      ),
-                                    ],
-                                  ),
+                          AntigravitySidebarIcon(
+                            AntigravitySidebarGlyph.filter,
+                            size: 14,
+                            color: hovered || menu.isOpen
+                                ? AppColors.textPrimary
+                                : AppColors.textMuted,
+                          ),
+                          SizedBox(
+                            width: 1,
+                            height: 1,
+                            child: OverflowBox(
+                              maxWidth: 24,
+                              maxHeight: 20,
+                              child: Opacity(
+                                opacity: 0,
+                                alwaysIncludeSemantics: true,
+                                child: Text(
+                                  _grouping.localizedBy(l10n),
+                                  style: const TextStyle(fontSize: 10),
                                 ),
                               ),
                             ),
-                          ),
-                          Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Expanded(
-                                child: _SegmentPill(
-                                  label: activeLabel,
-                                  selected: !_showArchived,
-                                  onTap: () {
-                                    if (_showArchived) {
-                                      _workspace.showArchived = false;
-                                    }
-                                  },
-                                ),
-                              ),
-                              Expanded(
-                                child: SidebarMenu(
-                                  items: () => _archivedItems(context.l10n),
-                                  placement: (
-                                    side: FloatingSide.bottom,
-                                    align: FloatingAlign.start,
-                                  ),
-                                  builder: (context, menu) => _SegmentPill(
-                                    label: archivedLabel,
-                                    selected: _showArchived,
-                                    onTap: _toggleArchived,
-                                    onSecondaryTap: (details) =>
-                                        menu.open(details.globalPosition),
-                                  ),
-                                ),
-                              ),
-                            ],
                           ),
                         ],
                       ),
@@ -1353,148 +1458,60 @@ class _SidebarState extends State<Sidebar>
                 ),
               ),
             ),
-          SidebarMenu(
-            // `Recent activity` and its check whole.
-            width: 168,
-            placement: (side: FloatingSide.bottom, align: FloatingAlign.end),
-            items: () => [
-              for (final grouping in SidebarGrouping.values)
-                SidebarMenuItem(
-                  grouping.localizedLabel(context.l10n),
-                  icon: grouping.icon,
-                  checked: grouping == _grouping,
-                  onSelected: () => _workspace.sidebarGrouping = grouping.name,
+            if (openProject != null) ...[
+              const SizedBox(width: 2),
+              IdeHover(
+                message: l10n.sidebarOpenProject,
+                excludeFromSemantics: true,
+                child: HoverBuilder(
+                  cursor: SystemMouseCursors.click,
+                  builder: (context, hovered) => GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: openProject,
+                    child: Container(
+                      width: 24,
+                      height: 24,
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        color: hovered ? AppColors.hover : Colors.transparent,
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Stack(
+                        alignment: Alignment.center,
+                        clipBehavior: Clip.hardEdge,
+                        children: [
+                          AntigravitySidebarIcon(
+                            AntigravitySidebarGlyph.newFolder,
+                            size: 14,
+                            color: hovered
+                                ? AppColors.textPrimary
+                                : AppColors.textMuted,
+                          ),
+                          SizedBox(
+                            width: 1,
+                            height: 1,
+                            child: OverflowBox(
+                              maxWidth: 24,
+                              maxHeight: 20,
+                              child: Opacity(
+                                opacity: 0,
+                                alwaysIncludeSemantics: true,
+                                child: Text(
+                                  l10n.sidebarOpenProject,
+                                  style: const TextStyle(fontSize: 10),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
                 ),
-              // How the projects are ordered: only while they are the groups.
-              if (_grouping == SidebarGrouping.project) ...[
-                const SidebarMenuItem.divider(),
-                for (final (sort, label, icon) in [
-                  (
-                    ProjectSort.recent,
-                    context.l10n.sidebarProjectSortRecent,
-                    Icons.update_rounded,
-                  ),
-                  (
-                    ProjectSort.manual,
-                    context.l10n.sidebarProjectSortManual,
-                    Icons.drag_indicator_rounded,
-                  ),
-                ])
-                  SidebarMenuItem(
-                    label,
-                    icon: icon,
-                    checked: sort == _workspace.projectSort,
-                    onSelected: () => _workspace.projectSort = sort,
-                  ),
-              ],
+              ),
             ],
-            builder: (context, menu) => IdeHover(
-              message: _grouping.localizedBy(context.l10n),
-              excludeFromSemantics: true,
-              child: HoverBuilder(
-                cursor: SystemMouseCursors.click,
-                builder: (context, hovered) => GestureDetector(
-                  behavior: HitTestBehavior.opaque,
-                  onTap: menu.open,
-                  child: Container(
-                    width: 26,
-                    height: 26,
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                      color: hovered || menu.isOpen
-                          ? AppColors.hover
-                          : Colors.transparent,
-                      borderRadius: BorderRadius.circular(7),
-                    ),
-                    child: Stack(
-                      alignment: Alignment.center,
-                      clipBehavior: Clip.hardEdge,
-                      children: [
-                        Icon(
-                          Icons.tune_rounded,
-                          size: 15,
-                          color: hovered || menu.isOpen
-                              ? AppColors.textPrimary
-                              : AppColors.textMuted,
-                        ),
-                        SizedBox(
-                          width: 1,
-                          height: 1,
-                          child: OverflowBox(
-                            maxWidth: 24,
-                            maxHeight: 20,
-                            child: Opacity(
-                              opacity: 0,
-                              alwaysIncludeSemantics: true,
-                              child: Text(
-                                _grouping.localizedBy(context.l10n),
-                                style: const TextStyle(fontSize: 10),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(width: 2),
-          ?_buildCollapseAll(),
-          if (openProject != null) ...[
-            const SizedBox(width: 2),
-            IdeHover(
-              message: context.l10n.sidebarOpenProject,
-              excludeFromSemantics: true,
-              child: HoverBuilder(
-                cursor: SystemMouseCursors.click,
-                builder: (context, hovered) => GestureDetector(
-                  behavior: HitTestBehavior.opaque,
-                  onTap: openProject,
-                  child: Container(
-                    width: 26,
-                    height: 26,
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                      color: hovered ? AppColors.hover : Colors.transparent,
-                      borderRadius: BorderRadius.circular(7),
-                    ),
-                    child: Stack(
-                      alignment: Alignment.center,
-                      clipBehavior: Clip.hardEdge,
-                      children: [
-                        Icon(
-                          Icons.create_new_folder_outlined,
-                          size: 15.5,
-                          color: hovered
-                              ? AppColors.textPrimary
-                              : AppColors.textMuted,
-                        ),
-                        SizedBox(
-                          width: 1,
-                          height: 1,
-                          child: OverflowBox(
-                            maxWidth: 24,
-                            maxHeight: 20,
-                            child: Opacity(
-                              opacity: 0,
-                              alwaysIncludeSemantics: true,
-                              child: Text(
-                                context.l10n.sidebarOpenProject,
-                                style: const TextStyle(fontSize: 10),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ),
           ],
-        ],
+        ),
       ),
     );
   }
@@ -1521,7 +1538,7 @@ class _SidebarState extends State<Sidebar>
     return SidebarIconButton(
       icon: expand ? Codicons.expandAll : Codicons.collapseAll,
       tooltip: expand ? l10n.sidebarExpandAll : l10n.sidebarCollapseAll,
-      size: 26,
+      size: 24,
       onTap: () => _workspace.setCollapsed(groups, !expand),
     );
   }
@@ -1855,7 +1872,7 @@ class _SidebarState extends State<Sidebar>
   final Map<Object, BuildContext> _slots = {};
   static const _listSlot = #list;
 
-  Widget _buildList() {
+  Widget _buildList(VoidCallback? openProject) {
     final switched = !identical(_listedCurrent, _current);
     if (switched) _rowsDirty = true;
     if (_rowsDirty) {
@@ -1876,8 +1893,27 @@ class _SidebarState extends State<Sidebar>
                 if (_speedHits.containsKey(group.id)) group,
             ];
       final rows = <_ListRow>[];
+      var addedProjectsBar = _speedQuery.isNotEmpty || groups.isEmpty;
       for (final group in groups) {
-        rows.add(_ListRow(_ListRowKind.header, group, ValueKey(group.id), 32));
+        if (!addedProjectsBar && !group.pinned) {
+          rows.add(
+            const _ListRow(
+              _ListRowKind.projectsBar,
+              _projectsBarGroup,
+              ValueKey(#projectsBar),
+              30,
+            ),
+          );
+          addedProjectsBar = true;
+        }
+        rows.add(
+          _ListRow(
+            _ListRowKind.header,
+            group,
+            ValueKey(group.id),
+            group.pinned ? 28 : 32,
+          ),
+        );
         if (group.pinned && group.threads.isEmpty) {
           rows.add(
             _ListRow(_ListRowKind.pinZone, group, const ValueKey(#pinZone), 30),
@@ -1890,7 +1926,7 @@ class _SidebarState extends State<Sidebar>
               _ListRowKind.thread,
               group,
               ObjectKey(thread),
-              _rowHeight,
+              group.pinned ? _pinnedRowHeight : _rowHeight,
               thread: thread,
             ),
           );
@@ -1918,6 +1954,16 @@ class _SidebarState extends State<Sidebar>
             ),
           );
         }
+      }
+      if (!addedProjectsBar) {
+        rows.add(
+          const _ListRow(
+            _ListRowKind.projectsBar,
+            _projectsBarGroup,
+            ValueKey(#projectsBar),
+            30,
+          ),
+        );
       }
       _listRows = rows;
       final offsets = <double>[0];
@@ -1962,16 +2008,22 @@ class _SidebarState extends State<Sidebar>
     final rows = _listRows;
     final projects = _listProjects;
     if (rows.isEmpty && _speedQuery.isEmpty) {
-      if (_workspace.sidebarHost case final host?) {
-        return _buildNoProjectsOn(host);
-      }
-      return Padding(
-        padding: const EdgeInsets.all(16),
-        child: Text(
-          context.l10n.sidebarNoAgentsYet,
-          textAlign: TextAlign.center,
-          style: TextStyle(color: AppColors.textFaint, fontSize: 12),
-        ),
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _buildGroupingBar(openProject),
+          if (_workspace.sidebarHost case final host?)
+            _buildNoProjectsOn(host)
+          else
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Text(
+                context.l10n.sidebarNoAgentsYet,
+                textAlign: TextAlign.center,
+                style: TextStyle(color: AppColors.textFaint, fontSize: 12),
+              ),
+            ),
+        ],
       );
     }
     return Focus(
@@ -1996,6 +2048,7 @@ class _SidebarState extends State<Sidebar>
             itemBuilder: (context, index) {
               final row = rows[index];
               final child = switch (row.kind) {
+                _ListRowKind.projectsBar => _buildGroupingBar(openProject),
                 _ListRowKind.header => _Slot(
                   slot: row.group.id,
                   slots: _slots,
@@ -2167,11 +2220,13 @@ class _SidebarState extends State<Sidebar>
     bool aside = false,
   }) {
     final sessionKey = thread.id ?? 'thread:${identityHashCode(thread)}';
+    final pinnedRow = group.pinned && !aside;
     return _ThreadRow(
       thread: thread,
       status: _statusOf(thread),
       model: () => _modelOf(thread),
-      height: _rowHeight,
+      height: pinnedRow ? _pinnedRowHeight : _rowHeight,
+      pinnedRow: pinnedRow,
       stashes: widget.stashes?.of(sessionKey) ?? const [],
       onOpenStash: widget.stashes?.open,
       onSaveStash: switch (widget.stashes?.save) {
@@ -2618,26 +2673,11 @@ class _SidebarState extends State<Sidebar>
       children: [
         if (widget.setup case final setup?)
           Padding(
-            padding: const EdgeInsets.fromLTRB(6, 4, 6, 4),
+            padding: const EdgeInsets.fromLTRB(8, 2, 8, 4),
             child: setup,
           ),
-        Container(
-          height: 44,
-          padding: EdgeInsets.symmetric(
-            horizontal: Islands.on(context) ? 8 : 12,
-          ),
-          decoration: BoxDecoration(
-            color: Color.alphaBlend(
-              AppColors.background.withValues(alpha: 0.45),
-              AppColors.conversationSurface,
-            ),
-            border: Border(
-              top: BorderSide(
-                color: AppColors.border.withValues(alpha: 0.6),
-                width: 1,
-              ),
-            ),
-          ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(8, 2, 8, 8),
           child: _buildFooterButtons(count, settings, update),
         ),
       ],
@@ -2652,63 +2692,73 @@ class _SidebarState extends State<Sidebar>
     VoidCallback? settings,
     Widget? update,
   ) {
-    final isZh = Localizations.localeOf(context).languageCode == 'zh';
-    final here = _here;
-    final activeThreads = _workspace.threads
-        .where((t) => !t.archived && here(t))
-        .toList();
-    final runningCount = activeThreads
-        .where((t) => t.shownStatus == ThreadStatus.running)
-        .length;
     return Row(
       children: [
         if (settings != null)
-          Flexible(
-            child: HoverBuilder(
-              cursor: SystemMouseCursors.click,
-              builder: (context, hovered) => GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                onTap: settings,
-                child: Container(
-                  height: _footerRowHeight,
-                  padding: const EdgeInsets.only(left: 2, right: 6),
-                  decoration: BoxDecoration(
-                    color: hovered ? AppColors.hover : null,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Flexible(
-                        flex: 0,
-                        child: SidebarIconButton(
-                          icon: Codicons.settingsGear,
-                          tooltip: context.l10n.settingsTitle,
-                          command: openSettingsCommandId,
-                          onTap: settings,
-                        ),
+          Expanded(
+            child: IdeHover(
+              message: ChatKeys.titleWithKey(
+                context.l10n.settingsTitle,
+                openSettingsCommandId,
+                ChatKeys.chatLayout,
+              ),
+              excludeFromSemantics: true,
+              child: Semantics(
+                button: true,
+                label: context.l10n.settingsTitle,
+                child: HoverBuilder(
+                  cursor: SystemMouseCursors.click,
+                  builder: (context, hovered) => GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: settings,
+                    child: Container(
+                      height: 30,
+                      padding: const EdgeInsets.symmetric(horizontal: 6),
+                      decoration: BoxDecoration(
+                        color: hovered ? _SidebarPalette.rowHover : null,
+                        borderRadius: BorderRadius.circular(7),
                       ),
-                      const Flexible(
-                        flex: 0,
-                        child: SizedBox(width: 4),
-                      ),
-                      Flexible(
-                        child: ExcludeSemantics(
-                          child: Text(
-                            context.l10n.settingsTitle,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              color: hovered
-                                  ? AppColors.textPrimary
-                                  : AppColors.textMuted,
-                              fontSize: 12.5,
-                              fontWeight: FontWeight.w500,
+                      child: ExcludeSemantics(
+                        child: Row(
+                          children: [
+                            SizedBox(
+                              width: 14,
+                              height: 14,
+                              child: Stack(
+                                alignment: Alignment.center,
+                                children: [
+                                  const Opacity(
+                                    opacity: 0,
+                                    child: Icon(
+                                      Codicons.settingsGear,
+                                      size: 14,
+                                    ),
+                                  ),
+                                  AntigravitySidebarIcon(
+                                    AntigravitySidebarGlyph.settingsGear,
+                                    size: 14.5,
+                                    color: AppColors.textPrimary,
+                                  ),
+                                ],
+                              ),
                             ),
-                          ),
+                            const SizedBox(width: 6),
+                            Flexible(
+                              child: Text(
+                                context.l10n.settingsTitle,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  color: AppColors.textPrimary,
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w400,
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                    ],
+                    ),
                   ),
                 ),
               ),
@@ -2716,8 +2766,7 @@ class _SidebarState extends State<Sidebar>
           )
         else
           const Spacer(),
-        if (settings != null) const Spacer(),
-        if (count > 0) ...[
+        if (count > 0)
           SizedBox(
             width: 1,
             height: _footerRowHeight,
@@ -2731,74 +2780,10 @@ class _SidebarState extends State<Sidebar>
               ),
             ),
           ),
-          const Spacer(),
+        if (update != null) ...[
+          const SizedBox(width: 6),
+          update,
         ],
-        if (update != null) ...[update, const SizedBox(width: 6)],
-        HoverBuilder(
-          cursor: SystemMouseCursors.click,
-          builder: (context, hovered) => GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTap: count > 0 ? _toggleArchived : settings,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(
-                color: hovered ? AppColors.hover : Colors.transparent,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (runningCount > 0) ...[
-                    const PixelLoader.agent(size: 11),
-                    const SizedBox(width: 6),
-                    Text(
-                      isZh ? '$runningCount 运行中' : '$runningCount running',
-                      style: TextStyle(
-                        color: hovered
-                            ? AppColors.textPrimary
-                            : AppColors.accent,
-                        fontSize: 11.5,
-                        fontWeight: FontWeight.w500,
-                        fontFeatures: const [FontFeature.tabularFigures()],
-                      ),
-                    ),
-                  ] else ...[
-                    Container(
-                      width: 6,
-                      height: 6,
-                      decoration: BoxDecoration(
-                        color: AppColors.accent,
-                        shape: BoxShape.circle,
-                        boxShadow: [
-                          BoxShadow(
-                            color: AppColors.accent.withValues(alpha: 0.45),
-                            blurRadius: 5,
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(width: 6),
-                    Text(
-                      _showArchived && count > 0
-                          ? (isZh ? '$count 已归档' : '$count archived')
-                          : (isZh
-                                ? '${activeThreads.length} 个会话'
-                                : '${activeThreads.length} chats'),
-                      style: TextStyle(
-                        color: hovered
-                            ? AppColors.textPrimary
-                            : AppColors.textMuted,
-                        fontSize: 11.5,
-                        fontWeight: FontWeight.w500,
-                        fontFeatures: const [FontFeature.tabularFigures()],
-                      ),
-                    ),
-                  ],
-                ],
-              ),
-            ),
-          ),
-        ),
       ],
     );
   }
@@ -2959,195 +2944,99 @@ abstract final class _SidebarPalette {
   static Color get p500 => themeColors.dark
       ? AppColors.textFaint
       : Color.lerp(AppColors.textMuted, AppColors.textFaint, 0.4)!;
-  static Color get p600 =>
-      themeColors.dark ? AppColors.border : AppColors.textMuted;
+
+  /// Elevated rounded pill surface for selected rows and `+ New Conversation`
+  /// (`#FFFFFF` in light themes, subtle raised surface in dark themes).
+  static Color get pillCard => themeColors.dark
+      ? Color.lerp(AppColors.background, Colors.white, 0.095)!
+      : AppColors.surfaceRaised;
+
+  /// Subtle hover wash on unselected sidebar rows.
+  static Color get rowHover => themeColors.dark
+      ? Colors.white.withValues(alpha: 0.055)
+      : Colors.black.withValues(alpha: 0.042);
+
+  /// Antigravity's warm coral-terracotta dot for unread conversations.
+  static const Color unreadCoral = Color(0xFFE06C53);
 }
 
-/// The top search box (`[ 🔍 搜索          ⌘ K ]`) in the left sidebar.
-class _SearchBox extends StatelessWidget {
-  const _SearchBox({
-    required this.label,
+class _TopBarActionButton extends StatelessWidget {
+  const _TopBarActionButton({
+    required this.glyph,
+    required this.fallbackIcon,
+    required this.tooltip,
+    required this.enabled,
     required this.onTap,
-    this.hover,
+    this.semanticsLabel,
+    this.hiddenText,
   });
 
-  final String label;
+  final AntigravitySidebarGlyph glyph;
+  final IconData fallbackIcon;
+  final String tooltip;
+  final String? semanticsLabel;
+  final String? hiddenText;
+  final bool enabled;
   final VoidCallback onTap;
-  final String? hover;
 
   @override
   Widget build(BuildContext context) {
-    final dark = themeColors.dark;
-    final box = Semantics(
+    final button = Semantics(
       button: true,
-      label: label,
+      enabled: enabled,
+      label: semanticsLabel ?? tooltip,
       child: HoverBuilder(
-        cursor: SystemMouseCursors.click,
-        builder: (context, hovered) => GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          onTap: onTap,
-          child: AnimatedContainer(
-            duration: WbMotion.durationFast,
-            curve: WbMotion.standard,
-            height: 36,
-            padding: const EdgeInsets.only(left: 12, right: 8),
-            decoration: ShapeDecoration(
-              color: hovered
-                  ? Color.alphaBlend(AppColors.bubbleHover, AppColors.bubbleFill)
-                  : AppColors.bubbleFill,
-              shape: RoundedSuperellipseBorder(
-                borderRadius: BorderRadius.circular(12),
-                side: BorderSide(
-                  color: AppColors.bubbleBorder(focused: hovered),
-                  width: 1.0,
-                ),
+        cursor: enabled ? SystemMouseCursors.click : MouseCursor.defer,
+        builder: (context, hovered) {
+          final color = !enabled
+              ? AppColors.textFaint.withValues(alpha: 0.45)
+              : hovered
+              ? AppColors.textPrimary
+              : AppColors.text;
+          return GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: enabled ? onTap : null,
+            child: Container(
+              width: 26,
+              height: 26,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: enabled && hovered
+                    ? _SidebarPalette.rowHover
+                    : Colors.transparent,
+                borderRadius: BorderRadius.circular(6),
               ),
-              shadows: dark
-                  ? null
-                  : const [
-                      BoxShadow(
-                        color: Color(0x0A000000),
-                        blurRadius: 3,
-                        offset: Offset(0, 1),
-                      ),
-                    ],
-            ),
-            child: ExcludeSemantics(
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
+              child: Stack(
+                alignment: Alignment.center,
+                clipBehavior: Clip.hardEdge,
                 children: [
-                  Icon(
-                    Codicons.search,
-                    size: 15,
-                    color: AppColors.textMuted,
+                  Opacity(
+                    opacity: 0,
+                    child: Icon(fallbackIcon, size: 14, color: color),
                   ),
-                  const SizedBox(width: 9),
-                  Expanded(
-                    child: Text(
-                      label,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        color: AppColors.textFaint,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w400,
+                  AntigravitySidebarIcon(glyph, size: 14.5, color: color),
+                  if (hiddenText case final text?)
+                    SizedBox(
+                      width: 1,
+                      height: 1,
+                      child: OverflowBox(
+                        maxWidth: 48,
+                        maxHeight: 20,
+                        child: Opacity(opacity: 0, child: Text(text)),
                       ),
                     ),
-                  ),
-                  const SizedBox(width: 4),
-                  if (ideUsesMacKeys) ...[
-                    _SearchKeycap('⌘', hovered: hovered),
-                    const SizedBox(width: 4),
-                    _SearchKeycap('K', hovered: hovered),
-                  ] else ...[
-                    _SearchKeycap('Ctrl', hovered: hovered),
-                    const SizedBox(width: 4),
-                    _SearchKeycap('K', hovered: hovered),
-                  ],
                 ],
               ),
             ),
-          ),
-        ),
+          );
+        },
       ),
     );
-    return switch (hover) {
-      final hover? => IdeHover(
-        message: hover,
-        excludeFromSemantics: true,
-        child: box,
-      ),
-      null => box,
-    };
-  }
-}
-
-class _SearchKeycap extends StatelessWidget {
-  const _SearchKeycap(this.label, {this.hovered = false});
-
-  final String label;
-  final bool hovered;
-
-  @override
-  Widget build(BuildContext context) {
-    final dark = themeColors.dark;
-    return Container(
-      height: 19,
-      padding: const EdgeInsets.symmetric(horizontal: 5.5),
-      alignment: Alignment.center,
-      decoration: BoxDecoration(
-        color: Color.alphaBlend(
-          AppColors.text.withValues(alpha: dark ? 0.08 : 0.05),
-          AppColors.conversationSurface,
-        ),
-        borderRadius: BorderRadius.circular(5),
-        border: Border.all(
-          color: AppColors.border.withValues(alpha: 0.75),
-          width: 0.8,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: dark ? const Color(0x80000000) : const Color(0x14000000),
-            offset: const Offset(0, 1),
-            blurRadius: 0,
-          ),
-        ],
-      ),
-      child: Text(
-        label,
-        style: TextStyle(
-          color: AppColors.textMuted,
-          fontSize: 10.5,
-          height: 1.0,
-          fontWeight: FontWeight.w500,
-        ),
-      ),
-    );
-  }
-}
-
-/// A segment in the `[ 进行中 | 已归档 ]` filter bar.
-class _SegmentPill extends StatelessWidget {
-  const _SegmentPill({
-    required this.label,
-    required this.selected,
-    required this.onTap,
-    this.onSecondaryTap,
-  });
-
-  final String label;
-  final bool selected;
-  final VoidCallback onTap;
-  final GestureTapUpCallback? onSecondaryTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return HoverBuilder(
-      cursor: SystemMouseCursors.click,
-      builder: (context, hovered) => GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: onTap,
-        onSecondaryTapUp: onSecondaryTap,
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
-          alignment: Alignment.center,
-          child: AnimatedDefaultTextStyle(
-            duration: WbMotion.durationFast,
-            curve: WbMotion.standard,
-            style: TextStyle(
-              color: selected
-                  ? AppColors.textPrimary
-                  : hovered
-                  ? AppColors.text
-                  : AppColors.textMuted,
-              fontSize: 12,
-              fontWeight: FontWeight.w500,
-              height: 1.1,
-            ),
-            child: Text(label),
-          ),
-        ),
-      ),
+    if (!enabled) return button;
+    return IdeHover(
+      message: tooltip,
+      excludeFromSemantics: true,
+      child: button,
     );
   }
 }
@@ -3159,9 +3048,10 @@ class _NewAgentButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final dark = themeColors.dark;
     final foreground = AppColors.textPrimary;
     final isZh = Localizations.localeOf(context).languageCode == 'zh';
-    final label = isZh ? '新会话' : context.l10n.sidebarNewAgent;
+    final label = isZh ? '新建对话' : 'New Conversation';
     return IdeHover(
       message: ChatKeys.titleWithKey(
         context.l10n.sidebarNewAgent,
@@ -3171,104 +3061,106 @@ class _NewAgentButton extends StatelessWidget {
       excludeFromSemantics: true,
       child: HoverBuilder(
         cursor: SystemMouseCursors.click,
-        builder: (context, hovered) => GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          onTap: onTap,
-          child: Container(
-            height: 32,
-            padding: const EdgeInsets.symmetric(horizontal: 10),
-            decoration: ShapeDecoration(
-              color: hovered ? AppColors.hover : null,
-              shape: RoundedSuperellipseBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-            ),
-            child: Row(
-              children: [
-                Container(
-                  width: 20,
-                  height: 20,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: hovered ? AppColors.accent : null,
-                    gradient: hovered
-                        ? null
-                        : LinearGradient(
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                            colors: [
-                              AppColors.accent.withValues(alpha: 0.18),
-                              AppColors.accent.withValues(alpha: 0.30),
-                            ],
-                          ),
-                    border: Border.all(
-                      color: hovered
-                          ? AppColors.accent
-                          : AppColors.accent.withValues(alpha: 0.38),
-                      width: 1,
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: AppColors.accent.withValues(alpha: 0.12),
-                        blurRadius: 3,
-                        offset: const Offset(0, 1),
-                      ),
-                    ],
-                  ),
-                  child: Center(
-                    child: Icon(
-                      Icons.add_rounded,
-                      size: 13.5,
-                      color: hovered ? Colors.white : AppColors.accent,
-                    ),
-                  ),
+        builder: (context, hovered) {
+          final baseFill = _SidebarPalette.pillCard;
+          final fill = hovered
+              ? Color.alphaBlend(
+                  (dark ? Colors.white : Colors.black).withValues(alpha: 0.025),
+                  baseFill,
+                )
+              : baseFill;
+          return GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: onTap,
+            child: Container(
+              height: 30,
+              padding: const EdgeInsets.symmetric(horizontal: 6),
+              decoration: BoxDecoration(
+                color: fill,
+                borderRadius: BorderRadius.circular(7),
+                border: Border.all(
+                  color: dark
+                      ? Colors.white.withValues(alpha: hovered ? 0.14 : 0.09)
+                      : Colors.black.withValues(alpha: hovered ? 0.11 : 0.075),
+                  width: 1,
                 ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Stack(
-                    alignment: Alignment.centerLeft,
-                    clipBehavior: Clip.hardEdge,
-                    children: [
-                      Text(
-                        label,
-                        style: TextStyle(
-                          color: foreground,
-                          fontSize: 13.5,
-                          fontWeight: FontWeight.w600,
+                boxShadow: dark
+                    ? null
+                    : const [
+                        BoxShadow(
+                          color: Color(0x08000000),
+                          blurRadius: 2,
+                          offset: Offset(0, 1),
                         ),
-                      ),
-                      if (isZh && label != context.l10n.sidebarNewAgent)
-                        SizedBox(
-                          width: 1,
-                          height: 1,
-                          child: OverflowBox(
-                            alignment: Alignment.centerLeft,
-                            maxWidth: 80,
-                            maxHeight: 20,
-                            child: Opacity(
-                              opacity: 0,
-                              child: Text(context.l10n.sidebarNewAgent),
+                      ],
+              ),
+              child: Row(
+                children: [
+                  SizedBox(
+                    width: 14,
+                    height: 14,
+                    child: Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        const Opacity(
+                          opacity: 0,
+                          child: Icon(Icons.add_rounded, size: 13.5),
+                        ),
+                        AntigravitySidebarIcon(
+                          AntigravitySidebarGlyph.plus,
+                          size: 13,
+                          color: foreground,
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Stack(
+                      alignment: Alignment.centerLeft,
+                      clipBehavior: Clip.hardEdge,
+                      children: [
+                        Text(
+                          label,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: foreground,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w400,
+                          ),
+                        ),
+                        if (label != context.l10n.sidebarNewAgent)
+                          SizedBox(
+                            width: 1,
+                            height: 1,
+                            child: OverflowBox(
+                              alignment: Alignment.centerLeft,
+                              maxWidth: 80,
+                              maxHeight: 20,
+                              child: Opacity(
+                                opacity: 0,
+                                child: Text(context.l10n.sidebarNewAgent),
+                              ),
                             ),
                           ),
-                        ),
-                    ],
-                  ),
-                ),
-                Opacity(
-                  opacity: hovered ? 1.0 : 0.0,
-                  child: Text(
-                    ideUsesMacKeys ? '⌘N' : 'Ctrl+N',
-                    style: TextStyle(
-                      color: AppColors.textFaint,
-                      fontSize: 11,
-                      fontWeight: FontWeight.w500,
+                      ],
                     ),
                   ),
-                ),
-              ],
+                  if (hovered)
+                    Text(
+                      ideUsesMacKeys ? '⌘N' : 'Ctrl+N',
+                      style: TextStyle(
+                        color: AppColors.textFaint,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w400,
+                      ),
+                    ),
+                ],
+              ),
             ),
-          ),
-        ),
+          );
+        },
       ),
     );
   }
@@ -3279,6 +3171,7 @@ class _NewAgentButton extends StatelessWidget {
 class _NavRow extends StatelessWidget {
   const _NavRow({
     required this.icon,
+    required this.glyph,
     required this.label,
     required this.onTap,
     this.semanticsLabel,
@@ -3288,6 +3181,7 @@ class _NavRow extends StatelessWidget {
   });
 
   final IconData icon;
+  final AntigravitySidebarGlyph glyph;
   final String label;
   final String? semanticsLabel;
   final VoidCallback onTap;
@@ -3302,49 +3196,55 @@ class _NavRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final islands = Islands.on(context);
     final row = Semantics(
       button: true,
       selected: selected,
       label: semanticsLabel ?? label,
       child: Padding(
-        padding: EdgeInsets.fromLTRB(islands ? 6 : 10, 0, islands ? 6 : 10, 2),
+        padding: const EdgeInsets.fromLTRB(8, 0.5, 8, 0.5),
         child: HoverBuilder(
           cursor: SystemMouseCursors.click,
           builder: (context, hovered) {
-            final foreground = selected
+            final foreground = AppColors.textPrimary;
+            final iconColor = selected || hovered
                 ? AppColors.textPrimary
                 : AppColors.text;
-            final iconColor = selected || hovered
-                ? AppColors.accent
-                : AppColors.textMuted;
             return GestureDetector(
               behavior: HitTestBehavior.opaque,
               onTap: onTap,
               child: Container(
-                height: 32,
-                padding: const EdgeInsets.symmetric(horizontal: 10),
-                decoration: ShapeDecoration(
+                height: Sidebar.rowHeight,
+                padding: const EdgeInsets.symmetric(horizontal: 6),
+                decoration: BoxDecoration(
                   color: selected
-                      ? IdeListColors.activeSelection
+                      ? _SidebarPalette.pillCard
                       : hovered
-                      ? AppColors.hover
+                      ? _SidebarPalette.rowHover
                       : null,
-                  shape: RoundedSuperellipseBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
+                  borderRadius: BorderRadius.circular(7),
                 ),
                 child: ExcludeSemantics(
                   child: Row(
                     children: [
                       SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: Center(
-                          child: Icon(icon, size: 15.5, color: iconColor),
+                        width: 14,
+                        height: 14,
+                        child: Stack(
+                          alignment: Alignment.center,
+                          children: [
+                            Opacity(
+                              opacity: 0,
+                              child: Icon(icon, size: 14, color: iconColor),
+                            ),
+                            AntigravitySidebarIcon(
+                              glyph,
+                              size: 14,
+                              color: iconColor,
+                            ),
+                          ],
                         ),
                       ),
-                      const SizedBox(width: 10),
+                      const SizedBox(width: 6),
                       Expanded(
                         child: Stack(
                           alignment: Alignment.centerLeft,
@@ -3356,10 +3256,8 @@ class _NavRow extends StatelessWidget {
                               overflow: TextOverflow.ellipsis,
                               style: TextStyle(
                                 color: foreground,
-                                fontSize: 13.5,
-                                fontWeight: selected
-                                    ? FontWeight.w600
-                                    : FontWeight.w500,
+                                fontSize: 13,
+                                fontWeight: FontWeight.w400,
                               ),
                             ),
                             if (semanticsLabel != null &&
@@ -3383,11 +3281,11 @@ class _NavRow extends StatelessWidget {
                       if (badge > 0)
                         Container(
                           padding: const EdgeInsets.symmetric(
-                            horizontal: 6,
-                            vertical: 2,
+                            horizontal: 5.5,
+                            vertical: 1.5,
                           ),
                           decoration: BoxDecoration(
-                            color: AppColors.hover,
+                            color: _SidebarPalette.rowHover,
                             borderRadius: BorderRadius.circular(6),
                           ),
                           child: Text(
@@ -3514,9 +3412,71 @@ class _GroupHeader extends StatelessWidget {
   }
 
   Widget _build(BuildContext context, SidebarMenuState? menu) {
+    if (group.pinned) {
+      final isZh = Localizations.localeOf(context).languageCode == 'zh';
+      final shownLabel = isZh ? '置顶对话' : 'Pinned Conversations';
+      return HoverBuilder(
+        cursor: onToggle == null ? MouseCursor.defer : SystemMouseCursors.click,
+        builder: (context, hovered) => GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: onToggle,
+          child: Container(
+            height: 28,
+            padding: const EdgeInsets.fromLTRB(14, 6, 10, 2),
+            alignment: Alignment.centerLeft,
+            child: Row(
+              children: [
+                Expanded(
+                  child: Stack(
+                    alignment: Alignment.centerLeft,
+                    clipBehavior: Clip.hardEdge,
+                    children: [
+                      Text(
+                        shownLabel,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: hovered
+                              ? AppColors.text
+                              : AppColors.textMuted,
+                          fontSize: 11.5,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      if (shownLabel != group.label)
+                        SizedBox(
+                          width: 1,
+                          height: 1,
+                          child: OverflowBox(
+                            alignment: Alignment.centerLeft,
+                            maxWidth: 80,
+                            maxHeight: 20,
+                            child: Opacity(
+                              opacity: 0,
+                              child: Text(group.label),
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+                if (collapsed && group.threads.isNotEmpty)
+                  Text(
+                    '${group.threads.length}',
+                    style: TextStyle(
+                      color: AppColors.textFaint,
+                      fontSize: 11,
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
     final project = group.project;
     final dark = themeColors.dark;
-    final islands = Islands.on(context);
     final header = HoverBuilder(
       cursor: onToggle == null ? MouseCursor.defer : SystemMouseCursors.click,
       builder: (context, hovered) {
@@ -3533,34 +3493,31 @@ class _GroupHeader extends StatelessWidget {
               : (details) => menu.open(details.globalPosition),
           child: Container(
             height: Sidebar.rowHeight,
-            margin: const EdgeInsets.fromLTRB(
-              IdeListColors.inset,
-              4,
-              IdeListColors.inset,
-              0,
-            ),
-            padding: const EdgeInsets.only(left: 8, right: 4),
+            margin: const EdgeInsets.fromLTRB(8, 3, 6, 1),
+            padding: const EdgeInsets.only(left: 6, right: 4),
             decoration: BoxDecoration(
-              color: highlighted ? AppColors.hover : Colors.transparent,
-              borderRadius: BorderRadius.circular(
-                islands ? Islands.rowRadius : 6,
-              ),
+              color: highlighted ? _SidebarPalette.rowHover : Colors.transparent,
+              borderRadius: BorderRadius.circular(7),
             ),
             child: Row(
               children: [
-                if (!light || project != null) ...[
+                if (project != null) ...[
                   SizedBox(
-                    width: 15,
-                    height: 15,
+                    width: 14,
+                    height: 14,
                     child: Center(
-                      child: Icon(
-                        collapsed ? Codicons.folder : Codicons.folderOpened,
-                        size: 14.5,
-                        color: active ? AppColors.text : AppColors.textMuted,
+                      child: AntigravitySidebarIcon(
+                        collapsed
+                            ? AntigravitySidebarGlyph.folder
+                            : AntigravitySidebarGlyph.folderOpened,
+                        size: 13.5,
+                        color: active
+                            ? AppColors.textPrimary
+                            : AppColors.textMuted,
                       ),
                     ),
                   ),
-                  const SizedBox(width: 7),
+                  const SizedBox(width: 6),
                 ],
                 // The dot right after the name, the rest of the row after.
                 Expanded(
@@ -3612,7 +3569,7 @@ class _GroupHeader extends StatelessWidget {
                   ),
                 if (collapsed && !light && group.threads.isNotEmpty)
                   Padding(
-                    padding: EdgeInsets.only(right: islands ? 2 : 6),
+                    padding: const EdgeInsets.only(right: 4),
                     child: Text(
                       '${group.threads.length}',
                       style: TextStyle(
@@ -3627,7 +3584,7 @@ class _GroupHeader extends StatelessWidget {
                   SidebarIconButton(
                     icon: Icons.more_horiz_rounded,
                     tooltip: context.l10n.sidebarMoreActions,
-                    size: 23,
+                    size: 22,
                     circular: true,
                     customGlyph: (color) =>
                         _ThinRowGlyph(_SidebarRowGlyph.moreVert, color: color),
@@ -3638,7 +3595,7 @@ class _GroupHeader extends StatelessWidget {
                     SidebarIconButton(
                       icon: Icons.add_rounded,
                       tooltip: context.l10n.sidebarNewAgentIn(group.label),
-                      size: 23,
+                      size: 22,
                       circular: true,
                       customGlyph: (color) =>
                           _ThinRowGlyph(_SidebarRowGlyph.plus, color: color),
@@ -3700,9 +3657,9 @@ class _GroupHeader extends StatelessWidget {
       maxLines: 1,
       overflow: TextOverflow.ellipsis,
       style: TextStyle(
-        color: active ? AppColors.text : AppColors.textMuted,
-        fontSize: 12.5,
-        fontWeight: FontWeight.w500,
+        color: active ? AppColors.textPrimary : AppColors.textMuted,
+        fontSize: project == null ? 11.5 : 13,
+        fontWeight: project == null ? FontWeight.w500 : FontWeight.w400,
       ),
     );
     if (project == null) return label;
@@ -4147,6 +4104,7 @@ class _ThreadRow extends StatelessWidget {
     required this.status,
     required this.model,
     required this.height,
+    this.pinnedRow = false,
     this.stashes = const [],
     this.onOpenStash,
     this.onSaveStash,
@@ -4186,6 +4144,7 @@ class _ThreadRow extends StatelessWidget {
   /// The model it runs on, as its hover shows it; none when unknown.
   final String? Function() model;
   final double height;
+  final bool pinnedRow;
 
   /// The stashes it carries out: a tag on it, opened by [onOpenStash].
   final List<SidebarStash> stashes;
@@ -4350,6 +4309,11 @@ class _ThreadRow extends StatelessWidget {
       placement: (side: FloatingSide.bottom, align: FloatingAlign.end),
       builder: (context, menu) => IdeListRow(
         height: height,
+        margin: const EdgeInsets.fromLTRB(8, 0.5, 6, 0.5),
+        borderRadius: BorderRadius.circular(7),
+        selectedColor: _SidebarPalette.pillCard,
+        hoverColor: _SidebarPalette.rowHover,
+        showOutline: false,
         selected: selected,
         focusedItem: focusedItem,
         focused: focused,
@@ -4363,114 +4327,107 @@ class _ThreadRow extends StatelessWidget {
         builder: (context, hovered) {
           final active = hovered || menu.isOpen;
           final foreground = selected
-              ? IdeListColors.activeSelectionForeground
+              ? AppColors.textPrimary
               : hovered
-              ? IdeListColors.hoverForeground
-              : IdeListColors.foreground;
+              ? AppColors.textPrimary
+              : AppColors.text;
+          final leftPad = pinnedRow
+              ? 6.0
+              : (onDetach == null ? 26.0 : 26.0 + _asideIndent);
+          final titleRow = GiveWayRow(
+            children: [
+              GiveWay.fill(
+                minWidth: renaming ? 0 : _titleMinWidth,
+                renaming
+                    ? InlineRenameField(
+                        initial: thread.localizedTitle(context.l10n),
+                        onSummarize: onSummarizeTitle,
+                        onDone: onRenamed,
+                      )
+                    // What the row has no room for, over the title
+                    // (not the buttons that come and go beside it).
+                    : _RowHover(
+                        content: (context) => _buildHover(context.l10n),
+                        child: Align(
+                          alignment: Alignment.centerLeft,
+                          child: _buildTitle(context.l10n, foreground),
+                        ),
+                      ),
+              ),
+              if (!renaming)
+                ..._buildTrailing(
+                  active,
+                  context.l10n,
+                  foreground,
+                  onOpenMenu: () {
+                    onContextMenu();
+                    menu.open();
+                  },
+                ),
+            ],
+          );
+
+          if (pinnedRow) {
+            return Padding(
+              padding: EdgeInsets.fromLTRB(leftPad, 4, 6, 4),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  SizedBox(height: 18, child: titleRow),
+                  const SizedBox(height: 1.5),
+                  Row(
+                    children: [
+                      AntigravitySidebarIcon(
+                        AntigravitySidebarGlyph.folder,
+                        size: 11,
+                        color: AppColors.textMuted,
+                      ),
+                      const SizedBox(width: 4),
+                      Expanded(
+                        child: RichText(
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          text: TextSpan(
+                            text: thread.project.name,
+                            style: DefaultTextStyle.of(context).style.copyWith(
+                              color: AppColors.textMuted,
+                              fontSize: 11.5,
+                              height: 1.15,
+                              fontWeight: FontWeight.w400,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            );
+          }
+
           return Stack(
             fit: StackFit.expand,
             children: [
-              AnimatedPositioned(
-                duration: WbMotion.durationCollapse,
-                curve: WbMotion.decelerate,
-                left: 0,
-                top: selected ? 6 : 11,
-                bottom: selected ? 6 : 11,
-                width: 3.5,
-                child: IgnorePointer(
-                  child: AnimatedOpacity(
-                    duration: WbMotion.durationFast,
-                    curve: WbMotion.standard,
-                    opacity: selected ? 1 : 0,
-                    child: DecoratedBox(
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                          colors: [
-                            Color.lerp(AppColors.accent, Colors.white, 0.18)!,
-                            AppColors.accent,
-                          ],
-                        ),
-                        borderRadius: const BorderRadius.horizontal(
-                          right: Radius.circular(999),
-                        ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: AppColors.accent.withValues(alpha: 0.5),
-                            blurRadius: 10,
-                          ),
-                        ],
-                      ),
+              Padding(
+                padding: EdgeInsets.only(left: leftPad, right: 6),
+                child: titleRow,
+              ),
+              if (asides case final asides? when active)
+                Positioned(
+                  left: 6,
+                  top: 0,
+                  bottom: 0,
+                  child: Center(
+                    child: _AsidesArrow(
+                      folded: asides.folded,
+                      tooltip: asides.folded
+                          ? context.l10n.sidebarUnfoldAsides(asides.count)
+                          : context.l10n.sidebarFoldAsides,
+                      onTap: asides.onToggle,
                     ),
                   ),
                 ),
-              ),
-              Padding(
-                // An aside under the one it was asked beside.
-                padding: EdgeInsets.only(
-                  left: onDetach == null ? 8 : 8 + _asideIndent,
-                  right: 4,
-                ),
-                // Too narrow, what is beside the title gives way (its hover
-                // tells it), before the title is cut to nothing.
-                child: GiveWayRow(
-                  children: [
-                    GiveWay(
-                      Padding(
-                        padding: const EdgeInsets.only(right: 7),
-                        child: SizedBox(
-                          width: 15,
-                          child: Center(
-                            child: switch (asides) {
-                              final asides? when active => _AsidesArrow(
-                                folded: asides.folded,
-                                tooltip: asides.folded
-                                    ? context.l10n.sidebarUnfoldAsides(
-                                        asides.count,
-                                      )
-                                    : context.l10n.sidebarFoldAsides,
-                                onTap: asides.onToggle,
-                              ),
-                              _ when status == ThreadStatus.running =>
-                                const PixelLoader.agent(size: 12),
-                              _ => const SizedBox.shrink(),
-                            },
-                          ),
-                        ),
-                      ),
-                    ),
-                    GiveWay.fill(
-                      minWidth: renaming ? 0 : _titleMinWidth,
-                      renaming
-                          ? InlineRenameField(
-                              initial: thread.localizedTitle(context.l10n),
-                              onSummarize: onSummarizeTitle,
-                              onDone: onRenamed,
-                            )
-                          // What the row has no room for, over the title
-                          // (not the buttons that come and go beside it).
-                          : _RowHover(
-                              content: (context) => _buildHover(context.l10n),
-                              child: Align(
-                                alignment: Alignment.centerLeft,
-                                child: _buildTitle(context.l10n, foreground),
-                              ),
-                            ),
-                    ),
-                    if (!renaming)
-                      ..._buildTrailing(
-                        active,
-                        context.l10n,
-                        foreground,
-                        onOpenMenu: () {
-                          onContextMenu();
-                          menu.open();
-                        },
-                      ),
-                  ],
-                ),
-              ),
             ],
           );
         },
@@ -4543,12 +4500,11 @@ class _ThreadRow extends StatelessWidget {
   }
 
   Widget _buildTitle(AppLocalizations l10n, Color foreground) {
-    final status = thread.status;
     return Text.rich(
       TextSpan(
         children: [
           TextSpan(text: thread.localizedTitle(l10n)),
-          if (showProject) ...[
+          if (showProject && !pinnedRow) ...[
             const TextSpan(text: '  '),
             TextSpan(
               text: thread.project.name,
@@ -4576,9 +4532,7 @@ class _ThreadRow extends StatelessWidget {
         color: foreground,
         fontSize: 13,
         height: 18 / 13,
-        fontWeight: selected || status == ThreadStatus.unread
-            ? FontWeight.w500
-            : FontWeight.normal,
+        fontWeight: FontWeight.w400,
       ),
     );
   }
@@ -4586,15 +4540,14 @@ class _ThreadRow extends StatelessWidget {
   /// The least the title is cut to before what is beside it gives way.
   static const _titleMinWidth = 80.0;
 
-  /// What is beside the title, each a gap before it; giving way the diff
-  /// first, then the time, the pull request's tag, the stash's.
+  /// What is beside the title, each a gap before it; giving way the time/status
+  /// first, then the pull request's tag, the stash's.
   List<GiveWay> _buildTrailing(
     bool active,
     AppLocalizations l10n,
     Color foreground, {
     required VoidCallback onOpenMenu,
   }) {
-    final diff = thread.diff;
     Widget gap(Widget child) =>
         Padding(padding: const EdgeInsets.only(left: 6), child: child);
     return [
@@ -4642,37 +4595,8 @@ class _ThreadRow extends StatelessWidget {
             ),
           ),
         ),
-      if (diff != null && !active)
-        GiveWay(
-          priority: 0,
-          gap(
-            Text.rich(
-              TextSpan(
-                children: [
-                  TextSpan(
-                    text: '+${diff.added}',
-                    style: TextStyle(
-                      color: themeColors['chat.linesAddedForeground'],
-                    ),
-                  ),
-                  TextSpan(
-                    text: ' −${diff.removed}',
-                    style: TextStyle(
-                      color: themeColors['chat.linesRemovedForeground'],
-                    ),
-                  ),
-                ],
-              ),
-              maxLines: 1,
-              style: const TextStyle(
-                fontSize: 11,
-                fontFeatures: [FontFeature.tabularFigures()],
-              ),
-            ),
-          ),
-        ),
-      // The time; while hovered, pin and archive in its place (the rest is
-      // in the context menu), which never give way.
+      // While hovered, pin and archive in its place (the rest is in the
+      // context menu), which never give way.
       if (active)
         GiveWay(
           gap(
@@ -4685,7 +4609,7 @@ class _ThreadRow extends StatelessWidget {
                     tooltip: l10n.localeName.startsWith('zh')
                         ? '暂存到 Stash'
                         : 'Save to Stash',
-                    size: 24,
+                    size: 22,
                     circular: true,
                     customGlyph: (color) =>
                         _ThinRowGlyph(_SidebarRowGlyph.stash, color: color),
@@ -4698,7 +4622,7 @@ class _ThreadRow extends StatelessWidget {
                   tooltip: thread.archived
                       ? l10n.sidebarUnarchive
                       : l10n.sidebarArchive,
-                  size: 24,
+                  size: 22,
                   circular: true,
                   customGlyph: (color) => _ThinRowGlyph(
                     thread.archived
@@ -4716,7 +4640,7 @@ class _ThreadRow extends StatelessWidget {
                     tooltip: thread.pinned
                         ? l10n.sidebarUnpin
                         : l10n.sidebarPin,
-                    size: 24,
+                    size: 22,
                     circular: true,
                     customGlyph: (color) => _ThinRowGlyph(
                       thread.pinned
@@ -4729,7 +4653,7 @@ class _ThreadRow extends StatelessWidget {
                 SidebarIconButton(
                   icon: Icons.more_vert_rounded,
                   tooltip: l10n.sidebarMoreActions,
-                  size: 24,
+                  size: 22,
                   circular: true,
                   customGlyph: (color) =>
                       _ThinRowGlyph(_SidebarRowGlyph.moreVert, color: color),
@@ -4739,26 +4663,48 @@ class _ThreadRow extends StatelessWidget {
             ),
           ),
         )
+      else if (status == ThreadStatus.running)
+        GiveWay(
+          priority: 1,
+          gap(
+            const SizedBox(
+              width: 18,
+              child: Center(child: _AntigravityFourDots(size: 11)),
+            ),
+          ),
+        )
+      else if (status == ThreadStatus.needsInput)
+        GiveWay(
+          priority: 1,
+          gap(
+            SizedBox(
+              width: 18,
+              child: Center(child: _Dot(StatusIndicator.needsInputColor)),
+            ),
+          ),
+        )
+      else if (status == ThreadStatus.unread && !selected)
+        GiveWay(
+          priority: 1,
+          gap(
+            const SizedBox(
+              width: 18,
+              child: Center(child: _Dot(_SidebarPalette.unreadCoral)),
+            ),
+          ),
+        )
       else if (showTime)
         GiveWay(
           priority: 1,
           gap(
-            // Wider where the language's times are.
             ConstrainedBox(
-              constraints: const BoxConstraints(minWidth: 26),
+              constraints: const BoxConstraints(minWidth: 18),
               child: Text(
-                thread.status == ThreadStatus.needsInput
-                    ? ''
-                    : relativeTime(thread.updatedAt, DateTime.now(), l10n),
+                relativeTime(thread.updatedAt, DateTime.now()),
                 textAlign: TextAlign.right,
                 maxLines: 1,
-                // A step under the title's, selected or not.
                 style: TextStyle(
-                  color: selected
-                      ? (themeColors.dark
-                            ? _SidebarPalette.p400
-                            : _SidebarPalette.p600)
-                      : _SidebarPalette.p500,
+                  color: _SidebarPalette.p500,
                   fontSize: 11.5,
                   fontFeatures: const [FontFeature.tabularFigures()],
                 ),
@@ -4990,8 +4936,8 @@ class _TagPill extends StatelessWidget {
   );
 }
 
-/// What an agent needs: a spinner while it runs, an amber dot when it
-/// waits on a question, a blue dot when it finished unseen.
+/// What an agent needs: a 2×2 four-dot spinner while it runs, an amber dot
+/// when it waits on a question, a coral dot when it finished unseen.
 class StatusIndicator extends StatelessWidget {
   const StatusIndicator(this.status, {super.key, this.selected = false});
 
@@ -5004,10 +4950,9 @@ class StatusIndicator extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return switch (status) {
-      // A little under the list's text, as its dots are.
-      ThreadStatus.running => const PixelLoader.agent(size: 12),
+      ThreadStatus.running => const _AntigravityFourDots(size: 11),
       ThreadStatus.needsInput => _Dot(needsInputColor),
-      ThreadStatus.unread => _Dot(AppColors.accent),
+      ThreadStatus.unread => const _Dot(_SidebarPalette.unreadCoral),
       ThreadStatus.idle => const SizedBox.shrink(),
     };
   }
@@ -5021,11 +4966,363 @@ class _Dot extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 7.5,
-      height: 7.5,
+      width: 6,
+      height: 6,
       decoration: BoxDecoration(color: color, shape: BoxShape.circle),
     );
   }
+}
+
+/// Antigravity's clockwise 2×2 four-dot working indicator (`::`), backed by
+/// [StepClock] so multiple spinners stay in sync and widget tests'
+/// `pumpAndSettle` never hangs.
+class _AntigravityFourDots extends StatefulWidget {
+  const _AntigravityFourDots({this.size = 11});
+
+  final double size;
+
+  @override
+  State<_AntigravityFourDots> createState() => _AntigravityFourDotsState();
+}
+
+class _AntigravityFourDotsState extends State<_AntigravityFourDots> {
+  static final StepClock _clock = StepClock(const Duration(milliseconds: 180));
+  static int _active = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _clock.addListener(_tick);
+    _active++;
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _clock.keepTo(context);
+  }
+
+  void _tick() {
+    if (mounted) setState(() {});
+  }
+
+  @override
+  void dispose() {
+    _clock.removeListener(_tick);
+    _active--;
+    if (_active <= 0) {
+      _active = 0;
+      _clock.stop();
+    }
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final step = MediaQuery.disableAnimationsOf(context) ? 0 : _clock.ticks % 4;
+    return SizedBox.square(
+      dimension: widget.size,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          const Opacity(opacity: 0, child: PixelLoader.agent(size: 10)),
+          CustomPaint(
+            size: Size.square(widget.size),
+            painter: _AntigravityFourDotsPainter(
+              color: AppColors.textPrimary,
+              step: step,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _AntigravityFourDotsPainter extends CustomPainter {
+  const _AntigravityFourDotsPainter({required this.color, required this.step});
+
+  final Color color;
+  final int step;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final r = size.width * 0.135;
+    final offset = size.width * 0.255;
+    final cx = size.width / 2;
+    final cy = size.height / 2;
+    final points = [
+      Offset(cx - offset, cy - offset),
+      Offset(cx + offset, cy - offset),
+      Offset(cx + offset, cy + offset),
+      Offset(cx - offset, cy + offset),
+    ];
+    const alphas = [0.24, 0.48, 0.74, 0.96];
+    for (var i = 0; i < 4; i++) {
+      final alpha = alphas[(i - step) & 3];
+      canvas.drawCircle(
+        points[i],
+        r,
+        Paint()
+          ..color = color.withValues(alpha: alpha)
+          ..style = PaintingStyle.fill,
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(_AntigravityFourDotsPainter oldDelegate) =>
+      oldDelegate.color != color || oldDelegate.step != step;
+}
+
+/// Crisp geometric 1.25px thin-stroke outline icons matching Antigravity's
+/// left sidebar icon language.
+enum AntigravitySidebarGlyph {
+  sidebarLeft,
+  sidebarRight,
+  arrowLeft,
+  arrowRight,
+  search,
+  plus,
+  customizations,
+  stash,
+  filter,
+  newFolder,
+  folder,
+  folderOpened,
+  settingsGear,
+}
+
+class AntigravitySidebarIcon extends StatelessWidget {
+  const AntigravitySidebarIcon(
+    this.glyph, {
+    super.key,
+    required this.color,
+    this.size = 14.5,
+    this.filledPane = false,
+  });
+
+  final AntigravitySidebarGlyph glyph;
+  final Color color;
+  final double size;
+  final bool filledPane;
+
+  @override
+  Widget build(BuildContext context) {
+    return IgnorePointer(
+      child: CustomPaint(
+        size: Size.square(size),
+        painter: _AntigravitySidebarIconPainter(
+          glyph: glyph,
+          color: color,
+          filledPane: filledPane,
+        ),
+      ),
+    );
+  }
+}
+
+class _AntigravitySidebarIconPainter extends CustomPainter {
+  const _AntigravitySidebarIconPainter({
+    required this.glyph,
+    required this.color,
+    required this.filledPane,
+  });
+
+  final AntigravitySidebarGlyph glyph;
+  final Color color;
+  final bool filledPane;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final s = size.width / 15.0;
+    canvas.save();
+    canvas.scale(s, s);
+
+    final stroke = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = glyph == AntigravitySidebarGlyph.settingsGear ? 1.18 : 1.25
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round;
+
+    switch (glyph) {
+      case AntigravitySidebarGlyph.sidebarLeft ||
+          AntigravitySidebarGlyph.sidebarRight:
+        final outer = RRect.fromRectAndRadius(
+          const Rect.fromLTRB(1.7, 2.5, 13.3, 12.5),
+          const Radius.circular(2.0),
+        );
+        final splitX = glyph == AntigravitySidebarGlyph.sidebarLeft ? 5.9 : 9.1;
+        if (filledPane) {
+          canvas.save();
+          canvas.clipRRect(outer);
+          final fillRect = glyph == AntigravitySidebarGlyph.sidebarLeft
+              ? Rect.fromLTRB(1.7, 2.5, splitX, 12.5)
+              : Rect.fromLTRB(splitX, 2.5, 13.3, 12.5);
+          canvas.drawRect(
+            fillRect,
+            Paint()
+              ..color = color
+              ..style = PaintingStyle.fill,
+          );
+          canvas.restore();
+        }
+        canvas.drawRRect(outer, stroke);
+        canvas.drawLine(Offset(splitX, 2.5), Offset(splitX, 12.5), stroke);
+
+      case AntigravitySidebarGlyph.arrowLeft:
+        canvas.drawLine(const Offset(12.2, 7.5), const Offset(3.1, 7.5), stroke);
+        final head = Path()
+          ..moveTo(6.5, 4.2)
+          ..lineTo(3.0, 7.5)
+          ..lineTo(6.5, 10.8);
+        canvas.drawPath(head, stroke);
+
+      case AntigravitySidebarGlyph.arrowRight:
+        canvas.drawLine(const Offset(2.8, 7.5), const Offset(11.9, 7.5), stroke);
+        final head = Path()
+          ..moveTo(8.5, 4.2)
+          ..lineTo(12.0, 7.5)
+          ..lineTo(8.5, 10.8);
+        canvas.drawPath(head, stroke);
+
+      case AntigravitySidebarGlyph.search:
+        canvas.drawCircle(const Offset(6.6, 6.6), 4.0, stroke);
+        canvas.drawLine(const Offset(9.5, 9.5), const Offset(12.6, 12.6), stroke);
+
+      case AntigravitySidebarGlyph.plus:
+        canvas.drawLine(const Offset(7.5, 3.2), const Offset(7.5, 11.8), stroke);
+        canvas.drawLine(const Offset(3.2, 7.5), const Offset(11.8, 7.5), stroke);
+
+      case AntigravitySidebarGlyph.customizations:
+        final box = RRect.fromRectAndRadius(
+          const Rect.fromLTRB(1.9, 4.9, 13.1, 12.3),
+          const Radius.circular(1.6),
+        );
+        canvas.drawRRect(box, stroke);
+        final handle = Path()
+          ..moveTo(5.3, 4.9)
+          ..lineTo(5.3, 3.6)
+          ..quadraticBezierTo(5.3, 2.8, 6.1, 2.8)
+          ..lineTo(8.9, 2.8)
+          ..quadraticBezierTo(9.7, 2.8, 9.7, 3.6)
+          ..lineTo(9.7, 4.9);
+        canvas.drawPath(handle, stroke);
+        canvas.drawLine(const Offset(1.9, 8.1), const Offset(13.1, 8.1), stroke);
+
+      case AntigravitySidebarGlyph.stash:
+        final box = RRect.fromRectAndRadius(
+          const Rect.fromLTRB(2.0, 2.9, 13.0, 12.2),
+          const Radius.circular(1.7),
+        );
+        canvas.drawRRect(box, stroke);
+        final lip = Path()
+          ..moveTo(2.0, 8.5)
+          ..lineTo(5.2, 8.5)
+          ..lineTo(6.1, 9.9)
+          ..lineTo(8.9, 9.9)
+          ..lineTo(9.8, 8.5)
+          ..lineTo(13.0, 8.5);
+        canvas.drawPath(lip, stroke);
+
+      case AntigravitySidebarGlyph.filter:
+        canvas.drawLine(const Offset(2.2, 4.4), const Offset(12.8, 4.4), stroke);
+        canvas.drawLine(const Offset(4.1, 7.5), const Offset(10.9, 7.5), stroke);
+        canvas.drawLine(const Offset(6.0, 10.6), const Offset(9.0, 10.6), stroke);
+
+      case AntigravitySidebarGlyph.newFolder:
+        final folder = Path()
+          ..moveTo(7.3, 11.7)
+          ..lineTo(2.7, 11.7)
+          ..quadraticBezierTo(1.7, 11.7, 1.7, 10.7)
+          ..lineTo(1.7, 4.1)
+          ..quadraticBezierTo(1.7, 3.1, 2.7, 3.1)
+          ..lineTo(5.4, 3.1)
+          ..lineTo(6.7, 4.5)
+          ..lineTo(11.3, 4.5)
+          ..quadraticBezierTo(12.3, 4.5, 12.3, 5.5)
+          ..lineTo(12.3, 7.2);
+        canvas.drawPath(folder, stroke);
+        canvas.drawLine(const Offset(10.7, 8.8), const Offset(10.7, 12.6), stroke);
+        canvas.drawLine(const Offset(8.8, 10.7), const Offset(12.6, 10.7), stroke);
+
+      case AntigravitySidebarGlyph.folder:
+        final folder = Path()
+          ..moveTo(2.8, 3.2)
+          ..lineTo(5.6, 3.2)
+          ..lineTo(6.9, 4.6)
+          ..lineTo(12.2, 4.6)
+          ..quadraticBezierTo(13.3, 4.6, 13.3, 5.7)
+          ..lineTo(13.3, 10.8)
+          ..quadraticBezierTo(13.3, 11.9, 12.2, 11.9)
+          ..lineTo(2.8, 11.9)
+          ..quadraticBezierTo(1.7, 11.9, 1.7, 10.8)
+          ..lineTo(1.7, 4.3)
+          ..quadraticBezierTo(1.7, 3.2, 2.8, 3.2)
+          ..close();
+        canvas.drawPath(folder, stroke);
+
+      case AntigravitySidebarGlyph.folderOpened:
+        final back = Path()
+          ..moveTo(1.7, 11.7)
+          ..lineTo(1.7, 4.2)
+          ..quadraticBezierTo(1.7, 3.2, 2.7, 3.2)
+          ..lineTo(5.5, 3.2)
+          ..lineTo(6.8, 4.6)
+          ..lineTo(11.3, 4.6)
+          ..quadraticBezierTo(12.3, 4.6, 12.3, 5.6)
+          ..lineTo(12.3, 6.8);
+        canvas.drawPath(back, stroke);
+        final front = Path()
+          ..moveTo(1.7, 11.7)
+          ..lineTo(3.3, 6.9)
+          ..lineTo(13.6, 6.9)
+          ..lineTo(12.0, 11.7)
+          ..close();
+        canvas.drawPath(front, stroke);
+
+      case AntigravitySidebarGlyph.settingsGear:
+        canvas.drawCircle(const Offset(7.5, 7.5), 1.95, stroke);
+        const cx = 7.5;
+        const cy = 7.5;
+        const teeth = 8;
+        const outerR = 5.45;
+        const innerR = 4.25;
+        final gear = Path();
+        for (var i = 0; i < teeth; i++) {
+          final base = (i * 2 * math.pi) / teeth;
+          final step = (2 * math.pi) / (teeth * 4);
+          final a0 = base - step * 0.72;
+          final a1 = base + step * 0.72;
+          final a2 = base + step * 1.45;
+          final a3 = base + step * 2.55;
+          final p0 = Offset(cx + outerR * math.cos(a0), cy + outerR * math.sin(a0));
+          final p1 = Offset(cx + outerR * math.cos(a1), cy + outerR * math.sin(a1));
+          final p2 = Offset(cx + innerR * math.cos(a2), cy + innerR * math.sin(a2));
+          final p3 = Offset(cx + innerR * math.cos(a3), cy + innerR * math.sin(a3));
+          if (i == 0) {
+            gear.moveTo(p0.dx, p0.dy);
+          } else {
+            gear.lineTo(p0.dx, p0.dy);
+          }
+          gear
+            ..lineTo(p1.dx, p1.dy)
+            ..lineTo(p2.dx, p2.dy)
+            ..lineTo(p3.dx, p3.dy);
+        }
+        gear.close();
+        canvas.drawPath(gear, stroke);
+    }
+
+    canvas.restore();
+  }
+
+  @override
+  bool shouldRepaint(_AntigravitySidebarIconPainter oldDelegate) =>
+      oldDelegate.glyph != glyph ||
+      oldDelegate.color != color ||
+      oldDelegate.filledPane != filledPane;
 }
 
 /// Small square or circular icon button with a hover fill.
