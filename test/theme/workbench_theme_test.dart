@@ -118,8 +118,8 @@ void main() {
     }
 
     // Neither sets a link color: their focus borders'.
-    expect(await accent('Kimbie Dark'), const Color(0xFFA57A4C));
-    expect(await accent('Solarized Light'), const Color(0xFFB49471));
+    expect(await accent('Kimbie Dark'), const Color(0xFFC49268));
+    expect(await accent('Solarized Light'), const Color(0xFF488C96));
     expect(
       await accent('Bao Dark'),
       WorkbenchThemeService.instance.colors['textLink.foreground'],
@@ -152,15 +152,11 @@ void main() {
     }
 
     // Its side bar's border, as the theme has it.
-    expect(await line('Dark Modern'), const Color(0xFF2B2B2B));
+    expect(await line('Dark Modern'), const Color(0xFF2B303A));
     // Its `surface.border`, apart from both backgrounds.
-    expect(await line('Solarized Light'), const Color(0xFFDDD6C1));
-    // Transparent.
-    expect(await line('Red'), const Color(0xFFF8F8F8).withValues(alpha: 0.1));
-    expect(
-      await line('Tomorrow Night Blue'),
-      const Color(0xFFFFFFFF).withValues(alpha: 0.1),
-    );
+    expect(await line('Solarized Light'), const Color(0xFFE0DAC8));
+    expect(await line('Red'), const Color(0xFF38292D));
+    expect(await line('Tomorrow Night Blue'), const Color(0xFF293345));
   });
 
   test('a theme gone falls back to the default', () async {
@@ -333,6 +329,92 @@ void main() {
     font.value++;
     await tester.pump();
     expect(builds, greaterThan(before));
+  });
+
+  test('Antigravity Light loads and ThemePaletteOverrides supports in-place '
+      'edits, custom theme creation, rename, and deletion', () async {
+    final keptService = WorkbenchThemeService.instance;
+    final store = <String, Object?>{};
+    final notifier = ValueNotifier(0);
+    final themes = WorkbenchThemeService()
+      ..restore(setting: 'Antigravity Light');
+    WorkbenchThemeService.instance = themes;
+    addTearDown(() {
+      notifier.dispose();
+      WorkbenchThemeService.instance = keptService;
+    });
+
+    await themes.initialize();
+    ThemePaletteOverrides.follow(
+      notifier,
+      read: (key) => store[key],
+      write: (key, value) async {
+        if (value == null) {
+          store.remove(key);
+        } else {
+          store[key] = value;
+        }
+      },
+      dataDir: '',
+    );
+
+    expect(themes.colorThemeId, 'Antigravity Light');
+    expect(themes.colors['editor.background'], const Color(0xFFFAF9F5));
+    expect(themes.colors['sideBar.background'], const Color(0xFFEFEEEA));
+    expect(
+      themes.colors['list.activeSelectionBackground'],
+      const Color(0xFFFFFFFF),
+    );
+    expect(themes.colors['textPreformat.foreground'], const Color(0xFF9E2825));
+
+    // In-place color tweak persists per theme without affecting other themes.
+    await ThemePaletteOverrides.setSlotColor(
+      'Antigravity Light',
+      ThemePaletteOverrides.slotBackground,
+      const Color(0xFFF5F3EC),
+    );
+    expect(themes.colors['editor.background'], const Color(0xFFF5F3EC));
+    expect(store[ThemePaletteOverrides.overridesKey], isA<Map>());
+
+    // Create custom theme cloned from Antigravity Light (baking its tweaks).
+    final customId = await ThemePaletteOverrides.createCustomTheme(
+      label: 'My Warm Light',
+      dark: false,
+      baseThemeId: 'Antigravity Light',
+    );
+    expect(customId, 'My Warm Light');
+    expect(themes.colorThemeId, 'My Warm Light');
+    expect(themes.colors['editor.background'], const Color(0xFFF5F3EC));
+
+    // Rename custom theme.
+    final renamed = await ThemePaletteOverrides.renameCustomTheme(
+      customId,
+      'My Warm Light v2',
+    );
+    expect(renamed, 'My Warm Light v2');
+    expect(themes.colorThemeId, 'My Warm Light v2');
+
+    // Delete custom theme -> falls back cleanly to default light theme.
+    await ThemePaletteOverrides.deleteTheme(renamed, dark: false);
+    expect(themes.colorThemeId, ThemeSettingDefaults.colorThemeLight);
+    expect(
+      themes.colorThemes.any((t) => t.id == 'My Warm Light v2'),
+      isFalse,
+    );
+
+    // Hide a built-in theme and restore it.
+    await ThemePaletteOverrides.deleteTheme('Solarized Light', dark: false);
+    expect(
+      themes.colorThemes.any((t) => t.id == 'Solarized Light'),
+      isFalse,
+    );
+    await ThemePaletteOverrides.restoreDeletedThemes();
+    expect(
+      themes.colorThemes.any((t) => t.id == 'Solarized Light'),
+      isTrue,
+    );
+
+    await ThemePaletteOverrides.resetTheme('Antigravity Light');
   });
 }
 

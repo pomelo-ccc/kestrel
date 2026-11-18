@@ -72,10 +72,12 @@ Widget markdownTableScrollbar(
     controller: controller,
     thumbVisibility: hovered,
     padding: padding,
-    thickness: theme.thickness?.resolve(const {}) ?? 7,
-    radius: theme.radius ?? const Radius.circular(4),
+    thickness: theme.thickness?.resolve(const {}) ?? 5.0,
+    radius: theme.radius ?? const Radius.circular(999),
+    crossAxisMargin: theme.crossAxisMargin ?? 2.5,
+    mainAxisMargin: theme.mainAxisMargin ?? 2.5,
     thumbColor: theme.thumbColor?.resolve(const {}),
-    minThumbLength: theme.minThumbLength ?? 18,
+    minThumbLength: theme.minThumbLength ?? 24,
     child: child,
   );
 }

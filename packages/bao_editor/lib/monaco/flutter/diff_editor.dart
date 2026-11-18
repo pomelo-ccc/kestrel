@@ -1502,8 +1502,16 @@ class _DiffOverviewSliderPainter extends CustomPainter {
       scrollPosition: scroll.value.dy,
     );
     if (!slider.needed) return;
-    canvas.drawRect(
-      Rect.fromLTWH(0, slider.position, size.width, slider.size),
+    final vPad = slider.size > 10 ? 2.5 : 0.0;
+    final hPad = size.width > 8 ? 2.5 : 1.0;
+    final pill = Rect.fromLTRB(
+      hPad,
+      slider.position + vPad,
+      size.width - hPad,
+      slider.position + slider.size - vPad,
+    );
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(pill, const Radius.circular(999)),
       Paint()..color = color,
     );
   }

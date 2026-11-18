@@ -4,7 +4,7 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 
 import '../chat/widgets/hover_builder.dart';
-import '../theme/workbench_theme.dart' show themeColors;
+import '../theme/app_theme.dart';
 import '../workspace/islands.dart';
 
 /// A draggable horizontal scrollbar, with vertical wheels scrolling tabs too.
@@ -127,8 +127,10 @@ class _TabStripScrollState extends State<TabStripScroll> {
           thumbVisibility: hovered,
           interactive: true,
           thickness: 3,
-          radius: Radius.zero,
-          thumbColor: themeColors['scrollbarSlider.background'],
+          radius: const Radius.circular(999),
+          crossAxisMargin: 1.5,
+          mainAxisMargin: 3.0,
+          thumbColor: AppColors.scrollbarThumb(const {}),
           scrollbarOrientation: ScrollbarOrientation.bottom,
           child: Listener(
             onPointerSignal: _wheel,

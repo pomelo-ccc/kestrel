@@ -2901,14 +2901,18 @@ class _ChatHistoryViewState extends State<ChatHistoryView>
                 if (!_isPointerInside || _minimapShown) {
                   return Colors.transparent;
                 }
+                return AppColors.scrollbarThumb(states);
+              }),
+              trackColor: WidgetStateProperty.resolveWith((states) {
+                if (!_isPointerInside ||
+                    _minimapShown ||
+                    !states.contains(WidgetState.hovered)) {
+                  return Colors.transparent;
+                }
                 final colors = themeColors;
-                if (states.contains(WidgetState.dragged)) {
-                  return colors['scrollbarSlider.activeBackground'];
-                }
-                if (states.contains(WidgetState.hovered)) {
-                  return colors['scrollbarSlider.hoverBackground'];
-                }
-                return colors['scrollbarSlider.background'];
+                return colors['editor.foreground'].withValues(
+                  alpha: colors.dark ? 0.035 : 0.025,
+                );
               }),
             ),
             child: Stack(

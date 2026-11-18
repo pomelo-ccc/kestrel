@@ -18,8 +18,6 @@ import '../l10n/l10n.dart';
 import '../models/model_providers.dart';
 import '../models/model_welcome.dart';
 import '../models/provider_health.dart';
-import '../notifications/attention_service.dart';
-import '../notifications/notch_dropzone.dart';
 import '../remote/remote_location.dart';
 import '../remote/remote_status.dart' show ClaudeInstallBanner, SshHostBanner;
 import '../stash/stash_actions.dart';
@@ -1398,10 +1396,12 @@ class _ChatScreenState extends State<ChatScreen>
     final footer = _footer;
     final titled = _titled;
     return Scaffold(
-      // The window's color about the card, or the card's it is on (the
-      // IDE's, a card or not): none of its own.
+      // In island mode, transparent so the window's sidebar color frames the
+      // card; in flush border mode (`!Islands.on`), paint `widget.island`
+      // (`conversationSurface`, e.g. `#FAF9F5`) directly so the conversation
+      // pane keeps its own surface distinct from the `#EFEEEA` sidebar.
       backgroundColor: island == null && !IslandSurface.on(context)
-          ? null
+          ? widget.island
           : Colors.transparent,
       body: Stack(
         children: [
@@ -2351,10 +2351,6 @@ class _SpeedAndTokenBadgeState extends State<_SpeedAndTokenBadge> {
         _tracker,
         widget.session,
         ProviderHealthMonitor.instance,
-        AttentionVoiceSetting.enabled,
-        NotchDropzone.pipEnabled,
-        NotchDropzone.islandEnabled,
-        NotchDropzone.islandMinimized,
         ?SessionReplaySetting.changes,
       ]),
       builder: (context, _) {
@@ -2363,10 +2359,6 @@ class _SpeedAndTokenBadgeState extends State<_SpeedAndTokenBadge> {
         final speed = _tracker.tokensPerSec;
         final used = widget.session.context?.used ?? 0;
         final todayTotal = SessionSpeedTracker.todayEstimatedTokens + used;
-        final voiceOn = AttentionVoiceSetting.enabled.value;
-        final pipOn = NotchDropzone.pipEnabled.value;
-        final islandOn = NotchDropzone.islandEnabled.value;
-        final islandMin = NotchDropzone.islandMinimized.value;
         final hasItems =
             widget.session.itemCount > 0 && SessionReplaySetting.current();
         final liveStreamingSpeed = streaming && speed > 0;
@@ -2454,48 +2446,6 @@ class _SpeedAndTokenBadgeState extends State<_SpeedAndTokenBadge> {
               ),
               const SizedBox(width: 2),
             ],
-            _StatusBarIconButton(
-              icon: !islandOn
-                  ? Icons.visibility_off_outlined
-                  : (islandMin
-                        ? Icons.close_fullscreen_rounded
-                        : Icons.open_in_full_rounded),
-              active: islandOn,
-              tooltip: !islandOn
-                  ? '顶部灵动岛悬浮窗：已关闭（点击开启）'
-                  : (islandMin
-                        ? '顶部灵动岛悬浮窗：迷你缩小模式（点击关闭，或再次点击恢复展开）'
-                        : '顶部灵动岛悬浮窗：已展开（点击缩小为迷你胶囊）'),
-              onTap: () {
-                if (!islandOn) {
-                  NotchDropzone.islandEnabled.value = true;
-                  NotchDropzone.islandMinimized.value = false;
-                } else if (!islandMin) {
-                  NotchDropzone.islandMinimized.value = true;
-                } else {
-                  NotchDropzone.islandEnabled.value = false;
-                }
-              },
-            ),
-            const SizedBox(width: 2),
-            _StatusBarIconButton(
-              icon: Codicons.multipleWindows,
-              active: pipOn,
-              tooltip: pipOn
-                  ? '已开启右上角画中画小窗（点击关闭）'
-                  : '开启右上角画中画盯盘小窗',
-              onTap: () => NotchDropzone.pipEnabled.value = !pipOn,
-            ),
-            const SizedBox(width: 2),
-            _StatusBarIconButton(
-              icon: voiceOn ? Codicons.unmute : Codicons.mute,
-              active: voiceOn,
-              tooltip: voiceOn
-                  ? '已开启任务完成语音播报（点击关闭）'
-                  : '开启任务完成语音播报',
-              onTap: () => AttentionVoiceSetting.enabled.value = !voiceOn,
-            ),
-            const SizedBox(width: 2),
           ],
         );
       },
@@ -2508,13 +2458,11 @@ class _StatusBarIconButton extends StatelessWidget {
     required this.icon,
     required this.tooltip,
     required this.onTap,
-    this.active = false,
   });
 
   final IconData icon;
   final String tooltip;
   final VoidCallback onTap;
-  final bool active;
 
   @override
   Widget build(BuildContext context) {
@@ -2532,9 +2480,7 @@ class _StatusBarIconButton extends StatelessWidget {
             height: 22,
             alignment: Alignment.center,
             decoration: BoxDecoration(
-              color: active
-                  ? AppColors.accent.withValues(alpha: 0.14)
-                  : hovered
+              color: hovered
                   ? colors['toolbar.hoverBackground']
                   : Colors.transparent,
               borderRadius: BorderRadius.circular(5),
@@ -2542,9 +2488,7 @@ class _StatusBarIconButton extends StatelessWidget {
             child: Icon(
               icon,
               size: 13,
-              color: active
-                  ? AppColors.accent
-                  : (hovered ? AppColors.text : AppColors.textFaint),
+              color: hovered ? AppColors.text : AppColors.textFaint,
             ),
           ),
         ),

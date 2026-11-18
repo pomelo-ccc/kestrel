@@ -168,10 +168,38 @@ abstract final class AppColors {
   /// `textPreformat.foreground`.
   static Color get inlineCode => _colors['textPreformat.foreground'];
 
-  /// `textPreformat.background`. See-through in the default themes: a
-  /// selection is painted under the text, and shows through it as on the
-  /// web.
-  static Color get inlineCodeBackground => _colors['textPreformat.background'];
+  /// `textPreformat.background`, using a see-through foreground tint (matching
+  /// Antigravity's `bg-muted` inline code pill across frosted `WindowBlur`,
+  /// unfocused panes, and message cards) whenever a theme's own value does not
+  /// strongly stand out on its own.
+  static Color get inlineCodeBackground {
+    final colors = _colors;
+    final raw = colors['textPreformat.background'];
+    final surface = colors['editor.background'];
+    final over = Color.alphaBlend(raw, surface).computeLuminance();
+    final under = surface.computeLuminance();
+    final (light, dark) = over > under ? (over, under) : (under, over);
+    if ((light + 0.05) / (dark + 0.05) >= 1.25) return raw;
+    return colors['editor.foreground'].withValues(
+      alpha: colors.dark ? 0.11 : 0.055,
+    );
+  }
+
+  /// Sleek translucent scrollbar thumb harmonized with the theme's foreground:
+  /// subtle at rest, clearly responsive when hovered or dragged.
+  static Color scrollbarThumb(Set<WidgetState> states) {
+    final colors = _colors;
+    final fg = colors['editor.foreground'];
+    final dark = colors.dark;
+    if (states.contains(WidgetState.dragged) ||
+        states.contains(WidgetState.pressed)) {
+      return fg.withValues(alpha: dark ? 0.48 : 0.42);
+    }
+    if (states.contains(WidgetState.hovered)) {
+      return fg.withValues(alpha: dark ? 0.34 : 0.28);
+    }
+    return fg.withValues(alpha: dark ? 0.17 : 0.14);
+  }
 
   /// Selected text's background: `editor.selectionBackground`, see-through
   /// (see [seeThroughSelection]), for editors that may paint it over the
@@ -344,15 +372,26 @@ ThemeData buildAppTheme() {
       cursorColor: colors['editorCursor.foreground'],
     ),
     scrollbarTheme: ScrollbarThemeData(
-      thumbColor: WidgetStatePropertyAll(colors['scrollbarSlider.background']),
-      trackColor: const WidgetStatePropertyAll(Colors.transparent),
+      thumbColor: WidgetStateProperty.resolveWith(AppColors.scrollbarThumb),
+      trackColor: WidgetStateProperty.resolveWith(
+        (states) => states.contains(WidgetState.hovered)
+            ? colors['editor.foreground'].withValues(
+                alpha: colors.dark ? 0.035 : 0.025,
+              )
+            : Colors.transparent,
+      ),
       trackBorderColor: const WidgetStatePropertyAll(Colors.transparent),
-      thickness: const WidgetStatePropertyAll(7),
-      radius: const Radius.circular(4),
-      // Against the edge, as VS Code's (Material's desktop default is 2px
-      // in).
-      crossAxisMargin: 0,
-      minThumbLength: 48,
+      thickness: WidgetStateProperty.resolveWith(
+        (states) =>
+            states.contains(WidgetState.hovered) ||
+                states.contains(WidgetState.dragged)
+            ? 7.5
+            : 5.5,
+      ),
+      radius: const Radius.circular(999),
+      crossAxisMargin: 2.0,
+      mainAxisMargin: 1.5,
+      minThumbLength: 36,
     ),
   );
 }

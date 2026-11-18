@@ -1145,22 +1145,14 @@ class _LinesState extends State<_Lines> {
     );
   }
 
-  /// The editor's sliders (`EditorScrollbarPainter`): square, edge to edge,
-  /// at least 20 long, in `scrollbarSlider.*` as hovered and dragged.
+  /// Floating capsule scrollbars for side-panel file previews.
   static ScrollbarThemeData _editorScrollbars(BuildContext context) =>
       ScrollbarTheme.of(context).copyWith(
-        thumbColor: WidgetStateProperty.resolveWith(
-          (states) =>
-              themeColors[states.contains(WidgetState.dragged)
-                  ? 'scrollbarSlider.activeBackground'
-                  : states.contains(WidgetState.hovered)
-                  ? 'scrollbarSlider.hoverBackground'
-                  : 'scrollbarSlider.background'],
-        ),
-        radius: Radius.zero,
-        crossAxisMargin: 0,
-        mainAxisMargin: 0,
-        minThumbLength: 20,
+        thumbColor: WidgetStateProperty.resolveWith(AppColors.scrollbarThumb),
+        radius: const Radius.circular(999),
+        crossAxisMargin: 3.0,
+        mainAxisMargin: 3.0,
+        minThumbLength: 28,
       );
 }
 

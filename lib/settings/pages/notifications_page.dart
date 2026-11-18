@@ -7,6 +7,7 @@ import '../../ide/ide_button.dart';
 import '../../ide/ide_menu.dart';
 import '../../l10n/l10n.dart';
 import '../../notifications/attention_host.dart';
+import '../../notifications/attention_service.dart' show AttentionVoiceSetting;
 import '../../notifications/attention_settings.dart';
 import '../../notifications/notification_sound.dart';
 import '../../platform/app_platform.dart';
@@ -202,6 +203,22 @@ class _NotificationsSettingsPageState extends State<NotificationsSettingsPage> {
                   ),
                 ],
               ),
+            ),
+            ValueListenableBuilder<bool>(
+              valueListenable: AttentionVoiceSetting.enabled,
+              builder: (context, voiceOn, _) {
+                final isZh =
+                    Localizations.localeOf(context).languageCode == 'zh';
+                return SettingsSwitchRow(
+                  label: isZh ? '任务完成语音播报' : 'Spoken Completion Announcement',
+                  description: isZh
+                      ? '当后台任务完成或需要你确认时，使用系统语音进行简短播报提醒'
+                      : 'Speak a short system voice announcement when a task finishes or needs your input',
+                  value: voiceOn,
+                  enabled: enabled,
+                  onChanged: (v) => AttentionVoiceSetting.enabled.value = v,
+                );
+              },
             ),
           ],
         ),

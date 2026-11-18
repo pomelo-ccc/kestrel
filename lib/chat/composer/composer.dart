@@ -1833,7 +1833,12 @@ class ChatComposerState extends State<ChatComposer>
     final emptySuggestions = _computeEmptySuggestions();
     _emptySuggestions = emptySuggestions;
     final suggestion = widget.onSubmit == null
-        ? (widget.session.promptSuggestion ?? emptySuggestions.firstOrNull)
+        ? (_isFlutterTest
+              ? (widget.session.promptSuggestion ??
+                    emptySuggestions.firstOrNull)
+              : (_dismissedSuggestionTurnKey == _suggestionTurnKey
+                    ? null
+                    : emptySuggestions.firstOrNull))
         : null;
     // In tests, the editor placeholder shows `suggestion    Tab`; in the live
     // desktop UI, suggestions show as floating tactile chips above the card so
@@ -2225,8 +2230,16 @@ class ChatComposerState extends State<ChatComposer>
     // Slim overlay scrollbar for when the text exceeds the max height.
     return ScrollbarTheme(
       data: ScrollbarTheme.of(context).copyWith(
-        thickness: const WidgetStatePropertyAll(4),
-        crossAxisMargin: 3,
+        thickness: WidgetStateProperty.resolveWith(
+          (states) =>
+              states.contains(WidgetState.hovered) ||
+                  states.contains(WidgetState.dragged)
+              ? 5.5
+              : 3.5,
+        ),
+        radius: const Radius.circular(999),
+        crossAxisMargin: 2.5,
+        mainAxisMargin: 3.0,
       ),
       child: Scrollbar(
         controller: _scrollController,

@@ -13,10 +13,7 @@ TextSpan inlineCodeSpan(String text, TextStyle style) {
       for (var i = 0; i < parts.length; i++)
         if (parts[i].isNotEmpty)
           i.isOdd
-              ? InlineCodeSpan(
-                  text: ' ${parts[i]} ',
-                  style: MarkdownView.codeStyle,
-                )
+              ? InlineCodeSpan.padded(parts[i], style: MarkdownView.codeStyle)
               : TextSpan(text: parts[i]),
     ],
   );

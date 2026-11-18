@@ -440,12 +440,14 @@ class GeneralSettingsPage extends StatelessWidget {
                   listenable: Listenable.merge([
                     NotchDropzone.islandEnabled,
                     NotchDropzone.islandMinimized,
+                    NotchDropzone.pipEnabled,
                   ]),
                   builder: (context, _) {
                     final isZh =
                         Localizations.localeOf(context).languageCode == 'zh';
                     final islandOn = NotchDropzone.islandEnabled.value;
                     final islandMin = NotchDropzone.islandMinimized.value;
+                    final pipOn = NotchDropzone.pipEnabled.value;
                     return Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
@@ -472,6 +474,17 @@ class GeneralSettingsPage extends StatelessWidget {
                             onChanged: (min) =>
                                 NotchDropzone.islandMinimized.value = min,
                           ),
+                        SettingsSwitchRow(
+                          label: isZh
+                              ? '右上角画中画盯盘小窗'
+                              : 'Picture-in-Picture Live Monitor',
+                          description: isZh
+                              ? '切换到其他软件时，在屏幕右上角悬浮显示任务进度与确认卡片'
+                              : 'Float a live progress and approval card in the top-right corner when switching to other apps',
+                          value: pipOn,
+                          onChanged: (on) =>
+                              NotchDropzone.pipEnabled.value = on,
+                        ),
                       ],
                     );
                   },

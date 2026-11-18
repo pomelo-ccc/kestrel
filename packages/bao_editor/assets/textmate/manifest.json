@@ -2401,6 +2401,13 @@
       "label": "Claude Code Dark",
       "uiTheme": "vs-dark",
       "path": "themes/theme-bao/themes/claude-code-dark-color-theme.json"
+    },
+    {
+      "extension": "theme-bao",
+      "id": "Antigravity Light",
+      "label": "Antigravity Light",
+      "uiTheme": "vs",
+      "path": "themes/theme-bao/themes/antigravity-light-color-theme.json"
     }
   ]
 }

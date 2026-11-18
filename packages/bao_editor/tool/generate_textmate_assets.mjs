@@ -312,6 +312,7 @@ for (const extension of themeExtensions) {
 const localThemes = [
   { extension: 'theme-bao', id: 'Bao Dark', label: 'Bao Dark', uiTheme: 'vs-dark', path: 'themes/bao-dark-color-theme.json' },
   { extension: 'theme-bao', id: 'Bao Light', label: 'Bao Light', uiTheme: 'vs', path: 'themes/bao-light-color-theme.json' },
+  { extension: 'theme-bao', id: 'Antigravity Light', label: 'Antigravity Light', uiTheme: 'vs', path: 'themes/antigravity-light-color-theme.json' },
 ];
 for (const theme of localThemes) {
   const assetPath = `themes/${theme.extension}/${theme.path}`;

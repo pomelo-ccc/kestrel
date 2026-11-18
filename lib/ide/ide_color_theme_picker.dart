@@ -131,6 +131,7 @@ IdeQuickPick ideColorThemePick(
     String label,
   ) {
     int pinRank(IdeColorThemeEntry theme) => switch (theme.id) {
+      'Antigravity Light' => -1,
       _defaultDark || _defaultLight => 0,
       'Claude Code Light' || 'Claude Code Dark' => 1,
       _ => 2,

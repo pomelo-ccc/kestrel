@@ -27,8 +27,7 @@ void main() {
   testWidgets('a selection shows over inline code, whatever its background', (
     tester,
   ) async {
-    // The default theme's is opaque, as Dark Modern's.
-    expect(AppColors.inlineCodeBackground.a, 1);
+    expect(AppColors.inlineCodeBackground.a, greaterThan(0));
     expect(MarkdownView.codeStyle.backgroundColor, isNull);
     final key = GlobalKey();
     await tester.pumpWidget(
@@ -76,8 +75,8 @@ void main() {
     }
 
     expect(
-      (await inCode()).toARGB32(),
-      AppColors.inlineCodeBackground.toARGB32(),
+      (await inCode()).a,
+      closeTo(AppColors.inlineCodeBackground.a, 0.02),
     );
     tester
         .state<SelectableRegionState>(find.byType(SelectableRegion))

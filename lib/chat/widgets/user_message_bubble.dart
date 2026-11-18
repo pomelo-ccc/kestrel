@@ -392,8 +392,16 @@ class _UserMessageViewerState extends State<UserMessageViewer> {
           // A slim bar, as the editor's.
           child: ScrollbarTheme(
             data: ScrollbarTheme.of(context).copyWith(
-              thickness: const WidgetStatePropertyAll(4),
-              crossAxisMargin: 3,
+              thickness: WidgetStateProperty.resolveWith(
+                (states) =>
+                    states.contains(WidgetState.hovered) ||
+                        states.contains(WidgetState.dragged)
+                    ? 5.5
+                    : 3.5,
+              ),
+              radius: const Radius.circular(999),
+              crossAxisMargin: 2.5,
+              mainAxisMargin: 3.0,
             ),
             child: Scrollbar(
               controller: controller,

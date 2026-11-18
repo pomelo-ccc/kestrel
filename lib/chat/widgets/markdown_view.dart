@@ -38,15 +38,15 @@ class MarkdownView extends StatefulWidget {
   final TextStyle? style;
 
   static TextStyle get baseStyle => TextStyle(
-    color: Color.lerp(AppColors.text, AppColors.textMuted, 0.2)!,
-    fontSize: 13.6,
-    height: 1.72,
-    letterSpacing: 0.14,
+    color: AppColors.text,
+    fontSize: 13.3,
+    height: 1.55,
+    letterSpacing: 0,
   );
 
-  /// Inline code's, its background painted by [InlineCodeText].
+  /// Inline code's (`0.9em`), its background painted by [InlineCodeText].
   static TextStyle get codeStyle =>
-      AppFonts.uiCodeStyle(12.5).copyWith(color: AppColors.inlineCode);
+      AppFonts.uiCodeStyle(11.9).copyWith(color: AppColors.inlineCode);
 
   /// The block syntaxes of its own, before GFM's: code citations and TeX.
   static const blockSyntaxes = <md.BlockSyntax>[
@@ -467,11 +467,20 @@ double _gapBefore(
   MarkdownOptions options, {
   md.Node? previous,
 }) => switch (node) {
-  md.Element(tag: 'h1' || 'h2' || 'h3' || 'h4') => options.headingGap,
+  md.Element(tag: 'hr') => 14,
+  md.Element(tag: 'h1' || 'h2') =>
+    previous is md.Element && previous.tag == 'hr' ? 14 : options.headingGap,
+  md.Element(tag: 'h3' || 'h4') =>
+    previous is md.Element && previous.tag == 'hr' ? 12 : 13,
+  _ when previous is md.Element && previous.tag == 'hr' => 14,
   _
       when previous is md.Element &&
-          const {'h1', 'h2', 'h3', 'h4'}.contains(previous.tag) =>
-    6,
+          const {'h1', 'h2'}.contains(previous.tag) =>
+    10,
+  _
+      when previous is md.Element &&
+          const {'h3', 'h4'}.contains(previous.tag) =>
+    7,
   _ => options.gap,
 };
 
@@ -513,10 +522,10 @@ Widget _imageLink(String src, String alt) {
 @immutable
 class MarkdownOptions {
   const MarkdownOptions({
-    this.headingSizes = const [16.5, 15.2, 14.2, 13.6, 13.6, 13.6],
+    this.headingSizes = const [18.5, 16.0, 14.5, 13.3, 13.3, 13.3],
     this.headingRules = false,
-    this.gap = 10,
-    this.headingGap = 16,
+    this.gap = 8,
+    this.headingGap = 18,
     this.link,
     this.code,
     this.linkIcon,
@@ -603,16 +612,6 @@ class MarkdownBlocks extends StatelessWidget {
     md.Node? previous;
     for (var i = 0; i < nodes.length; i++) {
       final node = nodes[i];
-      // Skip redundant `<hr>` right before a heading (`h1`–`h4`).
-      if (node is md.Element &&
-          node.tag == 'hr' &&
-          i + 1 < nodes.length &&
-          nodes[i + 1] is md.Element &&
-          const {'h1', 'h2', 'h3', 'h4'}.contains(
-            (nodes[i + 1] as md.Element).tag,
-          )) {
-        continue;
-      }
       final block = _block(node, style, options);
       if (block == null) continue;
       if (children.isNotEmpty) {
@@ -635,60 +634,7 @@ Widget _inlineBlock(
   List<md.Node> nodes,
   TextStyle style,
   MarkdownOptions options,
-) {
-  final lines = _splitIntentionalLines(nodes);
-  if (lines.length <= 1) {
-    return InlineCodeText(_inlines(nodes, style, options));
-  }
-  return Column(
-    crossAxisAlignment: CrossAxisAlignment.stretch,
-    mainAxisSize: MainAxisSize.min,
-    children: [
-      for (final (i, line) in lines.indexed) ...[
-        if (i > 0) const SizedBox(height: 5),
-        InlineCodeText(_inlines(line, style, options)),
-      ],
-    ],
-  );
-}
-
-final _intentionalBreakBefore = RegExp(r'[：:。！？；”!?)）]\s*$');
-
-List<List<md.Node>> _splitIntentionalLines(List<md.Node> nodes) {
-  final lines = <List<md.Node>>[[]];
-  for (final node in nodes) {
-    if (node is md.Text && node.text.contains('\n')) {
-      final prevNode = lines.last.lastOrNull;
-      final prevEndsStrongOrPunct =
-          (prevNode is md.Element &&
-              const {'strong', 'b', 'code'}.contains(prevNode.tag)) ||
-          _intentionalBreakBefore.hasMatch(prevNode?.textContent ?? '');
-      final parts = node.text.split('\n');
-      for (var i = 0; i < parts.length; i++) {
-        if (i > 0) {
-          final prevPart = parts[i - 1];
-          final splitHere =
-              (i == 1 && prevPart.trim().isEmpty && prevEndsStrongOrPunct) ||
-              _intentionalBreakBefore.hasMatch(prevPart);
-          if (splitHere) {
-            lines.add([]);
-          } else {
-            lines.last.add(md.Text('\n'));
-          }
-        }
-        if (parts[i].isNotEmpty) {
-          lines.last.add(md.Text(parts[i]));
-        }
-      }
-      continue;
-    }
-    lines.last.add(node);
-  }
-  return [
-    for (final line in lines)
-      if (line.isNotEmpty) line,
-  ];
-}
+) => InlineCodeText(_inlines(nodes, style, options));
 
 Widget? _block(md.Node node, TextStyle style, MarkdownOptions options) {
   if (node is md.Text) {
@@ -764,15 +710,7 @@ Widget? _block(md.Node node, TextStyle style, MarkdownOptions options) {
         ),
       );
     case 'hr':
-      // As upstream's chat: the separator's color, faint.
-      final separator = themeColors['textSeparator.foreground'];
-      return Padding(
-        padding: EdgeInsets.symmetric(vertical: 4),
-        child: Divider(
-          height: 1,
-          color: separator.withValues(alpha: separator.a * 0.33),
-        ),
-      );
+      return Divider(height: 1, thickness: 1, color: AppColors.partBorder);
     case 'table':
       return _Table(node: node, style: style, options: options);
     case TagBlockSyntax.tag:
@@ -784,11 +722,24 @@ Widget? _block(md.Node node, TextStyle style, MarkdownOptions options) {
 
 /// A list, numbered or not, whose items may hold blocks and nested lists.
 class _List extends StatelessWidget {
-  const _List({required this.node, required this.style, required this.options});
+  const _List({
+    required this.node,
+    required this.style,
+    required this.options,
+    this.depth = 0,
+  });
 
   final md.Element node;
   final TextStyle style;
   final MarkdownOptions options;
+  final int depth;
+
+  static bool _endsWithNestedList(md.Element item) {
+    final children = item.children;
+    if (children == null || children.isEmpty) return false;
+    final last = children.last;
+    return last is md.Element && (last.tag == 'ul' || last.tag == 'ol');
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -798,6 +749,8 @@ class _List extends StatelessWidget {
       for (final child in node.children ?? const <md.Node>[])
         if (child is md.Element && child.tag == 'li') child,
     ];
+    final maxCounter = items.isEmpty ? start : start + items.length - 1;
+    final orderedWidth = '$maxCounter'.length >= 2 ? 24.0 : 18.0;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       mainAxisSize: MainAxisSize.min,
@@ -805,14 +758,20 @@ class _List extends StatelessWidget {
         for (final (i, item) in items.indexed)
           Padding(
             padding: EdgeInsets.only(
-              top: i == 0 ? 3 : (ordered ? 10 : 7),
-              left: ordered ? 2 : 6,
+              top: i == 0
+                  ? 0
+                  : (_endsWithNestedList(items[i - 1]) ? 7.0 : 2.0),
+              left: _isTask(item)
+                  ? (depth == 0 ? 0 : 16)
+                  : (ordered
+                        ? (depth == 0 ? 0 : 14)
+                        : (depth == 0 ? 2 : 16)),
             ),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 SizedBox(
-                  width: _isTask(item) ? 22 : (ordered ? 22 : 16),
+                  width: _isTask(item) ? 21 : (ordered ? orderedWidth : 13),
                   child: _marker(
                     item,
                     ordered ? '${start + i}.' : '•',
@@ -831,19 +790,6 @@ class _List extends StatelessWidget {
     md.Element(tag: 'input') => true,
     _ => false,
   };
-
-  static bool _startsWithStrong(md.Element item) {
-    final first = item.children?.firstOrNull;
-    if (first is md.Element) {
-      if (first.tag == 'strong' || first.tag == 'b') return true;
-      if (first.tag == 'p') {
-        final pFirst = first.children?.firstOrNull;
-        return pFirst is md.Element &&
-            (pFirst.tag == 'strong' || pFirst.tag == 'b');
-      }
-    }
-    return false;
-  }
 
   Widget _marker(md.Element item, String text, {bool ordered = false}) {
     final checkbox = item.children?.firstOrNull;
@@ -891,28 +837,21 @@ class _List extends StatelessWidget {
       );
     }
     if (!ordered) {
-      final lineHeight = (style.fontSize ?? 13.6) * (style.height ?? 1.72);
+      final lineHeight = (style.fontSize ?? 13.3) * (style.height ?? 1.55);
       return Align(
         alignment: AlignmentDirectional.topStart,
         child: Container(
-          width: 4.8,
-          height: 4.8,
-          margin: EdgeInsets.only(top: (lineHeight - 4.8) * 0.5, left: 2),
+          width: 4.5,
+          height: 4.5,
+          margin: EdgeInsets.only(top: (lineHeight - 4.5) * 0.5, left: 1),
           decoration: BoxDecoration(
-            color: AppColors.textMuted.withValues(alpha: 0.85),
+            color: style.color ?? AppColors.text,
             shape: BoxShape.circle,
           ),
         ),
       );
     }
-    final strongLead = _startsWithStrong(item);
-    return Text(
-      text,
-      style: style.copyWith(
-        color: strongLead ? AppColors.textPrimary : AppColors.textMuted,
-        fontWeight: strongLead ? FontWeight.w600 : FontWeight.w500,
-      ),
-    );
+    return Text(text, style: style);
   }
 
   /// An item's text and blocks: a tight item's text is inline children, a
@@ -951,7 +890,9 @@ class _List extends StatelessWidget {
         continue;
       }
       flush();
-      final block = _block(child, style, options);
+      final block = (child.tag == 'ul' || child.tag == 'ol')
+          ? _List(node: child, style: style, options: options, depth: depth + 1)
+          : _block(child, style, options);
       if (block != null) blocks.add(block);
     }
     flush();
@@ -961,7 +902,7 @@ class _List extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         for (final (i, block) in blocks.indexed) ...[
-          if (i > 0) const SizedBox(height: 8),
+          if (i > 0) const SizedBox(height: 6),
           block,
         ],
       ],
@@ -1094,13 +1035,6 @@ TextSpan _inlines(
   children: [for (final node in nodes) _inline(node, options)],
 );
 
-final _sentencePunct = RegExp(r'[，。！？；——]');
-
-bool _isOverlongSentenceStrong(md.Element node) {
-  final text = node.textContent.trim();
-  return text.length > 32 && _sentencePunct.hasMatch(text);
-}
-
 InlineSpan _inline(md.Node node, MarkdownOptions options) {
   if (node is md.Text) {
     // A comment is the writer's note, not shown (as HTML has it); the
@@ -1124,12 +1058,10 @@ InlineSpan _inline(md.Node node, MarkdownOptions options) {
   }
   return switch (node.tag) {
     'strong' || 'b' => TextSpan(
-      style: _isOverlongSentenceStrong(node)
-          ? TextStyle(fontWeight: FontWeight.w400, color: AppColors.text)
-          : TextStyle(
-              fontWeight: FontWeight.w500,
-              color: AppColors.textPrimary,
-            ),
+      style: TextStyle(
+        fontWeight: FontWeight.w600,
+        color: AppColors.textPrimary,
+      ),
       children: inner(),
     ),
     'em' || 'i' => TextSpan(
@@ -1141,28 +1073,38 @@ InlineSpan _inline(md.Node node, MarkdownOptions options) {
       children: inner(),
     ),
     'code' => switch (options.code?.call(_unescape(node.textContent))) {
-      // A file's: in the primary text color, its icon first in the pill.
-      final recognizer? => InlineCodeSpan(
-        style: MarkdownView.codeStyle.copyWith(color: AppColors.textPrimary),
-        children: [
-          if (options.codeIcon?.call(_unescape(node.textContent))
-              case final icon?)
+      // A workspace file mention: proportional medium UI text with its icon,
+      // matching Antigravity's inline file mention without trailing spaces.
+      final recognizer? => switch (options.codeIcon?.call(
+        _unescape(node.textContent),
+      )) {
+        final icon? => TextSpan(
+          style: TextStyle(
+            fontWeight: FontWeight.w500,
+            color: AppColors.textPrimary,
+          ),
+          children: [
             _linkIcon(
               icon,
               recognizer,
-              const EdgeInsets.only(left: 5, right: 3.5),
-            )
-          else
-            const TextSpan(text: ' '),
-          TextSpan(
-            text: '${_unescape(node.textContent)} ',
-            recognizer: recognizer,
-            mouseCursor: SystemMouseCursors.click,
-          ),
-        ],
-      ),
-      null => InlineCodeSpan(
-        text: ' ${_unescape(node.textContent)} ',
+              const EdgeInsets.only(left: 1, right: 3),
+            ),
+            TextSpan(
+              text: _unescape(node.textContent),
+              recognizer: recognizer,
+              mouseCursor: SystemMouseCursors.click,
+            ),
+          ],
+        ),
+        null => InlineCodeSpan.padded(
+          _unescape(node.textContent),
+          style: MarkdownView.codeStyle.copyWith(color: AppColors.textPrimary),
+          recognizer: recognizer,
+          mouseCursor: SystemMouseCursors.click,
+        ),
+      },
+      null => InlineCodeSpan.padded(
+        _unescape(node.textContent),
         style: MarkdownView.codeStyle,
       ),
     },
@@ -1170,28 +1112,34 @@ InlineSpan _inline(md.Node node, MarkdownOptions options) {
       final recognizer? => switch (options.linkIcon?.call(
         node.attributes['href'],
       )) {
-        final icon? => InlineCodeSpan(
-          style: MarkdownView.codeStyle.copyWith(color: AppColors.textPrimary),
+        final icon? => TextSpan(
+          style: TextStyle(
+            fontWeight: FontWeight.w500,
+            color: AppColors.textPrimary,
+          ),
           children: [
             _linkIcon(
               icon,
               recognizer,
-              const EdgeInsets.only(left: 5, right: 3.5),
+              const EdgeInsets.only(left: 1, right: 3),
             ),
             TextSpan(
-              text: '${_unescape(node.textContent)} ',
+              text: _unescape(node.textContent),
               recognizer: recognizer,
               mouseCursor: SystemMouseCursors.click,
             ),
           ],
         ),
         null => TextSpan(
-          style: TextStyle(color: AppColors.accent),
+          style: TextStyle(
+            color: AppColors.accent,
+            fontWeight: FontWeight.w500,
+          ),
           children: [for (final span in inner()) _linked(span, recognizer)],
         ),
       },
       null => TextSpan(
-        style: TextStyle(color: AppColors.accent),
+        style: TextStyle(color: AppColors.accent, fontWeight: FontWeight.w500),
         children: inner(),
       ),
     },

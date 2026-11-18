@@ -1,3 +1,4 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/widgets.dart';
 
@@ -14,6 +15,40 @@ class InlineCodeSpan extends TextSpan {
     super.recognizer,
     super.mouseCursor,
   });
+
+  /// Compact ~4px (`px-1`) horizontal padding space on each side of [code],
+  /// matching Antigravity's inline `<code>` pill without wide monospace gaps.
+  static const _padStyle = TextStyle(fontSize: 6.6, letterSpacing: 0);
+
+  factory InlineCodeSpan.padded(
+    String code, {
+    TextStyle? style,
+    GestureRecognizer? recognizer,
+    MouseCursor? mouseCursor,
+  }) => InlineCodeSpan(
+    style: style,
+    recognizer: recognizer,
+    mouseCursor: mouseCursor,
+    children: [
+      TextSpan(
+        text: ' ',
+        style: _padStyle,
+        recognizer: recognizer,
+        mouseCursor: mouseCursor,
+      ),
+      TextSpan(
+        text: code,
+        recognizer: recognizer,
+        mouseCursor: mouseCursor,
+      ),
+      TextSpan(
+        text: ' ',
+        style: _padStyle,
+        recognizer: recognizer,
+        mouseCursor: mouseCursor,
+      ),
+    ],
+  );
 }
 
 /// [span] as [Text.rich] does, its [InlineCodeSpan]s on their background.
@@ -65,7 +100,7 @@ class _InlineCodeBackdrop extends SingleChildRenderObjectWidget {
 class RenderInlineCodeBackdrop extends RenderProxyBox {
   RenderInlineCodeBackdrop(this._color);
 
-  static const radius = Radius.circular(5);
+  static const radius = Radius.circular(4);
 
   Color get color => _color;
   Color _color;
@@ -129,38 +164,36 @@ class RenderInlineCodeBackdrop extends RenderProxyBox {
       if (ranges.isNotEmpty) {
         final transform = paragraph.getTransformTo(this);
         final paint = Paint()..color = _color;
-        final borderPaint = Paint()
-          ..color = AppColors.border.withValues(alpha: 0.38)
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = 0.75;
         final text = paragraph.text.toPlainText(includeSemanticsLabels: false);
         for (final range in ranges) {
-          // A line may break after the code's leading space: that space alone
-          // at the end of the line above is no code, so it gets no background.
-          final lines = [
-            for (final box in paragraph.getBoxesForSelection(
-              _trimmed(text, range),
-            ))
-              box.toRect(),
-          ];
-          bool onCodeLine(Rect rect) => lines.any(
-            (line) => line.top < rect.bottom && rect.top < line.bottom,
-          );
-          for (final box in paragraph.getBoxesForSelection(range)) {
-            if (!onCodeLine(box.toRect())) continue;
+          final trimmed = _trimmed(text, range);
+          if (trimmed.isCollapsed) continue;
+          final merged = <Rect>[];
+          for (final box in paragraph.getBoxesForSelection(trimmed)) {
+            final rect = box.toRect();
+            if (merged.isNotEmpty &&
+                merged.last.top < rect.bottom &&
+                rect.top < merged.last.bottom) {
+              merged[merged.length - 1] = merged.last.expandToInclude(rect);
+            } else {
+              merged.add(rect);
+            }
+          }
+          for (final boxRect in merged) {
             final raw = MatrixUtils.transformRect(
               transform,
-              box.toRect(),
+              boxRect,
             ).shift(offset);
             final rect = Rect.fromLTRB(
-              raw.left + 1.5,
-              raw.top + 1.5,
-              raw.right - 1.5,
-              raw.bottom - 1.5,
+              raw.left - 3.6,
+              raw.top - 0.5,
+              raw.right + 3.6,
+              raw.bottom + 0.5,
             );
-            final rrect = RRect.fromRectAndRadius(rect, radius);
-            context.canvas.drawRRect(rrect, paint);
-            context.canvas.drawRRect(rrect, borderPaint);
+            context.canvas.drawRRect(
+              RRect.fromRectAndRadius(rect, radius),
+              paint,
+            );
           }
         }
       }

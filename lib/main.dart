@@ -638,6 +638,14 @@ void followSettingsFiles(SettingsFiles files) {
     files.settings,
     () => files.settings[Islands.settingKey],
   );
+  // Settings → Appearance: persistent per-theme color overrides, custom user
+  // themes (`<dataDir>/themes/`), and hidden built-in themes.
+  ThemePaletteOverrides.follow(
+    files.settings,
+    read: (key) => files.settings[key],
+    write: files.settings.update,
+    dataDir: kIsWeb ? '' : DataDirectory.current.path,
+  );
   // Settings → Browser: whether the agents may use the user's browsers.
   BrowserBridge.instance.follow(
     files.settings,

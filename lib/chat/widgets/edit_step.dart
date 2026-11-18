@@ -132,27 +132,21 @@ class _CardState extends State<_Card> {
     super.dispose();
   }
 
-  /// Its scrollbars as the change view's editors' are: square, against the
-  /// edge, in their colors at rest, under the pointer and dragged; a little
-  /// thinner ([_AcrossBar.thickness]).
-  static ScrollbarThemeData _bars(BuildContext context) {
-    final rest = themeColors['scrollbarSlider.background'];
-    final hover = themeColors['scrollbarSlider.hoverBackground'];
-    final active = themeColors['scrollbarSlider.activeBackground'];
-    return ScrollbarTheme.of(context).copyWith(
-      thumbColor: WidgetStateProperty.resolveWith(
-        (states) => states.contains(WidgetState.dragged)
-            ? active
-            : states.contains(WidgetState.hovered)
-            ? hover
-            : rest,
-      ),
-      thickness: const WidgetStatePropertyAll(_AcrossBar.thickness),
-      radius: Radius.zero,
-      crossAxisMargin: 0,
-      mainAxisMargin: 0,
-    );
-  }
+  /// Sleek floating capsule scrollbars for diff cards.
+  static ScrollbarThemeData _bars(BuildContext context) =>
+      ScrollbarTheme.of(context).copyWith(
+        thumbColor: WidgetStateProperty.resolveWith(AppColors.scrollbarThumb),
+        thickness: WidgetStateProperty.resolveWith(
+          (states) =>
+              states.contains(WidgetState.hovered) ||
+                  states.contains(WidgetState.dragged)
+              ? 7.0
+              : 5.0,
+        ),
+        radius: const Radius.circular(999),
+        crossAxisMargin: 2.5,
+        mainAxisMargin: 2.5,
+      );
 
   @override
   Widget build(BuildContext context) =>
@@ -199,9 +193,8 @@ class _AcrossBar extends StatefulWidget {
   final IdeDiffHorizontal editor;
   final bool visible;
 
-  /// Its and the card's own down it: a little thinner than the change
-  /// view's editors' (14 down, 12 across).
-  static const thickness = 10.0;
+  /// Slim capsule bar along the bottom of a diff pane.
+  static const thickness = 7.0;
 
   @override
   State<_AcrossBar> createState() => _AcrossBarState();
@@ -247,14 +240,20 @@ class _AcrossBarState extends State<_AcrossBar> {
                 onHorizontalDragCancel: () => setState(() => _dragging = false),
                 child: Visibility.maintain(
                   visible: widget.visible || _dragging,
-                  child: DecoratedBox(
-                    decoration: BoxDecoration(
-                      color: theme.thumbColor?.resolve({
-                        if (_dragging) WidgetState.dragged,
-                        if (_hovered) WidgetState.hovered,
-                      }),
-                      borderRadius: BorderRadius.all(
-                        theme.radius ?? const Radius.circular(4),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 2.5,
+                      vertical: 1.0,
+                    ),
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        color: theme.thumbColor?.resolve({
+                          if (_dragging) WidgetState.dragged,
+                          if (_hovered) WidgetState.hovered,
+                        }),
+                        borderRadius: const BorderRadius.all(
+                          Radius.circular(999),
+                        ),
                       ),
                     ),
                   ),

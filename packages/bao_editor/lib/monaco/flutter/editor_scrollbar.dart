@@ -279,13 +279,27 @@ class EditorScrollbarPainter extends CustomPainter {
     ScrollbarPart part,
     double opacity,
   ) {
+    final active = dragging == part || hovered == part;
     final color = dragging == part
         ? theme.scrollbarSliderActiveBackground
         : hovered == part
         ? theme.scrollbarSliderHoverBackground
         : theme.scrollbarSliderBackground;
-    canvas.drawRect(
-      rect,
+    final thickness = active ? 7.5 : 5.5;
+    final Rect pill;
+    if (part == ScrollbarPart.vertical) {
+      final vPad = rect.height > 10 ? 2.5 : 0.0;
+      final right = rect.right - 2.5;
+      final left = (right - thickness).clamp(rect.left, right);
+      pill = Rect.fromLTRB(left, rect.top + vPad, right, rect.bottom - vPad);
+    } else {
+      final hPad = rect.width > 10 ? 2.5 : 0.0;
+      final bottom = rect.bottom - 2.5;
+      final top = (bottom - thickness).clamp(rect.top, bottom);
+      pill = Rect.fromLTRB(rect.left + hPad, top, rect.right - hPad, bottom);
+    }
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(pill, const Radius.circular(999)),
       Paint()..color = color.withValues(alpha: color.a * opacity),
     );
   }

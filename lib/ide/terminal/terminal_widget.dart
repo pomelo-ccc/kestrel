@@ -1044,8 +1044,19 @@ class _ScrollbarPainter extends CustomPainter {
         : colors.scrollbarSliderBackground;
     final argb = argbOfRgba(color.rgba);
     final alpha = ((argb >>> 24) * opacity).round();
-    canvas.drawRect(
-      Rect.fromLTWH(0, slider.position, size.width, slider.size),
+    final active = _state._sliderDrag != null || _state._sliderHovered;
+    final thickness = active ? 7.0 : 5.0;
+    final vPad = slider.size > 10 ? 2.5 : 0.0;
+    final right = size.width - 2.0;
+    final left = (right - thickness).clamp(0.0, right);
+    final pill = Rect.fromLTRB(
+      left,
+      slider.position + vPad,
+      right,
+      slider.position + slider.size - vPad,
+    );
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(pill, const Radius.circular(999)),
       Paint()..color = Color((alpha << 24) | (argb & 0xFFFFFF)),
     );
   }
